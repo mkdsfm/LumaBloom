@@ -72,24 +72,32 @@ internal static class BrightnessApplication
                 }
 
                 var sensorMessage = readResult.Message!;
+                var monitorTasks = new List<Task>();
                 foreach (var context in monitorContexts)
                 {
-                    var evaluationResult = context.Processor.Evaluate(sensorMessage.Value);
-                    if (!evaluationResult.ShouldApply)
+                    var task = Task.Run(() =>
                     {
-                        continue;
-                    }
+                        var evaluationResult = context.Processor.Evaluate(sensorMessage.Value);
+                        if (!evaluationResult.ShouldApply)
+                        {
+                            return;
+                        }
 
-                    if (!context.Monitor.TrySetBrightness(evaluationResult.TargetBrightness, out var error))
-                    {
-                        Console.Error.WriteLine(
-                            $"Brightness update failed ({context.Monitor.Source}:{context.Monitor.Name}): {error}");
-                        continue;
-                    }
+                        if (!context.Monitor.TrySetBrightness(evaluationResult.TargetBrightness, out var error))
+                        {
+                            Console.Error.WriteLine(
+                                $"Brightness update failed ({context.Monitor.Source}:{context.Monitor.Name}): {error}");
+                            return ;
+                        }
 
-                    Console.WriteLine(
-                        $"[{DateTime.Now:HH:mm:ss}] {context.Monitor.Source}:{context.Monitor.Name} raw={sensorMessage.Value,4} norm={evaluationResult.Normalized:F3} filt={evaluationResult.Filtered:F3} -> brightness={evaluationResult.TargetBrightness}%");
+                        Console.WriteLine(
+                            $"[{DateTime.Now:HH:mm:ss}] {context.Monitor.Source}:{context.Monitor.Name} raw={sensorMessage.Value,4} norm={evaluationResult.Normalized:F3} filt={evaluationResult.Filtered:F3} -> brightness={evaluationResult.TargetBrightness}%");
+                    }, cancellationTokenSource.Token);
+                    
+                    monitorTasks.Add(task);
                 }
+                
+                Task.WhenAll(monitorTasks);
             }
         }
         finally
@@ -126,18 +134,17 @@ internal static class BrightnessApplication
             attempts++;
 
             var readResult = sensorReader.TryReadMessage();
-            if (readResult.Status == SensorReadStatus.TimeoutOrEmpty ||
-                readResult.Status == SensorReadStatus.InvalidPayload)
+            switch (readResult.Status)
             {
-                continue;
+                case SensorReadStatus.TimeoutOrEmpty or SensorReadStatus.InvalidPayload:
+                    continue;
+                case SensorReadStatus.Error:
+                    Console.WriteLine($"Startup calibration skipped: COM read error ({readResult.Error}).");
+                    return;
+                default:
+                    samples.Add(readResult.Message!.Value);
+                    break;
             }
-            if (readResult.Status == SensorReadStatus.Error)
-            {
-                Console.WriteLine($"Startup calibration skipped: COM read error ({readResult.Error}).");
-                return;
-            }
-
-            samples.Add(readResult.Message!.Value);
         }
 
         if (samples.Count == 0)
