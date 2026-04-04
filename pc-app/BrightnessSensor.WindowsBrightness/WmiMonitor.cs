@@ -1,8 +1,8 @@
 using System.Management;
 
-namespace BrightnessSensor.ConsoleApp.Application;
+namespace BrightnessSensor.WindowsBrightness;
 
-internal sealed class WmiMonitor(string instanceName) : IMonitorBrightness
+public sealed class WmiMonitor(string instanceName) : IMonitorBrightness
 {
     public string Source => "WMI";
 
@@ -21,9 +21,9 @@ internal sealed class WmiMonitor(string instanceName) : IMonitorBrightness
             using var monitorClass = new ManagementClass(scope, new ManagementPath("WmiMonitorBrightness"), null);
             using var instances = monitorClass.GetInstances();
 
-            foreach (var o in instances)
+            foreach (var item in instances)
             {
-                var monitor = (ManagementObject) o;
+                var monitor = (ManagementObject)item;
                 using (monitor)
                 {
                     if (monitor["InstanceName"] is not string name ||
@@ -43,9 +43,9 @@ internal sealed class WmiMonitor(string instanceName) : IMonitorBrightness
             error = "Brightness value not found for WMI monitor.";
             return false;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            error = ex.Message;
+            error = exception.Message;
             return false;
         }
     }
@@ -68,9 +68,9 @@ internal sealed class WmiMonitor(string instanceName) : IMonitorBrightness
             using var monitorClass = new ManagementClass(scope, new ManagementPath("WmiMonitorBrightnessMethods"), null);
             using var instances = monitorClass.GetInstances();
 
-            foreach (var o in instances)
+            foreach (var item in instances)
             {
-                var monitor = (ManagementObject) o;
+                var monitor = (ManagementObject)item;
                 using (monitor)
                 {
                     if (monitor["InstanceName"] is not string name ||
@@ -79,7 +79,6 @@ internal sealed class WmiMonitor(string instanceName) : IMonitorBrightness
                         continue;
                     }
 
-                    // WmiSetBrightness(uint timeout, byte brightness)
                     monitor.InvokeMethod("WmiSetBrightness", [(uint)0, (byte)brightnessPercent]);
                     return true;
                 }
@@ -88,9 +87,9 @@ internal sealed class WmiMonitor(string instanceName) : IMonitorBrightness
             error = "Brightness method not found for WMI monitor.";
             return false;
         }
-        catch (Exception ex)
+        catch (Exception exception)
         {
-            error = ex.Message;
+            error = exception.Message;
             return false;
         }
     }
@@ -108,9 +107,9 @@ internal sealed class WmiMonitor(string instanceName) : IMonitorBrightness
             using var instances = monitorClass.GetInstances();
 
             var names = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (var o in instances)
+            foreach (var item in instances)
             {
-                var monitor = (ManagementObject) o;
+                var monitor = (ManagementObject)item;
                 using (monitor)
                 {
                     if (monitor["InstanceName"] is string name && !string.IsNullOrWhiteSpace(name))

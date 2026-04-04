@@ -23,8 +23,9 @@
 - `pc-app/Program.cs` — точка входа.
 - `pc-app/Application/` — основной сценарий работы приложения.
 - `pc-app/Configuration/` — загрузка и валидация `appsettings.json`.
-- `pc-app/Protocol/` — парсер JSON-сообщений от устройства.
-- `pc-app/Platform/Windows/` — Windows-специфичная работа с яркостью (WMI).
+- `pc-app/BrightnessSensor.BrightnessMath/` — отдельная библиотека с математикой преобразования показаний датчика в яркость экрана.
+- `pc-app/BrightnessSensor.DeviceReading/` — отдельная библиотека чтения данных с устройства и парсинга телеметрии.
+- `pc-app/BrightnessSensor.WindowsBrightness/` — отдельная библиотека Windows-специфичной работы с яркостью мониторов.
 
 ## Что ожидает конфиг
 

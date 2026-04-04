@@ -1,6 +1,6 @@
-namespace BrightnessSensor.ConsoleApp.Application;
+namespace BrightnessSensor.WindowsBrightness;
 
-internal static class MonitorDiscovery
+public static class MonitorDiscovery
 {
     public static IReadOnlyList<IMonitorBrightness> DiscoverMonitors()
     {
@@ -20,7 +20,7 @@ internal static class MonitorDiscovery
             return;
         }
 
-        var grouped = monitors.GroupBy(m => m.Source).ToList();
+        var grouped = monitors.GroupBy(monitor => monitor.Source).ToList();
         foreach (var group in grouped)
         {
             Console.WriteLine($"{group.Key}: detected {group.Count()} monitor(s):");

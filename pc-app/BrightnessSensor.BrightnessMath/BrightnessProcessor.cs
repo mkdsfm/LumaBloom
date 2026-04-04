@@ -1,11 +1,6 @@
-using BrightnessSensor.ConsoleApp.Configuration;
+namespace BrightnessSensor.BrightnessMath;
 
-namespace BrightnessSensor.ConsoleApp.Application;
-
-// Converts raw ADC values to target brightness using normalize + EMA + hysteresis.
-internal sealed class BrightnessProcessor(
-    ProcessingSettings processingSettings,
-    BrightnessSettings brightnessSettings)
+public sealed class BrightnessProcessor(BrightnessComputationSettings settings)
 {
     private double? _emaValue;
     private int? _lastAppliedBrightness;
@@ -16,7 +11,7 @@ internal sealed class BrightnessProcessor(
     {
         var normalized = Normalize(rawAdcValue);
 
-        if (processingSettings.Invert)
+        if (settings.Invert)
         {
             normalized = 1.0 - normalized;
         }
@@ -27,26 +22,25 @@ internal sealed class BrightnessProcessor(
         }
 
         _emaValue ??= normalized;
-        _emaValue = (processingSettings.EmaAlpha * normalized) +
-            ((1.0 - processingSettings.EmaAlpha) * _emaValue.Value);
-        
-        var effectiveValue = processingSettings.Gamma is null
+        _emaValue = (settings.EmaAlpha * normalized) +
+            ((1.0 - settings.EmaAlpha) * _emaValue.Value);
+
+        var effectiveValue = settings.Gamma is null
             ? _emaValue.Value
-            : Math.Pow(_emaValue.Value, processingSettings.Gamma.Value);
+            : Math.Pow(_emaValue.Value, settings.Gamma.Value);
 
         var targetBrightness = (int)Math.Round(
-            brightnessSettings.MinPercent +
-            (effectiveValue * (brightnessSettings.MaxPercent - brightnessSettings.MinPercent)),
+            settings.MinBrightnessPercent +
+            (effectiveValue * (settings.MaxBrightnessPercent - settings.MinBrightnessPercent)),
             MidpointRounding.AwayFromZero);
 
         targetBrightness = Math.Clamp(
             targetBrightness,
-            brightnessSettings.MinPercent,
-            brightnessSettings.MaxPercent);
+            settings.MinBrightnessPercent,
+            settings.MaxBrightnessPercent);
 
         if (_lastAppliedBrightness.HasValue &&
-            Math.Abs(targetBrightness - _lastAppliedBrightness.Value) <
-            processingSettings.HysteresisPercent)
+            Math.Abs(targetBrightness - _lastAppliedBrightness.Value) < settings.HysteresisPercent)
         {
             return new EvaluationResult(
                 ShouldApply: false,
@@ -75,28 +69,31 @@ internal sealed class BrightnessProcessor(
 
         var expectedBrightness = Math.Clamp(
             currentBrightnessPercent,
-            brightnessSettings.MinPercent,
-            brightnessSettings.MaxPercent);
+            settings.MinBrightnessPercent,
+            settings.MaxBrightnessPercent);
 
-        var expectedEffective = (expectedBrightness - brightnessSettings.MinPercent) /
-            (double)(brightnessSettings.MaxPercent - brightnessSettings.MinPercent);
+        var brightnessRange = settings.MaxBrightnessPercent - settings.MinBrightnessPercent;
+        if (brightnessRange <= 0)
+        {
+            error = "Brightness range must be greater than 0.";
+            return false;
+        }
 
+        var expectedEffective = (expectedBrightness - settings.MinBrightnessPercent) / (double)brightnessRange;
         expectedEffective = Math.Clamp(expectedEffective, 0.0, 1.0);
 
-        var expectedPreGamma = processingSettings.Gamma is null
+        var expectedPreGamma = settings.Gamma is null
             ? expectedEffective
-            : Math.Pow(expectedEffective, 1.0 / processingSettings.Gamma.Value);
+            : Math.Pow(expectedEffective, 1.0 / settings.Gamma.Value);
 
         var normalized = Normalize(rawAdcValue);
-        if (processingSettings.Invert)
+        if (settings.Invert)
         {
             normalized = 1.0 - normalized;
         }
 
         _normalizedOffset = expectedPreGamma - normalized;
         _hasCalibration = true;
-
-        // Seed EMA and last applied value so the first update doesn't jump away from the baseline.
         _emaValue = expectedPreGamma;
         _lastAppliedBrightness = expectedBrightness;
 
@@ -105,12 +102,7 @@ internal sealed class BrightnessProcessor(
 
     private double Normalize(int rawAdcValue)
     {
-        var clampedAdcValue = Math.Clamp(
-            rawAdcValue,
-            processingSettings.AdcMin,
-            processingSettings.AdcMax);
-
-        return (clampedAdcValue - processingSettings.AdcMin) /
-            (double)(processingSettings.AdcMax - processingSettings.AdcMin);
+        var clampedAdcValue = Math.Clamp(rawAdcValue, settings.AdcMin, settings.AdcMax);
+        return (clampedAdcValue - settings.AdcMin) / (double)(settings.AdcMax - settings.AdcMin);
     }
 }

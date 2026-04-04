@@ -1,9 +1,8 @@
 using System.Text.Json;
 
-namespace BrightnessSensor.ConsoleApp.Protocol;
+namespace BrightnessSensor.DeviceReading;
 
-// Parses one JSON line from serial stream into SensorMessage.
-internal static class SensorMessageParser
+public static class SensorMessageParser
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {

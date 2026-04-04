@@ -1,6 +1,7 @@
-using System.IO.Ports;
 using BrightnessSensor.ConsoleApp.Configuration;
-using BrightnessSensor.ConsoleApp.Protocol;
+using BrightnessSensor.BrightnessMath;
+using BrightnessSensor.DeviceReading;
+using BrightnessSensor.WindowsBrightness;
 
 namespace BrightnessSensor.ConsoleApp.Application;
 
@@ -9,13 +10,11 @@ internal static class BrightnessApplication
 {
     public static int Run(AppConfig config)
     {
-        using var serialPort = new SerialPort(config.Serial.PortName, config.Serial.BaudRate);
-        serialPort.NewLine = "\n";
-        serialPort.ReadTimeout = 1500;
+        using var sensorReader = new SerialSensorReader(config.Serial.PortName, config.Serial.BaudRate);
 
         try
         {
-            serialPort.Open();
+            sensorReader.Open();
         }
         catch (Exception exception)
         {
@@ -43,28 +42,27 @@ internal static class BrightnessApplication
             var monitorContexts = monitors
                 .Select(monitor => new MonitorContext(
                     monitor,
-                    new BrightnessProcessor(config.Processing, config.Brightness)))
+                    new BrightnessProcessor(CreateBrightnessSettings(config))))
                 .ToList();
 
-            TryStartupCalibration(serialPort, monitorContexts, config.Calibration);
+            TryStartupCalibration(sensorReader, monitorContexts, config.Calibration);
 
             while (!cancellationTokenSource.IsCancellationRequested)
             {
-                var readStatus = TryReadLine(serialPort, out var line, out var readError);
-                if (readStatus == ReadStatus.TimeoutOrEmpty)
+                var readResult = sensorReader.TryReadMessage();
+                if (readResult.Status == SensorReadStatus.TimeoutOrEmpty)
                 {
                     Thread.Sleep(10);
                     continue;
                 }
-                if (readStatus == ReadStatus.Error)
+                if (readResult.Status == SensorReadStatus.Error)
                 {
-                    Console.Error.WriteLine($"COM read error: {readError}");
+                    Console.Error.WriteLine($"COM read error: {readResult.Error}");
                     return 1;
                 }
-
-                if (!SensorMessageParser.TryParse(line!, out var sensorMessage))
+                if (readResult.Status == SensorReadStatus.InvalidPayload)
                 {
-                    Console.WriteLine($"Skipping invalid JSON: {line}");
+                    Console.WriteLine($"Skipping invalid JSON: {readResult.RawLine}");
                     continue;
                 }
 
@@ -73,6 +71,7 @@ internal static class BrightnessApplication
                     continue;
                 }
 
+                var sensorMessage = readResult.Message!;
                 foreach (var context in monitorContexts)
                 {
                     var evaluationResult = context.Processor.Evaluate(sensorMessage.Value);
@@ -96,14 +95,13 @@ internal static class BrightnessApplication
         finally
         {
             Console.CancelKeyPress -= handler;
-            serialPort.Close();
         }
 
         return 0;
     }
 
     private static void TryStartupCalibration(
-        SerialPort serialPort,
+        SerialSensorReader sensorReader,
         IReadOnlyList<MonitorContext> monitorContexts,
         CalibrationSettings calibrationSettings)
     {
@@ -127,23 +125,19 @@ internal static class BrightnessApplication
         {
             attempts++;
 
-            var readStatus = TryReadLine(serialPort, out var line, out var readError);
-            if (readStatus == ReadStatus.TimeoutOrEmpty)
+            var readResult = sensorReader.TryReadMessage();
+            if (readResult.Status == SensorReadStatus.TimeoutOrEmpty ||
+                readResult.Status == SensorReadStatus.InvalidPayload)
             {
                 continue;
             }
-            if (readStatus == ReadStatus.Error)
+            if (readResult.Status == SensorReadStatus.Error)
             {
-                Console.WriteLine($"Startup calibration skipped: COM read error ({readError}).");
+                Console.WriteLine($"Startup calibration skipped: COM read error ({readResult.Error}).");
                 return;
             }
 
-            if (!SensorMessageParser.TryParse(line!, out var sensorMessage))
-            {
-                continue;
-            }
-
-            samples.Add(sensorMessage.Value);
+            samples.Add(readResult.Message!.Value);
         }
 
         if (samples.Count == 0)
@@ -182,36 +176,17 @@ internal static class BrightnessApplication
         }
     }
 
-    private static ReadStatus TryReadLine(
-        SerialPort serialPort,
-        out string? line,
-        out string? error)
+    private static BrightnessComputationSettings CreateBrightnessSettings(AppConfig config)
     {
-        try
-        {
-            line = serialPort.ReadLine().Trim();
-            error = null;
-            return string.IsNullOrWhiteSpace(line) ? ReadStatus.TimeoutOrEmpty : ReadStatus.Success;
-        }
-        catch (TimeoutException)
-        {
-            line = null;
-            error = null;
-            return ReadStatus.TimeoutOrEmpty;
-        }
-        catch (Exception exception)
-        {
-            line = null;
-            error = exception.Message;
-            return ReadStatus.Error;
-        }
-    }
-
-    private enum ReadStatus
-    {
-        Success,
-        TimeoutOrEmpty,
-        Error
+        return new BrightnessComputationSettings(
+            config.Processing.AdcMin,
+            config.Processing.AdcMax,
+            config.Processing.Invert,
+            config.Processing.EmaAlpha,
+            config.Processing.HysteresisPercent,
+            config.Processing.Gamma,
+            config.Brightness.MinPercent,
+            config.Brightness.MaxPercent);
     }
 
     private sealed record MonitorContext(

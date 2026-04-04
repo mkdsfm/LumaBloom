@@ -1,6 +1,6 @@
-namespace BrightnessSensor.ConsoleApp.Application;
+namespace BrightnessSensor.WindowsBrightness;
 
-internal interface IMonitorBrightness
+public interface IMonitorBrightness
 {
     string Source { get; }
 

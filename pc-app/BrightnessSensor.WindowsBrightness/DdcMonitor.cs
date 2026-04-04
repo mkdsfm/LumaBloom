@@ -1,8 +1,8 @@
 using System.Runtime.InteropServices;
 
-namespace BrightnessSensor.ConsoleApp.Application;
+namespace BrightnessSensor.WindowsBrightness;
 
-internal sealed class DdcMonitor(int index, string description) : IMonitorBrightness
+public sealed class DdcMonitor(int index, string description) : IMonitorBrightness
 {
     public string Source => "DDC/CI";
 
