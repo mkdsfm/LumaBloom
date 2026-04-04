@@ -4,7 +4,7 @@
 
 ## Состав
 
-- `firmware/` — PlatformIO-проект для ESP32-C3.
+- `firmware/` — Arduino-проект для ESP32-C3.
 - `pc-app/` — .NET-приложение только для Windows: читает JSON из COM-порта и управляет яркостью через WMI.
 - `docs/` — подключение, протокол и инструкции запуска.
 - `appsettings.example.json` — пример конфигурации для ПК-приложения.
