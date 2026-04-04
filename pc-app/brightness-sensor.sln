@@ -4,7 +4,7 @@ VisualStudioVersion = 17.5.2.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "pc-app", "pc-app", "{CC13ADA1-7B5C-133E-DA9A-1B654098A474}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BrightnessSensor.App", "BrightnessSensor.App.csproj", "{29B07CA6-C95B-FAC1-37CA-8526815B5960}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BrightnessSensor.ConsoleApp", "BrightnessSensor.ConsoleApp.csproj", "{29B07CA6-C95B-FAC1-37CA-8526815B5960}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

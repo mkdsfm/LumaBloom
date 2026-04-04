@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace BrightnessSensor.App.Configuration;
+namespace BrightnessSensor.ConsoleApp.Configuration;
 
 // Serial communication settings for reading telemetry from ESP32.
 internal sealed class SerialSettings

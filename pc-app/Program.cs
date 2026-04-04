@@ -1,8 +1,8 @@
 using System.Text;
-using BrightnessSensor.App.Application;
-using BrightnessSensor.App.Configuration;
+using BrightnessSensor.ConsoleApp.Application;
+using BrightnessSensor.ConsoleApp.Configuration;
 
-namespace BrightnessSensor.App;
+namespace BrightnessSensor.ConsoleApp;
 
 // Entry point: initializes console encoding and starts the Windows app loop.
 internal static class Program

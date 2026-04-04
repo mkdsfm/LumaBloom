@@ -1,6 +1,6 @@
-using BrightnessSensor.App.Configuration;
+using BrightnessSensor.ConsoleApp.Configuration;
 
-namespace BrightnessSensor.App.Application;
+namespace BrightnessSensor.ConsoleApp.Application;
 
 // Converts raw ADC values to target brightness using normalize + EMA + hysteresis.
 internal sealed class BrightnessProcessor(

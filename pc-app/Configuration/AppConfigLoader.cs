@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace BrightnessSensor.App.Configuration;
+namespace BrightnessSensor.ConsoleApp.Configuration;
 
 // Loads appsettings.json and validates required ranges/fields.
 internal static class AppConfigLoader

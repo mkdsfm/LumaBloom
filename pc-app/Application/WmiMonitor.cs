@@ -1,6 +1,6 @@
 using System.Management;
 
-namespace BrightnessSensor.App.Application;
+namespace BrightnessSensor.ConsoleApp.Application;
 
 internal sealed class WmiMonitor(string instanceName) : IMonitorBrightness
 {

@@ -1,8 +1,8 @@
 using System.IO.Ports;
-using BrightnessSensor.App.Configuration;
-using BrightnessSensor.App.Protocol;
+using BrightnessSensor.ConsoleApp.Configuration;
+using BrightnessSensor.ConsoleApp.Protocol;
 
-namespace BrightnessSensor.App.Application;
+namespace BrightnessSensor.ConsoleApp.Application;
 
 // Orchestrates the app flow: config load, serial read loop, processing, and brightness updates.
 internal static class BrightnessApplication

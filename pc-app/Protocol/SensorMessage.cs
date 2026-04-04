@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace BrightnessSensor.App.Protocol;
+namespace BrightnessSensor.ConsoleApp.Protocol;
 
 // Incoming telemetry line model from ESP32 JSON protocol.
 internal sealed class SensorMessage

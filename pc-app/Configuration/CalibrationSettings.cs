@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace BrightnessSensor.App.Configuration;
+namespace BrightnessSensor.ConsoleApp.Configuration;
 
 // Startup calibration parameters: baseline alignment between screen brightness and sensor.
 internal sealed class CalibrationSettings

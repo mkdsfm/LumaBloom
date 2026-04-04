@@ -1,4 +1,4 @@
-namespace BrightnessSensor.App.Application;
+namespace BrightnessSensor.ConsoleApp.Application;
 
 internal interface IMonitorBrightness
 {

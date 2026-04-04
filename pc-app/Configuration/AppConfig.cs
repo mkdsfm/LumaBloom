@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace BrightnessSensor.App.Configuration;
+namespace BrightnessSensor.ConsoleApp.Configuration;
 
 // Root configuration model loaded from appsettings.json.
 internal sealed class AppConfig
