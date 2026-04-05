@@ -1,6 +1,8 @@
 using BrightnessSensor.ConsoleApp.Configuration;
 using BrightnessSensor.BrightnessMath;
 using BrightnessSensor.DeviceReading;
+using BrightnessSensor.DeviceReading.Discovery;
+using BrightnessSensor.DeviceReading.Reading;
 using BrightnessSensor.WindowsBrightness;
 
 namespace BrightnessSensor.ConsoleApp.Application;
@@ -10,7 +12,19 @@ internal static class BrightnessApplication
 {
     public static int Run(AppConfig config)
     {
-        using var sensorReader = new SerialSensorReader(config.Serial.PortName, config.Serial.BaudRate);
+        var discovery = new SerialPortDiscovery(
+            config.Serial.DeviceId,
+            config.Serial.BaudRate,
+            config.Serial.DiscoveryTimeoutMs);
+        var discoveryResult = discovery.ResolveByDeviceId();
+        if (discoveryResult.Status != SerialPortDiscoveryStatus.Success || string.IsNullOrWhiteSpace(discoveryResult.PortName))
+        {
+            Console.Error.WriteLine(discoveryResult.Error ?? "Failed to resolve COM port.");
+            return 1;
+        }
+
+        var portName = discoveryResult.PortName;
+        using var sensorReader = new SerialSensorReader(portName, config.Serial.BaudRate);
 
         try
         {
@@ -18,7 +32,7 @@ internal static class BrightnessApplication
         }
         catch (Exception exception)
         {
-            Console.Error.WriteLine($"Failed to open COM port: {exception.Message}");
+            Console.Error.WriteLine($"Failed to open resolved COM port '{portName}': {exception.Message}");
             return 1;
         }
 
@@ -33,7 +47,8 @@ internal static class BrightnessApplication
         
         try
         {
-            Console.WriteLine($"Port opened: {config.Serial.PortName} @ {config.Serial.BaudRate}");
+            Console.WriteLine($"Resolved port: {portName} for deviceId={config.Serial.DeviceId}");
+            Console.WriteLine($"Port opened: {portName} @ {config.Serial.BaudRate}");
             Console.WriteLine("Running. Press Ctrl+C to stop.");
 
             var monitors = MonitorDiscovery.DiscoverMonitors();

@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace BrightnessSensor.DeviceReading;
+namespace BrightnessSensor.DeviceReading.Models;
 
 public static class SensorMessageParser
 {
@@ -23,7 +23,12 @@ public static class SensorMessageParser
             message = parsed;
             return true;
         }
-        catch
+        catch (JsonException)
+        {
+            message = new SensorMessage();
+            return false;
+        }
+        catch (NotSupportedException)
         {
             message = new SensorMessage();
             return false;

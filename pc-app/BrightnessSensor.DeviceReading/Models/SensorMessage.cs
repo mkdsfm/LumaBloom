@@ -1,6 +1,6 @@
 using System.Text.Json.Serialization;
 
-namespace BrightnessSensor.DeviceReading;
+namespace BrightnessSensor.DeviceReading.Models;
 
 public sealed class SensorMessage
 {

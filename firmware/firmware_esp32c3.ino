@@ -2,7 +2,7 @@
 
 constexpr int kLightSensorPin = 0;               // GPIO0 (ADC)
 constexpr unsigned long kReadIntervalMs = 500;   // period between measurements
-constexpr const char *kDeviceId = "esp32c3-01";
+constexpr const char *kDeviceId = "esp32c3-01"; // Must match serial.deviceId in the PC app config.
 constexpr const char *kSensorId = "light0";
 
 unsigned long lastReadAtMs = 0;

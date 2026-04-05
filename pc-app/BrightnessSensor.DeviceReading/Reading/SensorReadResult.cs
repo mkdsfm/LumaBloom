@@ -1,4 +1,6 @@
-namespace BrightnessSensor.DeviceReading;
+using BrightnessSensor.DeviceReading.Models;
+
+namespace BrightnessSensor.DeviceReading.Reading;
 
 public readonly record struct SensorReadResult(
     SensorReadStatus Status,

@@ -1,4 +1,4 @@
-namespace BrightnessSensor.DeviceReading;
+namespace BrightnessSensor.DeviceReading.Reading;
 
 public enum SensorReadStatus
 {

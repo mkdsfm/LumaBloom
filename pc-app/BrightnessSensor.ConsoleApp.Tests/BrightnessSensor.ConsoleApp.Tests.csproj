@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\AppConfig.cs" Link="ConsoleApp.Configuration\AppConfig.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\AppConfigLoader.cs" Link="ConsoleApp.Configuration\AppConfigLoader.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\BrightnessSettings.cs" Link="ConsoleApp.Configuration\BrightnessSettings.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\CalibrationSettings.cs" Link="ConsoleApp.Configuration\CalibrationSettings.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\ProcessingSettings.cs" Link="ConsoleApp.Configuration\ProcessingSettings.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\SerialSettings.cs" Link="ConsoleApp.Configuration\SerialSettings.cs" />
+  </ItemGroup>
+</Project>

@@ -35,14 +35,19 @@ internal static class AppConfigLoader
 
     private static void Validate(AppConfig config)
     {
-        if (string.IsNullOrWhiteSpace(config.Serial.PortName))
+        if (string.IsNullOrWhiteSpace(config.Serial.DeviceId))
         {
-            throw new InvalidOperationException("serial.portName is required.");
+            throw new InvalidOperationException("serial.deviceId is required.");
         }
 
         if (config.Serial.BaudRate <= 0)
         {
             throw new InvalidOperationException("serial.baudRate must be greater than 0.");
+        }
+
+        if (config.Serial.DiscoveryTimeoutMs <= 0)
+        {
+            throw new InvalidOperationException("serial.discoveryTimeoutMs must be greater than 0.");
         }
 
         if (config.Processing.AdcMax <= config.Processing.AdcMin)

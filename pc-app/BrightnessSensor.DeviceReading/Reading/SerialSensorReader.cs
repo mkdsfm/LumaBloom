@@ -1,15 +1,12 @@
 using System.IO.Ports;
+using BrightnessSensor.DeviceReading.Models;
 
-namespace BrightnessSensor.DeviceReading;
+namespace BrightnessSensor.DeviceReading.Reading;
 
 public sealed class SerialSensorReader(string portName, int baudRate, int readTimeoutMs = 1500, string newLine = "\n")
     : IDisposable
 {
-    private readonly SerialPort _serialPort = new(portName, baudRate)
-    {
-        NewLine = newLine,
-        ReadTimeout = readTimeoutMs
-    };
+    private readonly SerialPort _serialPort = CreateSerialPort(portName, baudRate, readTimeoutMs, newLine);
 
     public void Open()
     {
@@ -46,5 +43,31 @@ public sealed class SerialSensorReader(string portName, int baudRate, int readTi
     public void Dispose()
     {
         _serialPort.Dispose();
+    }
+
+    private static SerialPort CreateSerialPort(
+        string portName,
+        int baudRate,
+        int readTimeoutMs,
+        string newLine)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(portName);
+        ArgumentException.ThrowIfNullOrEmpty(newLine);
+
+        if (baudRate <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(baudRate), baudRate, "Baud rate must be greater than zero.");
+        }
+
+        if (readTimeoutMs <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(readTimeoutMs), readTimeoutMs, "Read timeout must be greater than zero.");
+        }
+
+        return new SerialPort(portName, baudRate)
+        {
+            NewLine = newLine,
+            ReadTimeout = readTimeoutMs
+        };
     }
 }

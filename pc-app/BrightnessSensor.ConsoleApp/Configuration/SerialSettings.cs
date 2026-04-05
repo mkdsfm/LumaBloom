@@ -2,7 +2,7 @@ using System.Text.Json.Serialization;
 
 namespace BrightnessSensor.ConsoleApp.Configuration;
 
-// Serial communication settings for reading telemetry from ESP32.
+// Serial discovery and communication settings for reading telemetry from ESP32.
 internal sealed class SerialSettings
 {
     /// <summary>
@@ -10,8 +10,8 @@ internal sealed class SerialSettings
     /// Влияет на результат напрямую: если указан неверный порт, приложение не получит данные
     /// и яркость не будет обновляться.
     /// </summary>
-    [JsonPropertyName("portName")]
-    public required string PortName { get; init; }
+    [JsonPropertyName("deviceId")]
+    public string DeviceId { get; init; } = string.Empty;
 
     /// <summary>
     /// Скорость последовательного порта.
@@ -20,4 +20,10 @@ internal sealed class SerialSettings
     /// </summary>
     [JsonPropertyName("baudRate")]
     public int BaudRate { get; init; } = 115200;
+
+    /// <summary>
+    /// Maximum time spent probing one COM port during discovery.
+    /// </summary>
+    [JsonPropertyName("discoveryTimeoutMs")]
+    public int DiscoveryTimeoutMs { get; init; } = 2500;
 }
