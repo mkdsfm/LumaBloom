@@ -403,6 +403,7 @@ FodyWeavers.xsd
 !.vscode/launch.json
 !.vscode/extensions.json
 !.vscode/*.code-snippets
+**/.vscode/settings.json
 
 # Local History for Visual Studio Code
 .history/
@@ -435,3 +436,33 @@ firmware/.pio/
 firmware/.pioenvs/
 firmware/.piolibdeps/
 pc-app/appsettings.json
+
+# ESP-IDF generated files
+**/build/
+**/sdkconfig
+**/sdkconfig.old
+**/managed_components/
+**/dependencies.lock
+**/.component_hash
+**/flasher_args.json
+**/flash_args
+**/flash_app_args
+**/flash_bootloader_args
+**/flash_project_args
+**/bootloader-flash_args
+**/partition-table-flash_args
+**/app-flash_args
+**/project_description.json
+**/compile_commands.json
+**/config.env
+**/CMakeCache.txt
+**/cmake_install.cmake
+**/.ninja_deps
+**/.ninja_log
+**/.bin_timestamp
+**/kconfigs.in
+**/kconfigs_projbuild.in
+**/ldgen_libraries
+**/ldgen_libraries.in
+**/x509_crt_bundle.S
+firmware/firmware_esp32c6/release/

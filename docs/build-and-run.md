@@ -44,6 +44,58 @@
 
 Ожидаемый вывод монитора: JSON-строки с полями `deviceId`, `sensorId`, `ts`, `value`.
 
+## Firmware (ESP32-C6, ESP-IDF, BH1750 + LCD 1.47)
+
+Требования:
+
+- ESP-IDF 5.x
+- Плата Waveshare `ESP32-C6-LCD-1.47`
+- Датчик `BH1750`
+
+Подключение BH1750 по умолчанию в проекте:
+
+- `BH1750 VCC` -> `3V3`
+- `BH1750 GND` -> `GND`
+- `BH1750 SDA` -> `GPIO20`
+- `BH1750 SCL` -> `GPIO23`
+- `BH1750 ADDR` -> `GND` или не подключать, чтобы использовать адрес `0x23`
+
+Если вы подключили датчик к другим GPIO, поменяйте константы в `firmware/firmware_esp32c6/main/app_config.h`.
+
+Шаги:
+
+1. Откройте терминал ESP-IDF.
+2. Перейдите в папку `firmware/firmware_esp32c6`.
+3. Установите target:
+
+```powershell
+idf.py set-target esp32c6
+```
+
+4. При необходимости откройте конфигурацию:
+
+```powershell
+idf.py menuconfig
+```
+
+5. Соберите проект:
+
+```powershell
+idf.py build
+```
+
+6. Прошейте и откройте монитор:
+
+```powershell
+idf.py -p COMx flash monitor
+```
+
+Что должно получиться:
+
+- на LCD отображаются `deviceId`, `lux`, `value`, `status`;
+- в монитор идут JSON-строки с полями `deviceId`, `sensorId`, `ts`, `value`;
+- Windows-приложение из `pc-app/` может работать с новым устройством по тому же контракту.
+
 ## PC application (.NET)
 
 Требования:
@@ -53,9 +105,10 @@
 
 Подготовка:
 
-1. Откройте `pc-app/appsettings.json`.
-2. Укажите `serial.deviceId`, совпадающий со значением `kDeviceId` в `firmware/firmware_esp32c3.ino`.
-3. При необходимости настройте `serial.discoveryTimeoutMs`, диапазон ADC, инверсию, EMA и гистерезис.
+1. Создайте `pc-app/appsettings.json` на основе подходящего примера:
+   `../appsettings.example.json` для ESP32-C3 или `appsettings.esp32c6.example.json` для ESP32-C6 + BH1750.
+2. Укажите `serial.deviceId`, совпадающий со значением `kDeviceId` в `firmware/firmware_esp32c3.ino` или `APP_DEVICE_ID` в `firmware/firmware_esp32c6/main/app_config.h`.
+3. При необходимости настройте `serial.discoveryTimeoutMs`, диапазон входных значений, инверсию, EMA и гистерезис.
 
 Запуск (из папки `pc-app/`):
 
@@ -65,5 +118,10 @@ dotnet run
 ```
 
 Приложение автоматически находит COM-порт по `deviceId`, читает телеметрию, вычисляет целевую яркость и устанавливает её через WMI для встроенного дисплея.
+
+Подсказка по диапазону `processing`:
+
+- для ESP32-C3 используйте диапазон под ADC, например `0..4095`;
+- для ESP32-C6 с BH1750 используйте диапазон под ожидаемые lux-значения в вашей среде.
 
 Важно: реализация в `pc-app/` предназначена только для Windows. Для других ОС нужно отдельное приложение, которое поддерживает тот же контракт обмена с устройством (JSON-строки по протоколу из `docs/protocol.md`).
