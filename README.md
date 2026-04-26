@@ -4,7 +4,7 @@
 
 ## Состав
 
-- `firmware/firmware_esp32c3.ino` — Arduino-прошивка для ESP32-C3 с аналоговым датчиком.
+- `firmware/firmware_esp32c3/` — Arduino-прошивка для ESP32-C3 и инструкция по её сборке/прошивке.
 - `firmware/firmware_esp32c6/` — ESP-IDF-проект для Waveshare ESP32-C6-LCD-1.47 с BH1750 и LCD.
 
 - `pc-app/` — .NET-приложение только для Windows: читает JSON из COM-порта и управляет яркостью через WMI.

@@ -34,7 +34,7 @@
 
 Шаги:
 
-1. Откройте файл `firmware/firmware_esp32c3.ino` в Arduino IDE.
+1. Откройте файл `firmware/firmware_esp32c3/firmware_esp32c3.ino` в Arduino IDE.
 2. Выберите плату ESP32-C3 в меню **Tools -> Board**.
 3. Выберите COM-порт устройства в меню **Tools -> Port**.
 4. Установите USB CDC on Boot  в меню **Tools -> Port**.
@@ -43,6 +43,10 @@
 7. Откройте **Serial Monitor** и выставьте скорость `115200`.
 
 Ожидаемый вывод монитора: JSON-строки с полями `deviceId`, `sensorId`, `ts`, `value`.
+
+Подробная инструкция, включая `arduino-cli` и сборку бинарников для релиза:
+
+- `firmware/firmware_esp32c3/README.md`
 
 ## Firmware (ESP32-C6, ESP-IDF, BH1750 + LCD 1.47)
 
@@ -107,7 +111,7 @@ idf.py -p COMx flash monitor
 
 1. Создайте `pc-app/appsettings.json` на основе подходящего примера:
    `../appsettings.example.json` для ESP32-C3 или `appsettings.esp32c6.example.json` для ESP32-C6 + BH1750.
-2. Укажите `serial.deviceId`, совпадающий со значением `kDeviceId` в `firmware/firmware_esp32c3.ino` или `APP_DEVICE_ID` в `firmware/firmware_esp32c6/main/app_config.h`.
+2. Укажите `serial.deviceId`, совпадающий со значением `kDeviceId` в `firmware/firmware_esp32c3/firmware_esp32c3.ino` или `APP_DEVICE_ID` в `firmware/firmware_esp32c6/main/app_config.h`.
 3. При необходимости настройте `serial.discoveryTimeoutMs`, диапазон входных значений, инверсию, EMA и гистерезис.
 
 Запуск (из папки `pc-app/`):

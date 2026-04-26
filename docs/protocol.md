@@ -20,7 +20,7 @@
 
 ## Семантика `value`
 
-- Для `firmware/firmware_esp32c3.ino` поле `value` содержит сырое значение ADC в диапазоне `0..4095`.
+- Для `firmware/firmware_esp32c3/firmware_esp32c3.ino` поле `value` содержит сырое значение ADC в диапазоне `0..4095`.
 - Для `firmware/firmware_esp32c6/` поле `value` содержит `lux`, округлённый до `int`.
 
 ## Разделитель сообщений
