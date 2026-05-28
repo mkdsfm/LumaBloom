@@ -48,23 +48,21 @@
 
 - `firmware/firmware_esp32c3/README.md`
 
-## Firmware (ESP32-C6, ESP-IDF, BH1750 + LCD 1.47)
+## Firmware (ESP32-C6, ESP-IDF, KY-018 + LCD 1.47)
 
 Требования:
 
 - ESP-IDF 5.x
 - Плата Waveshare `ESP32-C6-LCD-1.47`
-- Датчик `BH1750`
+- Датчик `KY-018`
 
-Подключение BH1750 по умолчанию в проекте:
+Подключение KY-018 по умолчанию в проекте:
 
-- `BH1750 VCC` -> `3V3`
-- `BH1750 GND` -> `GND`
-- `BH1750 SDA` -> `GPIO20`
-- `BH1750 SCL` -> `GPIO23`
-- `BH1750 ADDR` -> `GND` или не подключать, чтобы использовать адрес `0x23`
+- `KY-018 VCC` -> `3V3`
+- `KY-018 GND` -> `GND`
+- `KY-018 AO` -> `GPIO0` (ADC)
 
-Если вы подключили датчик к другим GPIO, поменяйте константы в `firmware/firmware_esp32c6/main/app_config.h`.
+Если вы подключили датчик к другому ADC-пину, поменяйте константы в `firmware/firmware_esp32c6/main/app_config.h`.
 
 Шаги:
 
@@ -96,7 +94,7 @@ idf.py -p COMx flash monitor
 
 Что должно получиться:
 
-- на LCD отображаются `deviceId`, `lux`, `value`, `status`;
+- на LCD отображаются `deviceId`, `adc`, `value`, `status`;
 - в монитор идут JSON-строки с полями `deviceId`, `sensorId`, `ts`, `value`;
 - Windows-приложение из `pc-app/` может работать с новым устройством по тому же контракту.
 
@@ -110,7 +108,7 @@ idf.py -p COMx flash monitor
 Подготовка:
 
 1. Создайте `pc-app/appsettings.json` на основе подходящего примера:
-   `../appsettings.example.json` для ESP32-C3 или `appsettings.esp32c6.example.json` для ESP32-C6 + BH1750.
+   `../appsettings.example.json` для ESP32-C3 или `appsettings.esp32c6.example.json` для ESP32-C6 + KY-018.
 2. Укажите `serial.deviceId`, совпадающий со значением `kDeviceId` в `firmware/firmware_esp32c3/firmware_esp32c3.ino` или `APP_DEVICE_ID` в `firmware/firmware_esp32c6/main/app_config.h`.
 3. При необходимости настройте `serial.discoveryTimeoutMs`, диапазон входных значений, инверсию, EMA и гистерезис.
 
@@ -126,6 +124,6 @@ dotnet run
 Подсказка по диапазону `processing`:
 
 - для ESP32-C3 используйте диапазон под ADC, например `0..4095`;
-- для ESP32-C6 с BH1750 используйте диапазон под ожидаемые lux-значения в вашей среде.
+- для ESP32-C6 с KY-018 используйте диапазон сырого ADC, обычно `0..4095`.
 
 Важно: реализация в `pc-app/` предназначена только для Windows. Для других ОС нужно отдельное приложение, которое поддерживает тот же контракт обмена с устройством (JSON-строки по протоколу из `docs/protocol.md`).

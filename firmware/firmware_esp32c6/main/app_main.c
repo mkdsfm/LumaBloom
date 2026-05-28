@@ -12,7 +12,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/semphr.h"
 #include "freertos/task.h"
-#include "sensor_bh1750.h"
+#include "sensor_ky018.h"
 #include "telemetry_serial.h"
 
 static const char *TAG = "app_main";
@@ -26,7 +26,7 @@ typedef struct {
 static app_state_t s_app_state = {
     .latest_reading = {
         .ts_ms = 0,
-        .lux = 0.0f,
+        .raw_adc = 0,
         .value_for_pc = 0,
         .valid = false,
     },
@@ -65,33 +65,33 @@ static void app_state_read(device_reading_t *reading, char *status_text, size_t 
 
 static void sensor_task(void *arg)
 {
-    sensor_bh1750_t *sensor = (sensor_bh1750_t *)arg;
+    sensor_ky018_t *sensor = (sensor_ky018_t *)arg;
 
     while (true) {
         device_reading_t reading = {
             .ts_ms = now_ms(),
-            .lux = 0.0f,
+            .raw_adc = 0,
             .value_for_pc = 0,
             .valid = false,
         };
 
         if (!sensor->initialized) {
-            esp_err_t init_err = sensor_bh1750_init(sensor);
+            esp_err_t init_err = sensor_ky018_init(sensor);
             if (init_err != ESP_OK) {
-                ESP_LOGE(TAG, "sensor_bh1750_init retry failed: %s", esp_err_to_name(init_err));
+                ESP_LOGE(TAG, "sensor_ky018_init retry failed: %s", esp_err_to_name(init_err));
                 app_state_write(&reading, "INIT ERR");
                 vTaskDelay(pdMS_TO_TICKS(APP_READ_INTERVAL_MS));
                 continue;
             }
         }
 
-        esp_err_t err = sensor_bh1750_read(sensor, &reading);
+        esp_err_t err = sensor_ky018_read(sensor, &reading);
         if (err == ESP_OK) {
             reading.ts_ms = now_ms();
             app_state_write(&reading, "OK");
             telemetry_serial_publish(APP_DEVICE_ID, APP_SENSOR_ID, &reading);
         } else {
-            ESP_LOGE(TAG, "sensor_bh1750_read failed: %s", esp_err_to_name(err));
+            ESP_LOGE(TAG, "sensor_ky018_read failed: %s", esp_err_to_name(err));
             sensor->initialized = false;
             app_state_write(&reading, "SENSOR ERR");
         }
@@ -134,11 +134,10 @@ void app_main(void)
         display_lcd_render(APP_DEVICE_ID, &s_app_state.latest_reading, s_app_state.status_text);
     }
 
-    static sensor_bh1750_t sensor = {0};
-    esp_err_t sensor_err = sensor_bh1750_init(&sensor);
+    static sensor_ky018_t sensor = {0};
+    esp_err_t sensor_err = sensor_ky018_init(&sensor);
     if (sensor_err != ESP_OK) {
-        ESP_LOGE(TAG, "sensor_bh1750_init failed: %s", esp_err_to_name(sensor_err));
-        sensor_bh1750_scan_bus();
+        ESP_LOGE(TAG, "sensor_ky018_init failed: %s", esp_err_to_name(sensor_err));
         strncpy(s_app_state.status_text, "INIT ERR", sizeof(s_app_state.status_text) - 1);
         s_app_state.status_text[sizeof(s_app_state.status_text) - 1] = '\0';
     }

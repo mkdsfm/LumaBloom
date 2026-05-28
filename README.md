@@ -5,19 +5,19 @@
 ## Состав
 
 - `firmware/firmware_esp32c3/` — Arduino-прошивка для ESP32-C3 и инструкция по её сборке/прошивке.
-- `firmware/firmware_esp32c6/` — ESP-IDF-проект для Waveshare ESP32-C6-LCD-1.47 с BH1750 и LCD.
+- `firmware/firmware_esp32c6/` — ESP-IDF-проект для Waveshare ESP32-C6-LCD-1.47 с KY-018 и LCD.
 
 - `pc-app/` — .NET-приложение только для Windows: читает JSON из COM-порта и управляет яркостью через WMI.
 - `docs/` — подключение, протокол и инструкции запуска.
 - `appsettings.example.json` — пример конфигурации для ПК-приложения.
-- `pc-app/appsettings.esp32c6.example.json` — пример конфигурации для ESP32-C6 + BH1750.
+- `pc-app/appsettings.esp32c6.example.json` — пример конфигурации для ESP32-C6 + KY-018.
 
 ## Быстрый старт
 
 1. Соберите и прошейте контроллер: см. `docs/build-and-run.md`.
 2. Подключите датчик: см. `docs/wiring.md`.
 3. Скопируйте подходящий пример в `pc-app/appsettings.json`:
-   `appsettings.example.json` для ESP32-C3 или `pc-app/appsettings.esp32c6.example.json` для ESP32-C6 + BH1750.
+   `appsettings.example.json` для ESP32-C3 или `pc-app/appsettings.esp32c6.example.json` для ESP32-C6 + KY-018.
    Значение `serial.deviceId` должно совпадать с `kDeviceId` в Arduino-прошивке или `APP_DEVICE_ID` в ESP-IDF-прошивке.
 4. Запустите ПК-приложение из `pc-app/`.
 
@@ -71,9 +71,9 @@
 
 Пример см. в `appsettings.example.json`.
 
-Для новой конфигурации ESP32-C6 + BH1750 используйте `pc-app/appsettings.esp32c6.example.json`.
+Для новой конфигурации ESP32-C6 + KY-018 используйте `pc-app/appsettings.esp32c6.example.json`.
 
-Какие значения нужны для ESP32-C6 + BH1750:
+Какие значения нужны для ESP32-C6 + KY-018:
 
 - `serial.deviceId`  
   Должен в точности совпадать со значением `APP_DEVICE_ID` из `firmware/firmware_esp32c6/main/app_config.h`.  
@@ -82,11 +82,11 @@
   Должен совпадать со скоростью порта прошивки.  
   По умолчанию: `115200`.
 - `processing.adcMin` и `processing.adcMax`  
-  Для BH1750 это уже не ADC, а диапазон `lux`, который вы ожидаете в своей среде.  
-  Стартовые безопасные значения для комнаты/офиса: `0..2000`.  
-  Если яркость слишком долго “упирается” в минимум или максимум, сначала подстройте именно этот диапазон.
+  Для KY-018 это диапазон сырого `ADC`.  
+  Стартовые безопасные значения: `0..4095`.  
+  Если датчик в вашей схеме реально использует более узкий диапазон, затем подстройте границы под свои измерения.
 - `processing.invert`  
-  Для BH1750 обычно нужно `false`: чем больше света, тем выше `value`, тем выше итоговая яркость.
+  Для KY-018 в типовом подключении обычно подходит `false`: чем больше света, тем выше `value`, тем выше итоговая яркость.
 - `processing.emaAlpha`  
   Стартовое значение `0.2` даёт умеренное сглаживание без слишком медленной реакции.
 - `processing.hysteresisPercent`  
@@ -111,6 +111,6 @@
 Поле `value` зависит от типа прошивки:
 
 - Arduino-прошивка для ESP32-C3 отправляет сырое значение ADC.
-- ESP-IDF-прошивка для ESP32-C6 отправляет значение `lux`, округлённое до `int`.
+- ESP-IDF-прошивка для ESP32-C6 отправляет сырое значение `ADC`.
 
 Подробности: `docs/protocol.md`.

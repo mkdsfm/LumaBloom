@@ -5,7 +5,7 @@
 Что делает прошивка:
 
 - использует встроенный LCD `1.47"` на контроллере `ST7789`;
-- читает освещенность с `BH1750` по `I2C`;
+- читает сырое значение `ADC` с фоторезистора `KY-018`;
 - показывает статус и текущее значение на экране;
 - отправляет телеметрию в `USB Serial` в формате JSONL;
 - совместима с Windows-приложением из `pc-app/`.
@@ -14,7 +14,7 @@
 
 `{"deviceId":"esp32c6-01","sensorId":"light0","ts":123456,"value":321}`
 
-Для этой прошивки поле `value` содержит `lux`, округлённый до `int`.
+Для этой прошивки поле `value` содержит сырое значение `ADC` в диапазоне `0..4095`.
 
 ## Быстрая прошивка готовым бинарником
 
@@ -39,7 +39,7 @@ esptool.py --chip esp32c6 --port COM5 --baud 460800 write-flash 0x0 brightness_s
 Откройте `ESP-IDF PowerShell` и выполните:
 
 ```powershell
-cd C:\Users\Lenovo\RiderProjects\brightness-sensor\firmware\firmware_esp32c6
+cd C:\Users\Lenovo\Nextcloud\Repos\brig\brightness-sensor\firmware\firmware_esp32c6
 idf.py build
 mkdir .\build\release -Force
 idf.py merge-bin -f raw -o build\release\brightness_sensor_esp32c6_merged.bin
@@ -68,7 +68,7 @@ esptool.py --chip esp32c6 --port COM5 --baud 460800 write-flash --flash-mode dio
 Если вы собираете проект локально:
 
 ```powershell
-cd C:\Users\Lenovo\RiderProjects\brightness-sensor\firmware\firmware_esp32c6
+cd C:\Users\Lenovo\Nextcloud\Repos\brig\brightness-sensor\firmware\firmware_esp32c6
 idf.py set-target esp32c6
 idf.py build
 idf.py -p COM5 flash monitor
@@ -89,34 +89,33 @@ idf.py -p COM5 flash monitor
 
 Контроллер дисплея: `ST7789`.
 
-### BH1750
+### KY-018
 
 Подключение по умолчанию:
 
 - `VCC` -> `3V3`
 - `GND` -> `GND`
-- `SDA` -> `GPIO20`
-- `SCL` -> `GPIO23`
-- `ADDR` -> `GND` или не подключать
+- `AO` -> `GPIO0`
 
-Прошивка проверяет оба стандартных адреса BH1750:
+Важно:
 
-- `0x23`
-- `0x5C`
+- используется только аналоговый выход `AO`;
+- обязательно нужен общий `GND`;
+- не подавайте `5V` на датчик.
 
-Если датчик не находится:
+Если датчик не даёт валидные показания:
 
-- проверьте, что `SDA` и `SCL` не перепутаны;
-- проверьте общий `GND`;
-- проверьте, что контакты попали в правильные ряды breadboard;
-- проверьте подписи `VCC/GND/SCL/SDA` именно на вашем модуле, а не только по цветам проводов.
+- проверьте, что `AO` подключён именно к `GPIO0`;
+- проверьте питание `3V3` и общий `GND`;
+- проверьте надёжность контактов на breadboard;
+- если у модуля есть маркировка `S`, `+`, `-`, то `S` — это аналоговый сигнал (`AO`).
 
 ## Что должно происходить после старта
 
 На экране:
 
 - `ID`
-- `LUX`
+- `ADC`
 - `VALUE`
 - `STATUS`
 
@@ -124,20 +123,17 @@ idf.py -p COM5 flash monitor
 
 - логи старта `ESP-IDF`;
 - сообщение `LCD ready`;
-- при успешном подключении датчика строка вида:
+- при успешной инициализации датчика строка вида:
 
-`BH1750 ready on I2C port 0, SDA=20, SCL=23, addr=0x23`
+`KY-018 ready on ADC unit 1, channel 0, gpio=0`
 
-Если датчик не найден, прошивка пишет:
-
-- `BH1750 not found ...`
-- и один раз сканирует I2C-шину.
+Если инициализация или чтение не удались, прошивка пишет `sensor_ky018_* failed`.
 
 ## Подключение к Windows-приложению
 
 Для `pc-app` используйте пример:
 
-- [pc-app/appsettings.esp32c6.example.json](/C:/Users/Lenovo/RiderProjects/brightness-sensor/pc-app/appsettings.esp32c6.example.json)
+- [pc-app/appsettings.esp32c6.example.json](/C:/Users/Lenovo/Nextcloud/Repos/brig/brightness-sensor/pc-app/appsettings.esp32c6.example.json)
 
 Важно:
 
@@ -149,15 +145,15 @@ idf.py -p COM5 flash monitor
 
 Основные константы лежат в:
 
-- [main/app_config.h](/C:/Users/Lenovo/RiderProjects/brightness-sensor/firmware/firmware_esp32c6/main/app_config.h)
+- [main/app_config.h](/C:/Users/Lenovo/Nextcloud/Repos/brig/brightness-sensor/firmware/firmware_esp32c6/main/app_config.h)
 
 Там можно менять:
 
 - `APP_DEVICE_ID`
 - `APP_SENSOR_ID`
 - интервалы обновления
-- `SDA/SCL`
-- адрес по умолчанию
+- `APP_KY018_ADC_CHANNEL`
+- `APP_KY018_ADC_GPIO`
 - LCD-пины и размеры
 
 Если вы меняете `APP_DEVICE_ID`, не забудьте обновить `serial.deviceId` в `pc-app/appsettings.json`.

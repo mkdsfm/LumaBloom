@@ -78,6 +78,16 @@ static const uint16_t COLOR_TEXT = 0xFFFF;
 static const uint16_t COLOR_GOOD = 0x07E0;
 static const uint16_t COLOR_BAD = 0xF800;
 static const uint16_t COLOR_MUTED = 0x8410;
+static const uint16_t COLOR_PANEL = 0x18C3;
+static const uint16_t COLOR_PANEL_ALT = 0x10A2;
+
+static int text_width(const char *text, int scale)
+{
+    if (text == NULL) {
+        return 0;
+    }
+    return (int)strlen(text) * 6 * scale;
+}
 
 static const uint8_t *find_glyph(char c)
 {
@@ -138,6 +148,16 @@ static void draw_text(int x, int y, const char *text, uint16_t color, int scale)
         draw_char(cursor_x, y, text[i], color, scale);
         cursor_x += 6 * scale;
     }
+}
+
+static void draw_text_centered(int center_x, int y, const char *text, uint16_t color, int scale)
+{
+    draw_text(center_x - (text_width(text, scale) / 2), y, text, color, scale);
+}
+
+static void draw_text_right(int right_x, int y, const char *text, uint16_t color, int scale)
+{
+    draw_text(right_x - text_width(text, scale), y, text, color, scale);
 }
 
 static void to_uppercase_copy(const char *source, char *dest, size_t dest_size)
@@ -204,8 +224,9 @@ esp_err_t display_lcd_init(void)
     ESP_RETURN_ON_ERROR(esp_lcd_new_panel_st7789(s_lcd.io_handle, &panel_config, &s_lcd.panel_handle), TAG, "esp_lcd_new_panel_st7789 failed");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_reset(s_lcd.panel_handle), TAG, "panel reset failed");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_init(s_lcd.panel_handle), TAG, "panel init failed");
+    ESP_RETURN_ON_ERROR(esp_lcd_panel_swap_xy(s_lcd.panel_handle, true), TAG, "panel swap_xy failed");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_set_gap(s_lcd.panel_handle, APP_LCD_X_OFFSET, APP_LCD_Y_OFFSET), TAG, "panel set gap failed");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_mirror(s_lcd.panel_handle, true, false), TAG, "panel mirror failed");
+    ESP_RETURN_ON_ERROR(esp_lcd_panel_mirror(s_lcd.panel_handle, true, true), TAG, "panel mirror failed");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_invert_color(s_lcd.panel_handle, true), TAG, "panel invert color failed");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_disp_on_off(s_lcd.panel_handle, true), TAG, "panel on failed");
 
@@ -229,28 +250,46 @@ void display_lcd_render(const char *device_id, const device_reading_t *reading, 
     }
 
     char device_id_upper[32];
-    char lux_line[32];
-    char value_line[32];
-    char status_line[32];
+    char sensor_id_upper[16];
+    char adc_value[16];
+    char status_upper[16];
+    char status_line[24];
+    const char *resolved_status = status_text != NULL ? status_text : "UNKNOWN";
+    const uint16_t status_color = reading->valid ? COLOR_GOOD : COLOR_BAD;
+    const int header_height = 30;
+    const int footer_height = 24;
+    const int panel_margin = 8;
+    const int footer_y = APP_LCD_HEIGHT - footer_height;
+    const int panel_x = panel_margin;
+    const int panel_y = header_height + 8;
+    const int panel_w = APP_LCD_WIDTH - (panel_margin * 2);
+    const int panel_h = footer_y - panel_y - 6;
+    const int status_badge_w = 126;
+    const int status_badge_h = 18;
 
     to_uppercase_copy(device_id, device_id_upper, sizeof(device_id_upper));
-    snprintf(lux_line, sizeof(lux_line), "LUX: %.1f", reading->valid ? (double)reading->lux : 0.0);
-    snprintf(value_line, sizeof(value_line), "VALUE: %d", reading->valid ? reading->value_for_pc : 0);
-    snprintf(status_line, sizeof(status_line), "STATUS: %s", status_text != NULL ? status_text : "UNKNOWN");
+    to_uppercase_copy(APP_SENSOR_ID, sensor_id_upper, sizeof(sensor_id_upper));
+    to_uppercase_copy(resolved_status, status_upper, sizeof(status_upper));
+    snprintf(adc_value, sizeof(adc_value), "%d", reading->valid ? reading->raw_adc : 0);
+    snprintf(status_line, sizeof(status_line), "STATUS %s", status_upper);
 
     fill_screen(COLOR_BG);
-    fill_rect(0, 0, APP_LCD_WIDTH, 22, COLOR_ACCENT);
-    draw_text(38, 5, "BH1750", COLOR_BG, 2);
+    fill_rect(0, 0, APP_LCD_WIDTH, header_height, COLOR_ACCENT);
+    fill_rect(panel_x, panel_y, panel_w, panel_h, COLOR_PANEL);
+    fill_rect(panel_x, panel_y, 6, panel_h, status_color);
+    fill_rect(0, footer_y, APP_LCD_WIDTH, footer_height, COLOR_PANEL_ALT);
+    fill_rect(APP_LCD_WIDTH - status_badge_w - 10, 6, status_badge_w, status_badge_h, status_color);
 
-    draw_text(8, 36, "ID", COLOR_MUTED, 2);
-    draw_text(8, 54, device_id_upper, COLOR_TEXT, 1);
+    draw_text(10, 8, "KY-018", COLOR_BG, 2);
+    draw_text(90, 10, device_id_upper, COLOR_BG, 1);
+    draw_text_centered(APP_LCD_WIDTH - (status_badge_w / 2) - 10, 11, status_line, COLOR_BG, 1);
 
-    draw_text(8, 96, lux_line, COLOR_TEXT, 2);
-    draw_text(8, 132, value_line, COLOR_TEXT, 2);
-    draw_text(8, 168, status_line, reading->valid ? COLOR_GOOD : COLOR_BAD, 1);
+    draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 12, "RAW ADC", COLOR_MUTED, 2);
+    draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 44, adc_value, COLOR_TEXT, 7);
 
-    draw_text(8, 246, "USB JSONL", COLOR_MUTED, 2);
-    draw_text(8, 270, "115200 PC", COLOR_MUTED, 2);
+    draw_text(18, footer_y + 8, sensor_id_upper, COLOR_TEXT, 1);
+    draw_text_centered(APP_LCD_WIDTH / 2, footer_y + 6, "USB JSONL", COLOR_MUTED, 2);
+    draw_text_right(APP_LCD_WIDTH - 10, footer_y + 8, "115200 PC", COLOR_TEXT, 1);
 
     if (flush_to_panel() != ESP_OK) {
         ESP_LOGE(TAG, "panel flush failed");
