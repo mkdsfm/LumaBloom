@@ -4,7 +4,7 @@
 
 - `KY-018 VCC` -> `ESP32-C3 3V3`
 - `KY-018 GND` -> `ESP32-C3 GND`
-- `KY-018 AO` -> `ESP32-C3 GPIO0` (ADC)
+- `KY-018 AO` -> `ESP32-C3 GPIO4` (ADC)
 
 ## Примечания
 
