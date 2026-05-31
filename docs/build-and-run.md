@@ -110,8 +110,8 @@ idf.py -p COMx flash monitor
 
 1. Создайте `pc-app/appsettings.json` на основе подходящего примера:
    `../appsettings.example.json` для ESP32-C3 или `appsettings.esp32c6.example.json` для ESP32-C6 + KY-018.
-2. Укажите `serial.deviceId`, совпадающий со значением `kDeviceId` в `firmware/firmware_esp32c3/firmware_esp32c3.ino` или `APP_DEVICE_ID` в `firmware/firmware_esp32c6/main/app_config.h`.
-3. При необходимости настройте `serial.discoveryTimeoutMs`, диапазон входных значений, инверсию, EMA и гистерезис.
+2. При желании укажите `serial.deviceId`, если хотите сузить автопоиск до конкретного устройства. Если поле не задано, приложение найдёт первый COM-порт с валидной телеметрией.
+3. При необходимости задайте только пользовательские override-ы: пределы яркости, forced `deviceProfile.profileId` для отладки или отдельные `processing/calibration` поля поверх встроенного профиля.
 
 Запуск (из папки `pc-app/`):
 
@@ -120,11 +120,8 @@ dotnet restore
 dotnet run
 ```
 
-Приложение автоматически находит COM-порт по `deviceId`, читает телеметрию, вычисляет целевую яркость и устанавливает её через WMI для встроенного дисплея.
+Приложение автоматически находит COM-порт, читает первые валидные сообщения, выбирает встроенный hardware profile по `deviceId + sensorId`, логирует effective settings, а затем вычисляет целевую яркость и устанавливает её через WMI для встроенного дисплея.
 
-Подсказка по диапазону `processing`:
-
-- для ESP32-C3 используйте диапазон под ADC, например `0..4095`;
-- для ESP32-C6 с KY-018 используйте диапазон сырого ADC, обычно `0..4095`.
+Список встроенных профилей и инструкция по добавлению нового: [docs/device-profiles.md](/C:/Users/Lenovo/Nextcloud/Repos/brig/brightness-sensor/docs/device-profiles.md).
 
 Важно: реализация в `pc-app/` предназначена только для Windows. Для других ОС нужно отдельное приложение, которое поддерживает тот же контракт обмена с устройством (JSON-строки по протоколу из `docs/protocol.md`).

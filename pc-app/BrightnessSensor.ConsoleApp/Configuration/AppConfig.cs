@@ -9,23 +9,29 @@ internal sealed class AppConfig
     /// COM port connection parameters used to read sensor telemetry.
     /// </summary>
     [JsonPropertyName("serial")]
-    public required SerialSettings Serial { get; init; }
+    public SerialSettings Serial { get; init; } = new();
 
     /// <summary>
-    /// Signal processing parameters used to convert ADC values to brightness.
+    /// Hardware profile selection behavior.
+    /// </summary>
+    [JsonPropertyName("deviceProfile")]
+    public DeviceProfileSelectionSettings DeviceProfile { get; init; } = new();
+
+    /// <summary>
+    /// Optional signal processing overrides applied on top of a resolved hardware profile.
     /// </summary>
     [JsonPropertyName("processing")]
-    public required ProcessingSettings Processing { get; init; }
+    public ProcessingOverrides? Processing { get; init; }
 
     /// <summary>
-    /// Output brightness limits applied to the final value.
+    /// Optional output brightness overrides applied to the final value.
     /// </summary>
     [JsonPropertyName("brightness")]
-    public required BrightnessSettings Brightness { get; init; }
+    public BrightnessOverrides? Brightness { get; init; }
 
     /// <summary>
-    /// Startup calibration parameters.
+    /// Optional startup calibration overrides.
     /// </summary>
     [JsonPropertyName("calibration")]
-    public CalibrationSettings Calibration { get; init; } = new();
+    public CalibrationOverrides? Calibration { get; init; }
 }

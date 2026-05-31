@@ -6,9 +6,10 @@ namespace BrightnessSensor.DeviceReading.Tests;
 public sealed class SerialPortDiscoveryTests
 {
     [Fact]
-    public void Constructor_Throws_WhenDeviceIdIsEmpty()
+    public void Constructor_AllowsEmptyDeviceId()
     {
-        Assert.Throws<ArgumentException>(() => new SerialPortDiscovery(string.Empty));
+        var discovery = new SerialPortDiscovery(string.Empty);
+        Assert.NotNull(discovery);
     }
 
     [Fact]
