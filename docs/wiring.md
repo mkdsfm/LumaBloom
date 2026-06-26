@@ -1,22 +1,22 @@
-﻿# Схема подключения KY-018 -> ESP32-C3
+# Wiring KY-018 -> ESP32-C3
 
-## Пины
+## Pins
 
 - `KY-018 VCC` -> `ESP32-C3 3V3`
 - `KY-018 GND` -> `ESP32-C3 GND`
-- `KY-018 AO` -> `ESP32-C3 GPIO4` (ADC)
+- `KY-018 AO` -> `ESP32-C3 GPIO0` (ADC)
 
-## Примечания
+## Notes
 
-- Используется только аналоговый выход (`AO`).
-- Для стабильности измерений подключайте короткими проводами и используйте общий GND.
-- Некоторые версии KY-018 имеют маркировку `S`, `+`, `-`, где `S` — это сигнал (`AO`).
+- Only the analog output (`AO`) is used.
+- For stable readings, keep wires short and use a common GND.
+- Some KY-018 modules are labeled `S`, `+`, `-`, where `S` is the signal pin (`AO`).
 
-# Схема подключения KY-018 -> Waveshare ESP32-C6-LCD-1.47
+# Wiring KY-018 -> Waveshare ESP32-C6-LCD-1.47
 
-## LCD на плате
+## Onboard LCD
 
-Для onboard LCD проект использует пины Waveshare:
+For the onboard LCD, the project uses these Waveshare pins:
 
 - `MOSI` -> `GPIO6`
 - `SCLK` -> `GPIO7`
@@ -25,17 +25,17 @@
 - `LCD_RST` -> `GPIO21`
 - `LCD_BL` -> `GPIO22`
 
-Контроллер дисплея: `ST7789`.
+Display controller: `ST7789`.
 
-## KY-018 по умолчанию
+## Default KY-018 Wiring
 
 - `KY-018 VCC` -> `3V3`
 - `KY-018 GND` -> `GND`
 - `KY-018 AO` -> `GPIO4` (ADC)
 
-## Примечания
+## Notes
 
-- Используется только аналоговый выход (`AO`).
-- Если у вас KY-018 подключён к другому ADC-пину, измените `APP_KY018_ADC_CHANNEL` и связанный `APP_KY018_ADC_GPIO` в `firmware/firmware_esp32c6/main/app_config.h`.
-- Для стабильности измерений используйте общий `GND` и короткие провода.
-- Для `ESP32-C6` не рекомендуется использовать `GPIO0` для `KY-018`, потому что он может влиять на нормальный старт платы.
+- Only the analog output (`AO`) is used.
+- If your KY-018 is connected to a different ADC pin, update `APP_KY018_ADC_CHANNEL` and the related `APP_KY018_ADC_GPIO` in `firmware/firmware_esp32c6/main/app_config.h`.
+- For stable measurements, use a common `GND` and short wires.
+- For `ESP32-C6`, using `GPIO0` for `KY-018` is not recommended because it may interfere with normal board startup.

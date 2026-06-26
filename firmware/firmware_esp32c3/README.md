@@ -1,133 +1,133 @@
 # firmware_esp32c3
 
-Arduino-прошивка для `ESP32-C3` с аналоговым датчиком освещения `KY-018`.
+Arduino firmware for `ESP32-C3` with an analog `KY-018` ambient light sensor.
 
-Файл прошивки:
+Firmware file:
 
-- [firmware_esp32c3.ino](/C:/Users/Lenovo/RiderProjects/brightness-sensor/firmware/firmware_esp32c3/firmware_esp32c3.ino)
+- `firmware_esp32c3.ino`
 
-Что делает прошивка:
+## What the Firmware Does
 
-- читает `KY-018` через `ADC` на `GPIO0`;
-- раз в `500 мс` отправляет измерение в `USB Serial`;
-- совместима с Windows-приложением из `pc-app/`.
+- reads the `KY-018` through `ADC` on `GPIO0`;
+- sends one measurement to `USB Serial` every `500 ms`;
+- stays compatible with the Windows application in `pc-app/`.
 
-Формат телеметрии:
+Telemetry format:
 
 `{"deviceId":"esp32c3-01","sensorId":"light0","ts":123456,"value":1872}`
 
-Для этой прошивки поле `value` содержит сырое значение `ADC` в диапазоне `0..4095`.
+For this firmware, the `value` field contains the raw `ADC` reading in the `0..4095` range.
 
-## Подключение
+## Wiring
 
 - `KY-018 VCC` -> `3V3`
 - `KY-018 GND` -> `GND`
 - `KY-018 AO` -> `GPIO0`
 
-Важно:
+Important:
 
-- используйте только `AO`, а не цифровой выход;
-- обязательно общий `GND`;
-- не подавайте `5V` на датчик.
+- use only `AO`, not the digital output;
+- a common `GND` is required;
+- do not supply `5V` to the sensor.
 
-## Быстрая прошивка через Arduino IDE
+## Quick Flashing with Arduino IDE
 
-1. Откройте [firmware_esp32c3.ino](/C:/Users/Lenovo/RiderProjects/brightness-sensor/firmware/firmware_esp32c3/firmware_esp32c3.ino) в Arduino IDE.
-2. Установите пакет плат `esp32` от Espressif Systems.
-3. Выберите плату `ESP32-C3`.
-4. Выберите COM-порт устройства.
-5. При необходимости включите `USB CDC On Boot`.
-6. Нажмите `Upload`.
+1. Open `firmware_esp32c3.ino` in Arduino IDE.
+2. Install the `esp32` board package from Espressif Systems.
+3. Select the `ESP32-C3` board.
+4. Select the device COM port.
+5. Enable `USB CDC On Boot` if your board requires it.
+6. Click `Upload`.
 
-После прошивки откройте `Serial Monitor` на скорости `115200`.
+After flashing, open `Serial Monitor` at `115200`.
 
-## Сборка через Arduino CLI
+## Building with Arduino CLI
 
-Официальная документация:
+Official documentation:
 
 - [arduino-cli compile](https://arduino.github.io/arduino-cli/0.34/commands/arduino-cli_compile/)
 - [Arduino CLI configuration](https://docs.arduino.cc/arduino-cli/configuration/)
 
-### Установить core Espressif
+### Install the Espressif Core
 
 ```powershell
 arduino-cli core update-index
 arduino-cli core install esp32:esp32
 ```
 
-### Собрать бинарники
+### Build the Binaries
 
 ```powershell
-arduino-cli compile --fqbn esp32:esp32:esp32c3 --output-dir C:\Users\Lenovo\RiderProjects\brightness-sensor\firmware\firmware_esp32c3_build C:\Users\Lenovo\RiderProjects\brightness-sensor\firmware\firmware_esp32c3
+arduino-cli compile --fqbn esp32:esp32:esp32c3 --output-dir firmware_esp32c3_build firmware/firmware_esp32c3
 ```
 
-После сборки бинарники будут лежать в:
+After the build, binaries will be in:
 
 - `firmware/firmware_esp32c3_build/`
 
-Обычно там будут:
+Usually that folder contains:
 
-- основной `.ino.bin`
+- the main `.ino.bin`
 - `bootloader.bin`
 - `partitions.bin`
 
-### Собрать и сразу прошить
+### Build and Upload Immediately
 
 ```powershell
-arduino-cli compile --fqbn esp32:esp32:esp32c3 --upload -p COM5 C:\Users\Lenovo\RiderProjects\brightness-sensor\firmware\firmware_esp32c3
+arduino-cli compile --fqbn esp32:esp32:esp32c3 --upload -p COM5 firmware/firmware_esp32c3
 ```
 
-Замените `COM5` на свой порт.
+Replace `COM5` with your port.
 
-## Бинарники для релиза
+## Release Binaries
 
-Для релиза удобно публиковать:
+For releases, it is convenient to publish:
 
-- основной app binary
+- the main application binary
 - `bootloader.bin`
 - `partitions.bin`
-- короткую инструкцию по прошивке
+- a short flashing instruction
 
-Если вы собираете через `arduino-cli --output-dir`, забирайте файлы из:
+If you build with `arduino-cli --output-dir`, take the files from:
 
 - `firmware/firmware_esp32c3_build/`
 
-## Прошивка готовых `.bin` через esptool
+## Flashing Prebuilt `.bin` Files with `esptool`
 
-Точные имена файлов зависят от версии Arduino core, но типовая схема для `ESP32-C3` такая:
+Exact file names depend on the Arduino core version, but a typical `ESP32-C3` layout looks like this:
 
 ```powershell
 esptool.py --chip esp32c3 --port COM5 --baud 460800 write-flash 0x0 bootloader.bin 0x8000 partitions.bin 0x10000 firmware_esp32c3.ino.bin
 ```
 
-Перед публикацией проверьте точные имена файлов в папке сборки.
+Before publishing, verify the exact file names in the build output directory.
 
-## Настройки прошивки
+## Firmware Settings
 
-Основные параметры лежат прямо в [firmware_esp32c3.ino](/C:/Users/Lenovo/RiderProjects/brightness-sensor/firmware/firmware_esp32c3/firmware_esp32c3.ino):
+The main parameters are defined directly in `firmware_esp32c3.ino`:
 
 - `kLightSensorPin`
 - `kReadIntervalMs`
 - `kDeviceId`
 - `kSensorId`
 
-Важно:
+Important:
 
-- `kDeviceId` должен совпадать с `serial.deviceId` в `pc-app/appsettings.json`;
-- по умолчанию это `esp32c3-01`;
-- скорость порта должна быть `115200`.
+- `kDeviceId` must match `serial.deviceId` in `pc-app/appsettings.json`;
+- the default is `esp32c3-01`;
+- the serial speed must remain `115200`.
 
-## Проверка после прошивки
+## Verification After Flashing
 
-Ожидаемый вывод в Serial Monitor:
+Expected output in `Serial Monitor`:
 
 ```json
 {"deviceId":"esp32c3-01","sensorId":"light0","ts":123456,"value":1872}
 ```
 
-Если строк нет:
+If there is no output:
 
-- проверьте COM-порт;
-- проверьте скорость `115200`;
-- проверьте, что включён `USB CDC On Boot`, если это требуется вашей плате;
-- проверьте питание и подключение `KY-018`.
+- check the COM port;
+- check the `115200` baud rate;
+- check whether `USB CDC On Boot` must be enabled on your board;
+- check power and `KY-018` wiring.

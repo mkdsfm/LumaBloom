@@ -1,105 +1,106 @@
-﻿# brightness-sensor
+# brightness-sensor
 
-Комплект из прошивки и простого Windows-консольного приложения для автоматической регулировки яркости встроенного дисплея по датчику освещённости.
+A bundle of firmware and a simple Windows console application for automatically adjusting the built-in display brightness based on an ambient light sensor.
 
-## Состав
+## Contents
 
-- `firmware/firmware_esp32c3/` — Arduino-прошивка для ESP32-C3 и инструкция по её сборке/прошивке.
-- `firmware/firmware_esp32c6/` — ESP-IDF-проект для Waveshare ESP32-C6-LCD-1.47 с KY-018 и LCD.
+- `firmware/firmware_esp32c3/` - Arduino firmware for ESP32-C3, plus build and flashing instructions.
+- `firmware/firmware_esp32c6/` - ESP-IDF project for Waveshare ESP32-C6-LCD-1.47 with KY-018 and the onboard LCD.
+- `pc-app/` - Windows-only .NET application that reads JSON from a COM port and controls brightness through WMI.
+- `docs/` - wiring, protocol, and run instructions.
+- `appsettings.example.json` - example configuration for the PC application.
+- `appsettings.full.example.json` - full example with all optional override parameters.
+- `pc-app/appsettings.esp32c6.example.json` - example configuration for ESP32-C6 + KY-018.
 
-- `pc-app/` — .NET-приложение только для Windows: читает JSON из COM-порта и управляет яркостью через WMI.
-- `docs/` — подключение, протокол и инструкции запуска.
-- `appsettings.example.json` — пример конфигурации для ПК-приложения.
-- `appsettings.full.example.json` — полный пример со всеми optional override-параметрами.
-- `pc-app/appsettings.esp32c6.example.json` — пример конфигурации для ESP32-C6 + KY-018.
+## Quick Start
 
-## Быстрый старт
+1. Build and flash the controller. See `docs/build-and-run.md`.
+2. Wire the sensor. See `docs/wiring.md`.
+3. Copy the appropriate example to `pc-app/appsettings.json`:
+   `appsettings.example.json` for a minimal ESP32-C3 setup,
+   `pc-app/appsettings.esp32c6.example.json` for a minimal ESP32-C6 + KY-018 setup,
+   or `appsettings.full.example.json` for a full template with all optional fields.
+4. Start the PC application from `pc-app/`.
 
-1. Соберите и прошейте контроллер: см. `docs/build-and-run.md`.
-2. Подключите датчик: см. `docs/wiring.md`.
-3. Скопируйте подходящий пример в `pc-app/appsettings.json`:
-   `appsettings.example.json` для минимальной конфигурации ESP32-C3, `pc-app/appsettings.esp32c6.example.json` для минимальной конфигурации ESP32-C6 + KY-018 или `appsettings.full.example.json` для полного шаблона со всеми optional полями.
-4. Запустите ПК-приложение из `pc-app/`.
+Important: the current PC application supports Windows only. Linux and macOS would require a separate application that preserves the same device communication contract, meaning the same JSON protocol from `docs/protocol.md`.
 
-Важно: текущая версия ПК-приложения поддерживает только Windows. Для Linux/macOS потребуется отдельное приложение, которое сохраняет тот же контракт общения с устройством (тот же JSON-протокол из `docs/protocol.md`).
+## `pc-app/` Structure
 
-### Структура `pc-app/`
+- `pc-app/Program.cs` - entry point.
+- `pc-app/Application/` - main application workflow.
+- `pc-app/Configuration/` - `appsettings.json` loading and validation.
+- `pc-app/BrightnessSensor.BrightnessMath/` - separate library with math for mapping sensor readings to screen brightness.
+- `pc-app/BrightnessSensor.DeviceReading/` - separate library for reading device data and parsing telemetry.
+- `pc-app/BrightnessSensor.WindowsBrightness/` - separate library for Windows-specific monitor brightness control.
 
-- `pc-app/Program.cs` — точка входа.
-- `pc-app/Application/` — основной сценарий работы приложения.
-- `pc-app/Configuration/` — загрузка и валидация `appsettings.json`.
-- `pc-app/BrightnessSensor.BrightnessMath/` — отдельная библиотека с математикой преобразования показаний датчика в яркость экрана.
-- `pc-app/BrightnessSensor.DeviceReading/` — отдельная библиотека чтения данных с устройства и парсинга телеметрии.
-- `pc-app/BrightnessSensor.WindowsBrightness/` — отдельная библиотека Windows-специфичной работы с яркостью мониторов.
+## Expected Configuration
 
-## Что ожидает конфиг
-
-ПК-приложение ожидает файл `pc-app/appsettings.json` со следующими секциями:
+The PC application expects a `pc-app/appsettings.json` file with the following sections:
 
 - `serial`
-  - `deviceId` — опциональный идентификатор устройства из JSON-телеметрии.  
-    Влияние: если задан, приложение ищет COM-порт именно для этого устройства; если не задан, выбирает первый порт с валидной телеметрией.
-  - `baudRate` — опциональный override скорости порта.  
-    Влияние: по умолчанию берётся из встроенного профиля; задавайте только если нужно переопределить встроенное значение.
-  - `discoveryTimeoutMs` — опциональный override времени проверки одного COM-порта.  
-    Влияние: по умолчанию берётся из встроенного профиля; задавайте только если нужен нестандартный таймаут.
+  - `deviceId` - optional device identifier from JSON telemetry.
+    Effect: if set, the app looks for the COM port of that exact device; if not set, it chooses the first port with valid telemetry.
+  - `baudRate` - optional port speed override.
+    Effect: by default this comes from the built-in profile; only set it when you need to override the built-in value.
+  - `discoveryTimeoutMs` - optional timeout override for probing one COM port.
+    Effect: by default this comes from the built-in profile; only set it when you need a non-standard timeout.
 - `deviceProfile`
-  - `autoDetect` — включает автоматический выбор встроенного hardware profile по первым валидным сообщениям.
-  - `profileId` — опционально принудительно задаёт встроенный профиль для отладки.
+  - `autoDetect` - enables automatic selection of a built-in hardware profile from the first valid messages.
+  - `profileId` - optionally forces a built-in profile for debugging.
 - `processing`
-  - Все поля опциональны и работают как override поверх встроенного профиля.
-  - `adcMin` — нижняя граница диапазона ADC.  
-    Влияние: все значения ниже обрезаются до `adcMin`, что задает начало шкалы нормализации.
-  - `adcMax` — верхняя граница диапазона ADC (обязательно `adcMax > adcMin`).  
-    Влияние: все значения выше обрезаются до `adcMax`, что задает конец шкалы нормализации.
-  - `invert` — инверсия шкалы (`true/false`).  
-    Влияние: меняет направление зависимости (нужно, если логика датчика «перевернута»).
-  - `emaAlpha` — коэффициент EMA в диапазоне `(0; 1]`.  
-    Влияние: чем больше — тем быстрее реакция, чем меньше — тем плавнее и медленнее изменения.
-  - `hysteresisPercent` — минимальный шаг изменения яркости в процентах (`0..100`).  
-    Влияние: подавляет мелкие колебания (шум), не применяя слишком маленькие изменения.
-  - `gamma` — опциональная гамма-коррекция после EMA (`null` отключает, обычно `1.8..2.2`).  
-    Влияние: делает кривую яркости более «человеческой» — мягче в темной зоне и без резких скачков.
+  - All fields are optional and work as overrides on top of the built-in profile.
+  - `adcMin` - lower bound of the ADC range.
+    Effect: values below it are clamped to `adcMin`, which defines the start of the normalization scale.
+  - `adcMax` - upper bound of the ADC range; `adcMax > adcMin` is required.
+    Effect: values above it are clamped to `adcMax`, which defines the end of the normalization scale.
+  - `invert` - inverts the scale (`true/false`).
+    Effect: reverses the mapping direction, useful when the sensor logic is effectively upside down.
+  - `emaAlpha` - EMA coefficient in the `(0; 1]` range.
+    Effect: higher values react faster, lower values make brightness changes smoother and slower.
+  - `hysteresisPercent` - minimum brightness change step in percent (`0..100`).
+    Effect: suppresses small fluctuations by ignoring tiny changes.
+  - `gamma` - optional gamma correction after EMA (`null` disables it, typically `1.8..2.2`).
+    Effect: makes the brightness curve feel more natural, softer in dark areas and less abrupt overall.
 - `brightness`
-  - Поля работают как пользовательские override-ы итогового диапазона яркости.
-  - `minPercent` — нижняя граница итоговой яркости (`0..100`).  
-    Влияние: яркость не опускается ниже этого значения даже в темноте.
-  - `maxPercent` — верхняя граница итоговой яркости (`0..100`, `min <= max`).  
-    Влияние: яркость не поднимается выше этого значения даже при сильной освещенности.
+  - Fields work as user overrides for the final brightness range.
+  - `minPercent` - lower brightness bound (`0..100`).
+    Effect: brightness will not go below this value even in darkness.
+  - `maxPercent` - upper brightness bound (`0..100`, `min <= max`).
+    Effect: brightness will not exceed this value even in strong light.
 - `calibration`
-  - Все поля опциональны и работают как override поверх встроенного профиля.
-  - `enabled` — включает калибровку при запуске (`true/false`).  
-    Влияние: стартовая яркость экрана и показания датчика считаются «идеальными».
-  - `sampleCount` — количество валидных измерений для усреднения (`>= 1`).  
-    Влияние: большее значение дает стабильнее базу, но калибровка занимает дольше.
-  - `maxReadAttempts` — максимум попыток чтения датчика (`>= sampleCount`).  
-    Влияние: ограничивает время ожидания калибровки при отсутствии данных.
+  - All fields are optional and work as overrides on top of the built-in profile.
+  - `enabled` - enables calibration on startup (`true/false`).
+    Effect: the initial screen brightness and sensor readings are treated as the ideal baseline.
+  - `sampleCount` - number of valid measurements to average (`>= 1`).
+    Effect: higher values give a more stable baseline but make calibration take longer.
+  - `maxReadAttempts` - maximum sensor read attempts (`>= sampleCount`).
+    Effect: limits how long calibration waits when data is missing.
 
-Примеры:
+Examples:
 
-- `appsettings.example.json` — минимальный пользовательский конфиг
-- `pc-app/appsettings.esp32c6.example.json` — минимальный конфиг для ESP32-C6 + KY-018
-- `appsettings.full.example.json` — полный шаблон со всеми optional полями и override-ами
+- `appsettings.example.json` - minimal user config
+- `pc-app/appsettings.esp32c6.example.json` - minimal config for ESP32-C6 + KY-018
+- `appsettings.full.example.json` - full template with all optional fields and overrides
 
-Подробности по встроенным профилям, generic fallback и добавлению новых профилей: [docs/device-profiles.md](/C:/Users/Lenovo/Nextcloud/Repos/brig/brightness-sensor/docs/device-profiles.md).
+For details on built-in profiles, the generic fallback, and how to add new profiles, see `docs/device-profiles.md`.
 
-## Встроенные профили
+## Built-In Profiles
 
-- `esp32c3-analog-ky018` — `deviceId=esp32c3-01`, `sensorId=light0`, тип измерения `ADC`
-- `esp32c6-analog-ky018` — `deviceId=esp32c6-01`, `sensorId=light0`, тип измерения `ADC`
-- `generic-adc-safe` — fallback-профиль для неизвестных устройств, тип измерения `ADC`
+- `esp32c3-analog-ky018` - `deviceId=esp32c3-01`, `sensorId=light0`, measurement type `ADC`
+- `esp32c6-analog-ky018` - `deviceId=esp32c6-01`, `sensorId=light0`, measurement type `ADC`
+- `generic-adc-safe` - fallback profile for unknown devices, measurement type `ADC`
 
-## Формат телеметрии
+## Telemetry Format
 
-Каждое измерение отправляется одной JSON-строкой, например:
+Each measurement is sent as a single JSON line, for example:
 
 `{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"value":1872}`
 
-`deviceId` используется ПК-приложением для автопоиска COM-порта, если `serial.deviceId` задан. Затем `deviceId + sensorId` используются для выбора встроенного hardware profile.
+`deviceId` is used by the PC application for COM port autodiscovery when `serial.deviceId` is set. After that, `deviceId + sensorId` is used to select the built-in hardware profile.
 
-Поле `value` зависит от типа прошивки:
+The `value` field depends on the firmware type:
 
-- Arduino-прошивка для ESP32-C3 отправляет сырое значение ADC.
-- ESP-IDF-прошивка для ESP32-C6 отправляет сырое значение `ADC`.
+- Arduino firmware for ESP32-C3 sends the raw ADC value.
+- ESP-IDF firmware for ESP32-C6 sends the raw ADC value.
 
-Подробности: `docs/protocol.md`.
+Details: `docs/protocol.md`.
