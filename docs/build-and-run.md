@@ -1,127 +1,127 @@
-﻿# Сборка и запуск
+# Build and Run
 
-## Сборка платы (ESP32-C3 + датчик освещения)
+## Hardware Assembly (ESP32-C3 + Light Sensor)
 
-Требования к комплектующим:
+Required components:
 
-- Плата ESP32-C3 (с USB для прошивки/питания)
-- Датчик освещения KY-018 (фоторезисторный модуль)
-- Макетная плата (breadboard) или иной способ безопасного монтажа
-- Соединительные провода Dupont (3 шт. и более)
-- USB-кабель для подключения ESP32-C3 к ПК
+- ESP32-C3 board with USB for flashing and power
+- KY-018 light sensor module
+- Breadboard or another safe mounting method
+- Dupont jumper wires, at least 3
+- USB cable for connecting the ESP32-C3 to a PC
 
-Требования к подключению:
+Wiring requirements:
 
-- `KY-018 VCC` -> `ESP32-C3 3V3` (не 5V)
+- `KY-018 VCC` -> `ESP32-C3 3V3` (not `5V`)
 - `KY-018 GND` -> `ESP32-C3 GND`
-- `KY-018 AO` -> `ESP32-C3 GPIO4` (ADC)
-- Используется только аналоговый выход датчика (`AO`)
-- Обязательно общий `GND` между датчиком и платой
+- `KY-018 AO` -> `ESP32-C3 GPIO0` (ADC)
+- Only the analog sensor output (`AO`) is used
+- A common `GND` between the sensor and the board is required
 
-Рекомендации по качеству сигнала:
+Signal quality recommendations:
 
-- Используйте короткие провода и надежные контакты
-- Не прокладывайте сигнальный провод рядом с источниками помех (USB-хабы, блоки питания без экранирования)
-- Перед прошивкой проверьте монтаж по схеме в `docs/wiring.md`
+- Use short wires and reliable contacts
+- Do not route the signal wire near interference sources such as noisy USB hubs or unshielded power supplies
+- Before flashing, verify the assembly against the diagram in `docs/wiring.md`
 
 ## Firmware (ESP32-C3, Arduino `.ino`)
 
-Требования:
+Requirements:
 
 - Arduino IDE 2.x
-- Установленный пакет плат `esp32` (Espressif Systems)
-- Подключённый ESP32-C3 по USB
+- Installed `esp32` board package from Espressif Systems
+- ESP32-C3 connected over USB
 
-Шаги:
+Steps:
 
-1. Откройте файл `firmware/firmware_esp32c3/firmware_esp32c3.ino` в Arduino IDE.
-2. Выберите плату ESP32-C3 в меню **Tools -> Board**.
-3. Выберите COM-порт устройства в меню **Tools -> Port**.
-4. Установите USB CDC on Boot  в меню **Tools -> Port**.
-5. Проверьте значение `kDeviceId`: оно должно быть уникальным и потом совпадать с `serial.deviceId` в конфиге ПК-приложения.
-6. Нажмите **Upload** для прошивки.
-7. Откройте **Serial Monitor** и выставьте скорость `115200`.
+1. Open `firmware/firmware_esp32c3/firmware_esp32c3.ino` in Arduino IDE.
+2. Select the ESP32-C3 board in **Tools -> Board**.
+3. Select the device COM port in **Tools -> Port**.
+4. Enable `USB CDC On Boot` in the tools menu if your board requires it.
+5. Check `kDeviceId`: it should be unique and should later match `serial.deviceId` in the PC application config.
+6. Click **Upload** to flash the firmware.
+7. Open **Serial Monitor** and set the speed to `115200`.
 
-Ожидаемый вывод монитора: JSON-строки с полями `deviceId`, `sensorId`, `ts`, `value`.
+Expected monitor output: JSON lines with `deviceId`, `sensorId`, `ts`, and `value`.
 
-Подробная инструкция, включая `arduino-cli` и сборку бинарников для релиза:
+Detailed instructions, including `arduino-cli` and release binary builds:
 
 - `firmware/firmware_esp32c3/README.md`
 
 ## Firmware (ESP32-C6, ESP-IDF, KY-018 + LCD 1.47)
 
-Требования:
+Requirements:
 
 - ESP-IDF 5.x
-- Плата Waveshare `ESP32-C6-LCD-1.47`
-- Датчик `KY-018`
+- Waveshare `ESP32-C6-LCD-1.47` board
+- `KY-018` sensor
 
-Подключение KY-018 по умолчанию в проекте:
+Default KY-018 wiring in the project:
 
 - `KY-018 VCC` -> `3V3`
 - `KY-018 GND` -> `GND`
 - `KY-018 AO` -> `GPIO4` (ADC)
 
-Если вы подключили датчик к другому ADC-пину, поменяйте константы в `firmware/firmware_esp32c6/main/app_config.h`.
-`GPIO0` для `ESP32-C6` не рекомендуется, потому что он может мешать штатному старту платы с подключённым датчиком.
+If you connected the sensor to a different ADC pin, update the constants in `firmware/firmware_esp32c6/main/app_config.h`.
+Using `GPIO0` on `ESP32-C6` is not recommended because it may interfere with normal board startup when the sensor is attached.
 
-Шаги:
+Steps:
 
-1. Откройте терминал ESP-IDF.
-2. Перейдите в папку `firmware/firmware_esp32c6`.
-3. Установите target:
+1. Open an ESP-IDF terminal.
+2. Go to `firmware/firmware_esp32c6`.
+3. Set the target:
 
 ```powershell
 idf.py set-target esp32c6
 ```
 
-4. При необходимости откройте конфигурацию:
+4. Open configuration if needed:
 
 ```powershell
 idf.py menuconfig
 ```
 
-5. Соберите проект:
+5. Build the project:
 
 ```powershell
 idf.py build
 ```
 
-6. Прошейте и откройте монитор:
+6. Flash and open the monitor:
 
 ```powershell
 idf.py -p COMx flash monitor
 ```
 
-Что должно получиться:
+Expected result:
 
-- на LCD отображаются `deviceId`, `adc`, `value`, `status`;
-- в монитор идут JSON-строки с полями `deviceId`, `sensorId`, `ts`, `value`;
-- Windows-приложение из `pc-app/` может работать с новым устройством по тому же контракту.
+- the LCD shows `deviceId`, `adc`, `value`, and `status`;
+- the serial monitor receives JSON lines with `deviceId`, `sensorId`, `ts`, and `value`;
+- the Windows application from `pc-app/` can work with the new device using the same contract.
 
-## PC application (.NET)
+## PC Application (.NET)
 
-Требования:
+Requirements:
 
 - Windows 10/11
 - .NET SDK 10.0+
 
-Подготовка:
+Preparation:
 
-1. Создайте `pc-app/appsettings.json` на основе подходящего примера:
-   `../appsettings.example.json` для ESP32-C3 или `appsettings.esp32c6.example.json` для ESP32-C6 + KY-018.
-2. При желании укажите `serial.deviceId`, если хотите сузить автопоиск до конкретного устройства. Если поле не задано, приложение найдёт первый COM-порт с валидной телеметрией.
-3. При необходимости задайте только пользовательские override-ы: пределы яркости, forced `deviceProfile.profileId` для отладки или отдельные `processing/calibration` поля поверх встроенного профиля.
+1. Create `pc-app/appsettings.json` from the appropriate example:
+   `../appsettings.example.json` for ESP32-C3, or `appsettings.esp32c6.example.json` for ESP32-C6 + KY-018.
+2. Optionally set `serial.deviceId` if you want to limit autodiscovery to one specific device. If this field is not set, the app uses the first COM port with valid telemetry.
+3. Only add the overrides you actually need, such as brightness limits, a forced `deviceProfile.profileId` for debugging, or selected `processing` / `calibration` fields on top of the built-in profile.
 
-Запуск (из папки `pc-app/`):
+Run from `pc-app/`:
 
 ```powershell
 dotnet restore
 dotnet run
 ```
 
-Приложение автоматически находит COM-порт, читает первые валидные сообщения, выбирает встроенный hardware profile по `deviceId + sensorId`, логирует effective settings, а затем вычисляет целевую яркость и устанавливает её через WMI для встроенного дисплея.
+The application automatically finds the COM port, reads the first valid messages, selects a built-in hardware profile by `deviceId + sensorId`, logs the effective settings, then computes the target brightness and applies it through WMI to the built-in display.
 
-Список встроенных профилей и инструкция по добавлению нового: [docs/device-profiles.md](/C:/Users/Lenovo/Nextcloud/Repos/brig/brightness-sensor/docs/device-profiles.md).
+For the list of built-in profiles and instructions for adding a new one, see `docs/device-profiles.md`.
 
-Важно: реализация в `pc-app/` предназначена только для Windows. Для других ОС нужно отдельное приложение, которое поддерживает тот же контракт обмена с устройством (JSON-строки по протоколу из `docs/protocol.md`).
+Important: the implementation in `pc-app/` is Windows-only. Other operating systems would need a separate application that supports the same device communication contract, meaning JSON lines defined by `docs/protocol.md`.

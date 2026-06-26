@@ -1,28 +1,28 @@
-﻿# Протокол обмена
+# Communication Protocol
 
-Прошивка отправляет в USB-Serial по одной JSON-строке на измерение (JSONL).
+The firmware sends one JSON line per measurement over USB Serial (JSONL).
 
-## Частота
+## Rate
 
-- Период отправки: 500 мс
-- Скорость порта: 115200 бод
+- Send interval: `500 ms`
+- Port speed: `115200 baud`
 
-## Формат сообщения
+## Message Format
 
 `{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"value":1872}`
 
-## Поля
+## Fields
 
-- `deviceId` (`string`) — идентификатор устройства; используется ПК-приложением для выбора hardware profile и для автопоиска COM-порта, если в конфиге задан `serial.deviceId`
-- `sensorId` (`string`) — идентификатор датчика
-- `ts` (`number`) — время в миллисекундах от старта устройства
-- `value` (`number`) — числовое значение измерения
+- `deviceId` (`string`) - device identifier; used by the PC application to select the hardware profile and to autodiscover the COM port when `serial.deviceId` is set in the config
+- `sensorId` (`string`) - sensor identifier
+- `ts` (`number`) - milliseconds since device startup
+- `value` (`number`) - numeric measurement value
 
-## Семантика `value`
+## `value` Semantics
 
-- Для `firmware/firmware_esp32c3/firmware_esp32c3.ino` поле `value` содержит сырое значение ADC в диапазоне `0..4095`.
-- Для `firmware/firmware_esp32c6/` поле `value` содержит сырое значение ADC в диапазоне `0..4095`.
+- For `firmware/firmware_esp32c3/firmware_esp32c3.ino`, `value` contains the raw ADC reading in the `0..4095` range.
+- For `firmware/firmware_esp32c6/`, `value` contains the raw ADC reading in the `0..4095` range.
 
-## Разделитель сообщений
+## Message Separator
 
-- Каждое сообщение заканчивается переводом строки (`\n`)
+- Every message ends with a newline (`\n`)

@@ -1,42 +1,42 @@
 # brightness_sensor_esp32c6
 
-Прошивка на `ESP-IDF` для платы `Waveshare ESP32-C6-LCD-1.47`.
+`ESP-IDF` firmware for the `Waveshare ESP32-C6-LCD-1.47` board.
 
-Что делает прошивка:
+## What the Firmware Does
 
-- использует встроенный LCD `1.47"` на контроллере `ST7789`;
-- читает сырое значение `ADC` с фоторезистора `KY-018`;
-- показывает статус и текущее значение на горизонтальном LCD-экране;
-- отправляет телеметрию в `USB Serial` в формате JSONL;
-- совместима с Windows-приложением из `pc-app/`.
+- uses the built-in `1.47"` LCD driven by `ST7789`;
+- reads the raw `ADC` value from a `KY-018` photoresistor module;
+- shows status and the current reading on the horizontal LCD;
+- sends telemetry to `USB Serial` in JSONL format;
+- stays compatible with the Windows application in `pc-app/`.
 
-Формат телеметрии:
+Telemetry format:
 
 `{"deviceId":"esp32c6-01","sensorId":"light0","ts":123456,"value":321}`
 
-Для этой прошивки поле `value` содержит сырое значение `ADC` в диапазоне `0..4095`.
+For this firmware, the `value` field contains the raw `ADC` reading in the `0..4095` range.
 
-## Быстрая прошивка готовым бинарником
+## Quick Flashing with a Prebuilt Binary
 
-Если у вас уже есть готовый merged binary, прошивать удобнее всего одним файлом.
+If you already have a merged binary, flashing a single file is the simplest option.
 
-Ожидаемое имя файла:
+Expected file name:
 
 - `brightness_sensor_esp32c6_merged.bin`
 
-Команда прошивки:
+Flashing command:
 
 ```powershell
 esptool.py --chip esp32c6 --port COM5 --baud 460800 write-flash 0x0 brightness_sensor_esp32c6_merged.bin
 ```
 
-Замените `COM5` на свой порт.
+Replace `COM5` with your port.
 
-После прошивки отключите и заново подключите плату либо нажмите `RST`.
+After flashing, reconnect the board or press `RST`.
 
-## Сборка merged binary из исходников
+## Building a Merged Binary from Sources
 
-Откройте `ESP-IDF PowerShell` и выполните:
+Open `ESP-IDF PowerShell` and run:
 
 ```powershell
 cd C:\Users\Lenovo\Nextcloud\Repos\brig\brightness-sensor\firmware\firmware_esp32c6
@@ -45,27 +45,27 @@ mkdir .\build\release -Force
 idf.py merge-bin -f raw -o build\release\brightness_sensor_esp32c6_merged.bin
 ```
 
-Готовый merged binary будет лежать здесь:
+The merged binary will be created here:
 
 - `build/release/brightness_sensor_esp32c6_merged.bin`
 
-## Прошивка из отдельных `.bin`
+## Flashing Separate `.bin` Files
 
-После `idf.py build` появляются обычные артефакты:
+After `idf.py build`, the standard artifacts are:
 
 - `build/bootloader/bootloader.bin`
 - `build/partition_table/partition-table.bin`
 - `build/brightness_sensor_esp32c6.bin`
 
-Команда прошивки:
+Flashing command:
 
 ```powershell
 esptool.py --chip esp32c6 --port COM5 --baud 460800 write-flash --flash-mode dio --flash-freq 80m --flash-size 2MB 0x0 build\bootloader\bootloader.bin 0x8000 build\partition_table\partition-table.bin 0x10000 build\brightness_sensor_esp32c6.bin
 ```
 
-## Сборка и прошивка из ESP-IDF
+## Building and Flashing from ESP-IDF
 
-Если вы собираете проект локально:
+If you build the project locally:
 
 ```powershell
 cd C:\Users\Lenovo\Nextcloud\Repos\brig\brightness-sensor\firmware\firmware_esp32c6
@@ -74,11 +74,11 @@ idf.py build
 idf.py -p COM5 flash monitor
 ```
 
-## Подключение железа
+## Hardware Wiring
 
-### LCD на плате
+### Onboard LCD
 
-Проект использует встроенный LCD Waveshare:
+The project uses the built-in Waveshare LCD with these pins:
 
 - `MOSI`: `GPIO6`
 - `SCLK`: `GPIO7`
@@ -87,73 +87,73 @@ idf.py -p COM5 flash monitor
 - `LCD_RST`: `GPIO21`
 - `LCD_BL`: `GPIO22`
 
-Контроллер дисплея: `ST7789`.
+Display controller: `ST7789`.
 
 ### KY-018
 
-Подключение по умолчанию:
+Default wiring:
 
 - `VCC` -> `3V3`
 - `GND` -> `GND`
 - `AO` -> `GPIO4`
 
-Важно:
+Important:
 
-- используется только аналоговый выход `AO`;
-- обязательно нужен общий `GND`;
-- не подавайте `5V` на датчик;
-- для `ESP32-C6` не используйте `GPIO0` как основной пин для `KY-018`, потому что он может мешать нормальному старту платы.
+- only the analog output `AO` is used;
+- a common `GND` is required;
+- do not supply `5V` to the sensor;
+- for `ESP32-C6`, do not use `GPIO0` as the main `KY-018` pin because it may interfere with normal board startup.
 
-Если датчик не даёт валидные показания:
+If the sensor does not provide valid readings:
 
-- проверьте, что `AO` подключён именно к `GPIO4`;
-- проверьте питание `3V3` и общий `GND`;
-- проверьте надёжность контактов на breadboard;
-- если у модуля есть маркировка `S`, `+`, `-`, то `S` — это аналоговый сигнал (`AO`).
+- check that `AO` is connected specifically to `GPIO4`;
+- check `3V3` power and common `GND`;
+- check the contact quality on the breadboard;
+- if the module is labeled `S`, `+`, `-`, then `S` is the analog signal (`AO`).
 
-## Что должно происходить после старта
+## Expected Behavior After Startup
 
-На экране:
+On the screen:
 
 - `ADC`
-- строка статуса `STATUS ...`
+- a status line like `STATUS ...`
 - `deviceId`
 
-В monitor:
+In the monitor:
 
-- логи старта `ESP-IDF`;
-- сообщение `LCD ready`;
-- при успешной инициализации датчика строка вида:
+- `ESP-IDF` startup logs;
+- the message `LCD ready`;
+- after successful sensor initialization, a line similar to:
 
 `KY-018 ready on ADC unit 1, channel 4, gpio=4`
 
-Если инициализация или чтение не удались, прошивка пишет `sensor_ky018_* failed`.
+If initialization or reading fails, the firmware logs `sensor_ky018_* failed`.
 
-## Подключение к Windows-приложению
+## Connecting to the Windows Application
 
-Для `pc-app` используйте пример:
+For `pc-app`, use this example:
 
-- [pc-app/appsettings.esp32c6.example.json](/C:/Users/Lenovo/Nextcloud/Repos/brig/brightness-sensor/pc-app/appsettings.esp32c6.example.json)
+- `pc-app/appsettings.esp32c6.example.json`
 
-Важно:
+Important:
 
-- `serial.deviceId` должен совпадать с `APP_DEVICE_ID` в `main/app_config.h`;
-- по умолчанию это `esp32c6-01`;
-- `baudRate` должен быть `115200`.
+- `serial.deviceId` must match `APP_DEVICE_ID` in `main/app_config.h`;
+- the default is `esp32c6-01`;
+- `baudRate` must be `115200`.
 
-## Настройки проекта
+## Project Settings
 
-Основные константы лежат в:
+The main constants are defined in:
 
-- [main/app_config.h](/C:/Users/Lenovo/Nextcloud/Repos/brig/brightness-sensor/firmware/firmware_esp32c6/main/app_config.h)
+- `main/app_config.h`
 
-Там можно менять:
+You can change:
 
 - `APP_DEVICE_ID`
 - `APP_SENSOR_ID`
-- интервалы обновления
+- refresh intervals
 - `APP_KY018_ADC_CHANNEL`
 - `APP_KY018_ADC_GPIO`
-- LCD-пины и размеры
+- LCD pins and dimensions
 
-Если вы меняете `APP_DEVICE_ID`, не забудьте обновить `serial.deviceId` в `pc-app/appsettings.json`.
+If you change `APP_DEVICE_ID`, do not forget to update `serial.deviceId` in `pc-app/appsettings.json`.
