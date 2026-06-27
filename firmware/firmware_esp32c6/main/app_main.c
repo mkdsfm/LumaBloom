@@ -6,7 +6,6 @@
 #include "app_config.h"
 #include "device_calibration.h"
 #include "device_reading.h"
-#include "display_lcd.h"
 #include "driver/usb_serial_jtag.h"
 #include "esp_err.h"
 #include "esp_log.h"
@@ -17,6 +16,7 @@
 #include "sensor_ky018.h"
 #include "serial_command.h"
 #include "telemetry_serial.h"
+#include "ui_screen.h"
 
 static const char *TAG = "app_main";
 
@@ -255,7 +255,10 @@ static void display_task(void *arg)
         char status_text[16];
 
         app_state_read(&reading, status_text, sizeof(status_text));
-        display_lcd_render(APP_DEVICE_ID, &reading, status_text);
+        ui_update_normalized(reading.normalized_value_1000, reading.calibrated);
+        ui_update_raw(reading.raw_adc, reading.valid);
+        ui_update_status(status_text, reading.valid && reading.calibrated);
+        ui_screen_render();
 
         vTaskDelay(pdMS_TO_TICKS(APP_DISPLAY_INTERVAL_MS));
     }
@@ -289,11 +292,14 @@ void app_main(void)
         }
     }
 
-    esp_err_t display_err = display_lcd_init();
+    esp_err_t display_err = ui_screen_init();
     if (display_err != ESP_OK) {
-        ESP_LOGE(TAG, "display_lcd_init failed: %s", esp_err_to_name(display_err));
+        ESP_LOGE(TAG, "ui_screen_init failed: %s", esp_err_to_name(display_err));
     } else {
-        display_lcd_render(APP_DEVICE_ID, &s_app_state.latest_reading, s_app_state.status_text);
+        ui_update_normalized(s_app_state.latest_reading.normalized_value_1000, s_app_state.latest_reading.calibrated);
+        ui_update_raw(s_app_state.latest_reading.raw_adc, s_app_state.latest_reading.valid);
+        ui_update_status(s_app_state.status_text, false);
+        ui_screen_render();
     }
 
     static sensor_ky018_t sensor = {0};

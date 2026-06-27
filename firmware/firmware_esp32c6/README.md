@@ -26,6 +26,37 @@ Calibration response from the firmware:
 
 `{"type":"calibrationResult","success":true,"calibrated":true,"normalizedOffset":0.153846,"message":"calibration applied"}`
 
+## Editable UI Layout
+
+The LCD screen now uses a generated layout file plus fixed placeholder names instead of a hard-coded one-off render function.
+
+Relevant files:
+
+- `main/ui_generated_screen.c` - the editable/generated screen definition
+- `main/ui_screen.c` - runtime binding for dynamic values
+- `main/display_lcd.c` - low-level LCD primitives only
+
+Supported dynamic placeholders:
+
+- `{{NORMALIZED}}`
+- `{{RAW}}`
+- `{{STATUS}}`
+
+Notes:
+
+- you can keep only part of them on the screen; missing placeholders are simply ignored;
+- `{{NORMALIZED}}` shows `UNCAL` until calibration completes;
+- `{{RAW}}` falls back to `0` when the sensor reading is invalid;
+- `{{STATUS}}` changes color depending on the current state.
+
+Current workflow:
+
+1. Edit `main/ui_generated_screen.c` or replace it with code exported from your own editor/generator.
+2. Keep dynamic text items named exactly as `{{NORMALIZED}}`, `{{RAW}}`, `{{STATUS}}`.
+3. Run `idf.py build`.
+
+For v1, the placeholder names above are the public UI contract. Arbitrary dynamic field names are not supported.
+
 ## Quick Flashing with a Prebuilt Binary
 
 If you already have a merged binary, flashing a single file is the simplest option.
@@ -128,11 +159,10 @@ If the sensor does not provide valid readings:
 
 On the screen:
 
-- `NORM 1000`
-- `RAW ...`
+- `NORMALIZED`
+- `RAW`
 - `UNCAL` before startup calibration, then a numeric normalized value after calibration
-- a status line like `STATUS ...`
-- `deviceId`
+- the current status
 
 In the monitor:
 

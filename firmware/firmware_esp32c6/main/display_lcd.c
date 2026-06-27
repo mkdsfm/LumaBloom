@@ -1,9 +1,7 @@
 #include "display_lcd.h"
 
-#include <ctype.h>
 #include <stdbool.h>
 #include <stdint.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "app_config.h"
@@ -72,15 +70,6 @@ static const glyph_t kGlyphs[] = {
     {'Y', {0x70, 0x08, 0x07, 0x08, 0x70}},
 };
 
-static const uint16_t COLOR_BG = 0x0841;
-static const uint16_t COLOR_ACCENT = 0x07FF;
-static const uint16_t COLOR_TEXT = 0xFFFF;
-static const uint16_t COLOR_GOOD = 0x07E0;
-static const uint16_t COLOR_BAD = 0xF800;
-static const uint16_t COLOR_MUTED = 0x8410;
-static const uint16_t COLOR_PANEL = 0x18C3;
-static const uint16_t COLOR_PANEL_ALT = 0x10A2;
-
 static int text_width(const char *text, int scale)
 {
     if (text == NULL) {
@@ -107,7 +96,7 @@ static void set_pixel(int x, int y, uint16_t color)
     s_lcd.framebuffer[(y * APP_LCD_WIDTH) + x] = color;
 }
 
-static void fill_screen(uint16_t color)
+void display_lcd_fill_screen(uint16_t color)
 {
     const size_t pixels = APP_LCD_WIDTH * APP_LCD_HEIGHT;
     for (size_t i = 0; i < pixels; ++i) {
@@ -115,7 +104,7 @@ static void fill_screen(uint16_t color)
     }
 }
 
-static void fill_rect(int x, int y, int w, int h, uint16_t color)
+void display_lcd_fill_rect(int x, int y, int w, int h, uint16_t color)
 {
     for (int py = 0; py < h; ++py) {
         for (int px = 0; px < w; ++px) {
@@ -131,13 +120,13 @@ static void draw_char(int x, int y, char c, uint16_t color, int scale)
         uint8_t bits = glyph[col];
         for (int row = 0; row < 7; ++row) {
             if (bits & (1U << row)) {
-                fill_rect(x + (col * scale), y + (row * scale), scale, scale, color);
+                display_lcd_fill_rect(x + (col * scale), y + (row * scale), scale, scale, color);
             }
         }
     }
 }
 
-static void draw_text(int x, int y, const char *text, uint16_t color, int scale)
+void display_lcd_draw_text(int x, int y, const char *text, uint16_t color, int scale)
 {
     if (text == NULL) {
         return;
@@ -150,30 +139,17 @@ static void draw_text(int x, int y, const char *text, uint16_t color, int scale)
     }
 }
 
-static void draw_text_centered(int center_x, int y, const char *text, uint16_t color, int scale)
+void display_lcd_draw_text_centered(int center_x, int y, const char *text, uint16_t color, int scale)
 {
-    draw_text(center_x - (text_width(text, scale) / 2), y, text, color, scale);
+    display_lcd_draw_text(center_x - (text_width(text, scale) / 2), y, text, color, scale);
 }
 
-static void draw_text_right(int right_x, int y, const char *text, uint16_t color, int scale)
+void display_lcd_draw_text_right(int right_x, int y, const char *text, uint16_t color, int scale)
 {
-    draw_text(right_x - text_width(text, scale), y, text, color, scale);
+    display_lcd_draw_text(right_x - text_width(text, scale), y, text, color, scale);
 }
 
-static void to_uppercase_copy(const char *source, char *dest, size_t dest_size)
-{
-    if (dest_size == 0) {
-        return;
-    }
-
-    size_t i = 0;
-    for (; source != NULL && source[i] != '\0' && i + 1 < dest_size; ++i) {
-        dest[i] = (char)toupper((unsigned char)source[i]);
-    }
-    dest[i] = '\0';
-}
-
-static esp_err_t flush_to_panel(void)
+esp_err_t display_lcd_flush(void)
 {
     return esp_lcd_panel_draw_bitmap(
         s_lcd.panel_handle,
@@ -243,64 +219,7 @@ esp_err_t display_lcd_init(void)
     return ESP_OK;
 }
 
-void display_lcd_render(const char *device_id, const device_reading_t *reading, const char *status_text)
+bool display_lcd_is_ready(void)
 {
-    if (!s_lcd.ready || reading == NULL) {
-        return;
-    }
-
-    char device_id_upper[32];
-    char sensor_id_upper[16];
-    char adc_value[16];
-    char norm_value[16];
-    char raw_line[24];
-    char status_upper[16];
-    char status_line[24];
-    const char *resolved_status = status_text != NULL ? status_text : "UNKNOWN";
-    const uint16_t status_color = (reading->valid && reading->calibrated) ? COLOR_GOOD : COLOR_BAD;
-    const int header_height = 30;
-    const int footer_height = 24;
-    const int panel_margin = 8;
-    const int footer_y = APP_LCD_HEIGHT - footer_height;
-    const int panel_x = panel_margin;
-    const int panel_y = header_height + 8;
-    const int panel_w = APP_LCD_WIDTH - (panel_margin * 2);
-    const int panel_h = footer_y - panel_y - 6;
-    const int status_badge_w = 126;
-    const int status_badge_h = 18;
-
-    to_uppercase_copy(device_id, device_id_upper, sizeof(device_id_upper));
-    to_uppercase_copy(APP_SENSOR_ID, sensor_id_upper, sizeof(sensor_id_upper));
-    to_uppercase_copy(resolved_status, status_upper, sizeof(status_upper));
-    snprintf(adc_value, sizeof(adc_value), "%d", reading->valid ? reading->raw_adc : 0);
-    snprintf(norm_value, sizeof(norm_value), "%d", reading->calibrated ? reading->normalized_value_1000 : 0);
-    snprintf(raw_line, sizeof(raw_line), "RAW %s", adc_value);
-    snprintf(status_line, sizeof(status_line), "STATUS %s", status_upper);
-
-    fill_screen(COLOR_BG);
-    fill_rect(0, 0, APP_LCD_WIDTH, header_height, COLOR_ACCENT);
-    fill_rect(panel_x, panel_y, panel_w, panel_h, COLOR_PANEL);
-    fill_rect(panel_x, panel_y, 6, panel_h, status_color);
-    fill_rect(0, footer_y, APP_LCD_WIDTH, footer_height, COLOR_PANEL_ALT);
-    fill_rect(APP_LCD_WIDTH - status_badge_w - 10, 6, status_badge_w, status_badge_h, status_color);
-
-    draw_text(10, 8, "KY-018", COLOR_BG, 2);
-    draw_text(90, 10, device_id_upper, COLOR_BG, 1);
-    draw_text_centered(APP_LCD_WIDTH - (status_badge_w / 2) - 10, 11, status_line, COLOR_BG, 1);
-
-    draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 10, "NORM 1000", COLOR_MUTED, 2);
-    if (reading->calibrated) {
-        draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 40, norm_value, COLOR_TEXT, 7);
-    } else {
-        draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 54, "UNCAL", COLOR_TEXT, 4);
-    }
-    draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 108, raw_line, COLOR_MUTED, 2);
-
-    draw_text(18, footer_y + 8, sensor_id_upper, COLOR_TEXT, 1);
-    draw_text_centered(APP_LCD_WIDTH / 2, footer_y + 6, "USB JSONL", COLOR_MUTED, 2);
-    draw_text_right(APP_LCD_WIDTH - 10, footer_y + 8, "115200 PC", COLOR_TEXT, 1);
-
-    if (flush_to_panel() != ESP_OK) {
-        ESP_LOGE(TAG, "panel flush failed");
-    }
+    return s_lcd.ready;
 }
