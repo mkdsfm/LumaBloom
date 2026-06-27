@@ -252,10 +252,12 @@ void display_lcd_render(const char *device_id, const device_reading_t *reading, 
     char device_id_upper[32];
     char sensor_id_upper[16];
     char adc_value[16];
+    char norm_value[16];
+    char raw_line[24];
     char status_upper[16];
     char status_line[24];
     const char *resolved_status = status_text != NULL ? status_text : "UNKNOWN";
-    const uint16_t status_color = reading->valid ? COLOR_GOOD : COLOR_BAD;
+    const uint16_t status_color = (reading->valid && reading->calibrated) ? COLOR_GOOD : COLOR_BAD;
     const int header_height = 30;
     const int footer_height = 24;
     const int panel_margin = 8;
@@ -271,6 +273,8 @@ void display_lcd_render(const char *device_id, const device_reading_t *reading, 
     to_uppercase_copy(APP_SENSOR_ID, sensor_id_upper, sizeof(sensor_id_upper));
     to_uppercase_copy(resolved_status, status_upper, sizeof(status_upper));
     snprintf(adc_value, sizeof(adc_value), "%d", reading->valid ? reading->raw_adc : 0);
+    snprintf(norm_value, sizeof(norm_value), "%d", reading->calibrated ? reading->normalized_value_1000 : 0);
+    snprintf(raw_line, sizeof(raw_line), "RAW %s", adc_value);
     snprintf(status_line, sizeof(status_line), "STATUS %s", status_upper);
 
     fill_screen(COLOR_BG);
@@ -284,8 +288,13 @@ void display_lcd_render(const char *device_id, const device_reading_t *reading, 
     draw_text(90, 10, device_id_upper, COLOR_BG, 1);
     draw_text_centered(APP_LCD_WIDTH - (status_badge_w / 2) - 10, 11, status_line, COLOR_BG, 1);
 
-    draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 12, "RAW ADC", COLOR_MUTED, 2);
-    draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 44, adc_value, COLOR_TEXT, 7);
+    draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 10, "NORM 1000", COLOR_MUTED, 2);
+    if (reading->calibrated) {
+        draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 40, norm_value, COLOR_TEXT, 7);
+    } else {
+        draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 54, "UNCAL", COLOR_TEXT, 4);
+    }
+    draw_text_centered(APP_LCD_WIDTH / 2, panel_y + 108, raw_line, COLOR_MUTED, 2);
 
     draw_text(18, footer_y + 8, sensor_id_upper, COLOR_TEXT, 1);
     draw_text_centered(APP_LCD_WIDTH / 2, footer_y + 6, "USB JSONL", COLOR_MUTED, 2);

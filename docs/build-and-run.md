@@ -52,7 +52,7 @@ Detailed instructions, including `arduino-cli` and release binary builds:
 
 Requirements:
 
-- ESP-IDF 5.x
+- ESP-IDF 6.x
 - Waveshare `ESP32-C6-LCD-1.47` board
 - `KY-018` sensor
 
@@ -95,9 +95,12 @@ idf.py -p COMx flash monitor
 
 Expected result:
 
-- the LCD shows `deviceId`, `adc`, `value`, and `status`;
-- the serial monitor receives JSON lines with `deviceId`, `sensorId`, `ts`, and `value`;
-- the Windows application from `pc-app/` can work with the new device using the same contract.
+- the LCD shows `NORM 1000` as the main value, plus a smaller `RAW` diagnostic line;
+- before `pc-app` calibration, the LCD shows `UNCAL` and telemetry keeps `calibrated=false`;
+- after calibration, the serial monitor receives JSON lines with `deviceId`, `sensorId`, `ts`, `value`, `raw`, and `calibrated`;
+- the Windows application from `pc-app/` calibrates the device at startup and then uses normalized `0..1000` readings.
+
+If you use Codex, an automated skill-based workflow for release binary creation and flashing is documented in [skills-for-users.md](skills-for-users.md).
 
 ## PC Application (.NET)
 
@@ -121,6 +124,13 @@ dotnet run
 ```
 
 The application automatically finds the COM port, reads the first valid messages, selects a built-in hardware profile by `deviceId + sensorId`, logs the effective settings, then computes the target brightness and applies it through WMI to the built-in display.
+
+For `ESP32-C6`, startup behavior is:
+
+1. `pc-app` reads the first valid telemetry messages and collects several raw samples.
+2. It reads the current monitor brightness from Windows.
+3. It sends `{"type":"calibrate", ...}` to the device over the same COM port.
+4. After the device replies with `calibrationResult`, the main runtime loop starts using normalized `0..1000` values.
 
 For the list of built-in profiles and instructions for adding a new one, see `docs/device-profiles.md`.
 

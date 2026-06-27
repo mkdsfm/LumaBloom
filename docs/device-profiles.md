@@ -12,8 +12,8 @@
 
 ## Built-In Profiles
 
-- `esp32c3-analog-ky018` for `deviceId=esp32c3-01`, `sensorId=light0`
-- `esp32c6-analog-ky018` for `deviceId=esp32c6-01`, `sensorId=light0`
+- `esp32c3-analog-ky018` for `deviceId=esp32c3-01`, `sensorId=light0`, measurement kind `Adc`
+- `esp32c6-analog-ky018` for `deviceId=esp32c6-01`, `sensorId=light0`, measurement kind `Normalized1000`
 - `generic-adc-safe` as a fallback profile
 
 ## User Config
@@ -32,7 +32,7 @@ You can keep `appsettings.json` minimal:
 }
 ```
 
-For a full debugging-oriented example with every optional field populated, see [appsettings.full.example.json](/C:/Users/Lenovo/Nextcloud/Repos/brig/brightness-sensor/appsettings.full.example.json).
+For a full debugging-oriented example with every optional field populated, see [appsettings.full.example.json](../appsettings.full.example.json).
 
 Optional overrides:
 
@@ -42,8 +42,14 @@ Optional overrides:
 - `deviceProfile.autoDetect=false` together with `deviceProfile.profileId`
 - partial `processing`, `brightness`, and `calibration` overrides
 
+For `esp32c6-analog-ky018` specifically:
+
+- `processing.adcMin` and `processing.adcMax` describe the already-normalized `0..1000` input range, not the raw ADC range;
+- `processing.invert` should usually stay `false` because inversion and calibration now happen on the device;
+- startup calibration is mandatory for normal operation, because the device stays in `UNCAL` until `pc-app` sends the calibration command.
+
 ## Adding a New Profile
 
-1. Add a new entry to [pc-app/BrightnessSensor.ConsoleApp/Profiles/DeviceProfileCatalog.cs](/C:/Users/Lenovo/Nextcloud/Repos/brig/brightness-sensor/pc-app/BrightnessSensor.ConsoleApp/Profiles/DeviceProfileCatalog.cs).
+1. Add a new entry to `pc-app/BrightnessSensor.ConsoleApp/Profiles/DeviceProfileCatalog.cs`.
 2. Set `profileId`, `deviceId`, `sensorId`, measurement kind, and recommended defaults.
-3. Add or update tests in [pc-app/BrightnessSensor.ConsoleApp.Tests/AppConfigLoaderTests.cs](/C:/Users/Lenovo/Nextcloud/Repos/brig/brightness-sensor/pc-app/BrightnessSensor.ConsoleApp.Tests/AppConfigLoaderTests.cs).
+3. Add or update tests in `pc-app/BrightnessSensor.ConsoleApp.Tests/AppConfigLoaderTests.cs`.

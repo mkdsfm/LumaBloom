@@ -61,7 +61,9 @@ esp_err_t sensor_ky018_read(sensor_ky018_t *sensor, device_reading_t *reading)
         "KY-018 read failed");
 
     reading->raw_adc = raw_adc;
-    reading->value_for_pc = raw_adc;
+    reading->normalized_value_1000 = 0;
+    reading->value_for_pc = 0;
+    reading->calibrated = false;
     reading->valid = true;
     return ESP_OK;
 }

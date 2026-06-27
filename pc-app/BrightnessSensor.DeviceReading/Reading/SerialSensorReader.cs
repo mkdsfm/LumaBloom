@@ -1,4 +1,5 @@
 using System.IO.Ports;
+using System.Text.Json;
 using BrightnessSensor.DeviceReading.Models;
 
 namespace BrightnessSensor.DeviceReading.Reading;
@@ -13,31 +14,58 @@ public sealed class SerialSensorReader(string portName, int baudRate, int readTi
         _serialPort.Open();
     }
 
-    public SensorReadResult TryReadMessage()
+    public bool TryWriteLine<T>(T payload, out string? error)
+    {
+        try
+        {
+            var line = JsonSerializer.Serialize(payload);
+            _serialPort.WriteLine(line);
+            error = null;
+            return true;
+        }
+        catch (Exception exception)
+        {
+            error = exception.Message;
+            return false;
+        }
+    }
+
+    public SerialLineReadResult TryReadLine()
     {
         try
         {
             var line = _serialPort.ReadLine().Trim();
             if (string.IsNullOrWhiteSpace(line))
             {
-                return new SensorReadResult(SensorReadStatus.TimeoutOrEmpty, null, null, null);
+                return new SerialLineReadResult(SensorReadStatus.TimeoutOrEmpty, null, null);
             }
 
-            if (!SensorMessageParser.TryParse(line, out var message))
-            {
-                return new SensorReadResult(SensorReadStatus.InvalidPayload, null, line, null);
-            }
-
-            return new SensorReadResult(SensorReadStatus.Success, message, line, null);
+            return new SerialLineReadResult(SensorReadStatus.Success, line, null);
         }
         catch (TimeoutException)
         {
-            return new SensorReadResult(SensorReadStatus.TimeoutOrEmpty, null, null, null);
+            return new SerialLineReadResult(SensorReadStatus.TimeoutOrEmpty, null, null);
         }
         catch (Exception exception)
         {
-            return new SensorReadResult(SensorReadStatus.Error, null, null, exception.Message);
+            return new SerialLineReadResult(SensorReadStatus.Error, null, exception.Message);
         }
+    }
+
+    public SensorReadResult TryReadMessage()
+    {
+        var lineResult = TryReadLine();
+        if (lineResult.Status == SensorReadStatus.TimeoutOrEmpty || lineResult.Status == SensorReadStatus.Error)
+        {
+            return new SensorReadResult(lineResult.Status, null, null, lineResult.Error);
+        }
+
+        if (!SensorMessageParser.TryParse(lineResult.Line!, out var message))
+        {
+            return new SensorReadResult(SensorReadStatus.InvalidPayload, null, lineResult.Line, null);
+        }
+
+        return new SensorReadResult(SensorReadStatus.Success, message, lineResult.Line, null);
     }
 
     public void Dispose()

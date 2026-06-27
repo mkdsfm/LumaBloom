@@ -144,6 +144,35 @@ public sealed class AppConfigLoaderTests
         Assert.Equal(SerialSettings.DefaultDiscoveryTimeoutMs, resolved.DiscoveryTimeoutMs);
     }
 
+    [Fact]
+    public void Resolve_Esp32C6Profile_UsesNormalized1000Measurement()
+    {
+        var config = LoadConfig("""
+                                {
+                                  "serial": {
+                                    "deviceId": "esp32c6-01"
+                                  }
+                                }
+                                """);
+
+        var resolver = new DeviceProfileResolver();
+        var message = new SensorMessage
+        {
+            DeviceId = "esp32c6-01",
+            SensorId = "light0",
+            Value = 0,
+            Raw = 1450,
+            Calibrated = false
+        };
+
+        var profile = resolver.Resolve(config, message, out _);
+        var resolved = ResolvedSettingsFactory.Create(config, profile);
+
+        Assert.Equal(MeasurementKind.Normalized1000, resolved.MeasurementKind);
+        Assert.False(resolved.Processing.Invert);
+        Assert.Equal(1000, resolved.Processing.AdcMax);
+    }
+
     private static AppConfig LoadConfig(string json)
     {
         var tempPath = Path.Combine(Path.GetTempPath(), $"brightness-sensor-tests-{Guid.NewGuid():N}.json");

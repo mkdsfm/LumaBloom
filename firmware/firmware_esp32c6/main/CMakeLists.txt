@@ -1,14 +1,17 @@
 idf_component_register(
     SRCS
         "app_main.c"
+        "device_calibration.c"
         "display_lcd.c"
         "sensor_ky018.c"
+        "serial_command.c"
         "telemetry_serial.c"
     INCLUDE_DIRS
         "."
     REQUIRES
         driver
         esp_adc
+        esp_driver_usb_serial_jtag
         esp_lcd
         esp_timer
 )

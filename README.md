@@ -5,7 +5,7 @@ A bundle of firmware and a simple Windows console application for automatically 
 ## Contents
 
 - `firmware/firmware_esp32c3/` - Arduino firmware for ESP32-C3, plus build and flashing instructions.
-- `firmware/firmware_esp32c6/` - ESP-IDF project for Waveshare ESP32-C6-LCD-1.47 with KY-018 and the onboard LCD.
+- `firmware/firmware_esp32c6/` - ESP-IDF project for Waveshare ESP32-C6-LCD-1.47 with KY-018, onboard LCD, and runtime calibration from `pc-app`.
 - `pc-app/` - Windows-only .NET application that reads JSON from a COM port and controls brightness through WMI.
 - `docs/` - wiring, protocol, and run instructions.
 - `appsettings.example.json` - example configuration for the PC application.
@@ -21,8 +21,18 @@ A bundle of firmware and a simple Windows console application for automatically 
    `pc-app/appsettings.esp32c6.example.json` for a minimal ESP32-C6 + KY-018 setup,
    or `appsettings.full.example.json` for a full template with all optional fields.
 4. Start the PC application from `pc-app/`.
+5. For `ESP32-C6`, wait for startup calibration to complete. Until then the device LCD shows `UNCAL` and telemetry keeps `calibrated=false`.
 
 Important: the current PC application supports Windows only. Linux and macOS would require a separate application that preserves the same device communication contract, meaning the same JSON protocol from `docs/protocol.md`.
+
+## ESP32-C6 Behavior
+
+`firmware_esp32c6` differs from the simple ESP32-C3 flow:
+
+- the firmware sends `value` as a normalized calibrated value in the `0..1000` range;
+- it also sends `raw` as a diagnostic/raw ADC field for startup calibration;
+- `pc-app` must send a `calibrate` command after reading the current monitor brightness;
+- before calibration, the device remains in `UNCAL` state and publishes `value=0`.
 
 ## `pc-app/` Structure
 
@@ -87,20 +97,24 @@ For details on built-in profiles, the generic fallback, and how to add new profi
 ## Built-In Profiles
 
 - `esp32c3-analog-ky018` - `deviceId=esp32c3-01`, `sensorId=light0`, measurement type `ADC`
-- `esp32c6-analog-ky018` - `deviceId=esp32c6-01`, `sensorId=light0`, measurement type `ADC`
+- `esp32c6-analog-ky018` - `deviceId=esp32c6-01`, `sensorId=light0`, measurement type `Normalized1000`
 - `generic-adc-safe` - fallback profile for unknown devices, measurement type `ADC`
 
 ## Telemetry Format
 
 Each measurement is sent as a single JSON line, for example:
 
-`{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"value":1872}`
+`{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"value":742,"raw":1840,"calibrated":true}`
 
 `deviceId` is used by the PC application for COM port autodiscovery when `serial.deviceId` is set. After that, `deviceId + sensorId` is used to select the built-in hardware profile.
 
 The `value` field depends on the firmware type:
 
 - Arduino firmware for ESP32-C3 sends the raw ADC value.
-- ESP-IDF firmware for ESP32-C6 sends the raw ADC value.
+- ESP-IDF firmware for ESP32-C6 sends the calibrated normalized value in the `0..1000` range.
 
 Details: `docs/protocol.md`.
+
+## Codex Skills
+
+If you use Codex in this repo, see [docs/skills-for-users.md](docs/skills-for-users.md) for the recommended user-facing workflow for skills such as building and flashing the ESP32 release firmware.

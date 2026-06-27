@@ -102,6 +102,12 @@ public sealed class BrightnessProcessor(BrightnessComputationSettings settings)
 
     private double Normalize(int rawAdcValue)
     {
+        if (settings.InputIsNormalized1000)
+        {
+            var clampedNormalized = Math.Clamp(rawAdcValue, 0, 1000);
+            return clampedNormalized / 1000.0;
+        }
+
         var clampedAdcValue = Math.Clamp(rawAdcValue, settings.AdcMin, settings.AdcMax);
         return (clampedAdcValue - settings.AdcMin) / (double)(settings.AdcMax - settings.AdcMin);
     }

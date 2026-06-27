@@ -1,0 +1,4 @@
+interface:
+  display_name: "ESP32 Release Flash"
+  short_description: "Build readable ESP32 binaries and flash devices"
+  default_prompt: "Use $esp32-release-flash to build a readable release binary and optionally flash it to an ESP32 device."

@@ -15,4 +15,10 @@ public sealed class SensorMessage
 
     [JsonPropertyName("value")]
     public int Value { get; init; }
+
+    [JsonPropertyName("raw")]
+    public int? Raw { get; init; }
+
+    [JsonPropertyName("calibrated")]
+    public bool Calibrated { get; init; }
 }
