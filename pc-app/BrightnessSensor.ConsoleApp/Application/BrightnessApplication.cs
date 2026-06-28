@@ -312,6 +312,7 @@ internal static class BrightnessApplication
             settings.Processing.Invert,
             settings.Processing.EmaAlpha,
             settings.Processing.HysteresisPercent,
+            settings.Processing.MaxBrightnessStepPercent,
             settings.Processing.Gamma,
             settings.Brightness.MinPercent,
             settings.Brightness.MaxPercent);
@@ -377,8 +378,11 @@ internal static class BrightnessApplication
                 }
 
                 var sourceLabel = measurementKind == MeasurementKind.Normalized1000 ? "norm1000" : "raw";
+                var requestedLabel = evaluationResult.RequestedBrightness == evaluationResult.TargetBrightness
+                    ? string.Empty
+                    : $" requested={evaluationResult.RequestedBrightness}%";
                 Console.WriteLine(
-                    $"[{DateTime.Now:HH:mm:ss}] {context.Monitor.Source}:{context.Monitor.Name} {sourceLabel}={sensorMessage.Value,4} norm={evaluationResult.Normalized:F3} filt={evaluationResult.Filtered:F3} -> brightness={evaluationResult.TargetBrightness}%");
+                    $"[{DateTime.Now:HH:mm:ss}] {context.Monitor.Source}:{context.Monitor.Name} {sourceLabel}={sensorMessage.Value,4} norm={evaluationResult.Normalized:F3} filt={evaluationResult.Filtered:F3}{requestedLabel} -> brightness={evaluationResult.TargetBrightness}%");
             }, cancellationToken);
 
             monitorTasks.Add(task);
@@ -439,7 +443,7 @@ internal static class BrightnessApplication
 
     private static string Describe(ResolvedAppSettings settings)
     {
-        return $"profileId={settings.ProfileId}, measurement={settings.MeasurementKind}, generic={settings.IsGenericProfile}, adc=[{settings.Processing.AdcMin}..{settings.Processing.AdcMax}], invert={settings.Processing.Invert}, emaAlpha={FormatNumber(settings.Processing.EmaAlpha)}, hysteresisPercent={settings.Processing.HysteresisPercent}, gamma={FormatNullableNumber(settings.Processing.Gamma)}, brightness=[{settings.Brightness.MinPercent}..{settings.Brightness.MaxPercent}], calibration={{enabled={settings.Calibration.Enabled}, sampleCount={settings.Calibration.SampleCount}, maxReadAttempts={settings.Calibration.MaxReadAttempts}}}";
+        return $"profileId={settings.ProfileId}, measurement={settings.MeasurementKind}, generic={settings.IsGenericProfile}, adc=[{settings.Processing.AdcMin}..{settings.Processing.AdcMax}], invert={settings.Processing.Invert}, emaAlpha={FormatNumber(settings.Processing.EmaAlpha)}, hysteresisPercent={settings.Processing.HysteresisPercent}, maxBrightnessStepPercent={settings.Processing.MaxBrightnessStepPercent}, gamma={FormatNullableNumber(settings.Processing.Gamma)}, brightness=[{settings.Brightness.MinPercent}..{settings.Brightness.MaxPercent}], calibration={{enabled={settings.Calibration.Enabled}, sampleCount={settings.Calibration.SampleCount}, maxReadAttempts={settings.Calibration.MaxReadAttempts}}}";
     }
 
     private static string FormatNumber(double value)

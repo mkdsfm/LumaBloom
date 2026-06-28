@@ -12,6 +12,7 @@ internal static class ResolvedSettingsFactory
             Invert: config.Processing?.Invert ?? profile.Processing.Invert,
             EmaAlpha: config.Processing?.EmaAlpha ?? profile.Processing.EmaAlpha,
             HysteresisPercent: config.Processing?.HysteresisPercent ?? profile.Processing.HysteresisPercent,
+            MaxBrightnessStepPercent: config.Processing?.MaxBrightnessStepPercent ?? profile.Processing.MaxBrightnessStepPercent,
             Gamma: config.Processing?.Gamma ?? profile.Processing.Gamma);
 
         var brightness = new BrightnessSettings(
@@ -59,6 +60,11 @@ internal static class ResolvedSettingsFactory
         if (settings.Processing.HysteresisPercent is < 0 or > 100)
         {
             throw new InvalidOperationException("processing.hysteresisPercent must be in the range 0..100.");
+        }
+
+        if (settings.Processing.MaxBrightnessStepPercent is <= 0 or > 100)
+        {
+            throw new InvalidOperationException("processing.maxBrightnessStepPercent must be in the range 1..100.");
         }
 
         if (settings.Processing.Gamma is <= 0)

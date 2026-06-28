@@ -114,7 +114,8 @@ public sealed class AppConfigLoaderTests
                                   },
                                   "processing": {
                                     "emaAlpha": 0.1,
-                                    "hysteresisPercent": 7
+                                    "hysteresisPercent": 7,
+                                    "maxBrightnessStepPercent": 4
                                   },
                                   "brightness": {
                                     "minPercent": 15
@@ -135,6 +136,7 @@ public sealed class AppConfigLoaderTests
         Assert.Equal(3200, resolved.Processing.AdcMax);
         Assert.Equal(0.1, resolved.Processing.EmaAlpha);
         Assert.Equal(7, resolved.Processing.HysteresisPercent);
+        Assert.Equal(4, resolved.Processing.MaxBrightnessStepPercent);
         Assert.Equal(15, resolved.Brightness.MinPercent);
         Assert.Equal(100, resolved.Brightness.MaxPercent);
         Assert.False(resolved.Calibration.Enabled);

@@ -17,6 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="..\BrightnessSensor.BrightnessMath\BrightnessComputationSettings.cs" Link="BrightnessMath\BrightnessComputationSettings.cs" />
+    <Compile Include="..\BrightnessSensor.BrightnessMath\BrightnessProcessor.cs" Link="BrightnessMath\BrightnessProcessor.cs" />
+    <Compile Include="..\BrightnessSensor.BrightnessMath\EvaluationResult.cs" Link="BrightnessMath\EvaluationResult.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\AppConfig.cs" Link="ConsoleApp.Configuration\AppConfig.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\AppConfigLoader.cs" Link="ConsoleApp.Configuration\AppConfigLoader.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\BrightnessOverrides.cs" Link="ConsoleApp.Configuration\BrightnessOverrides.cs" />

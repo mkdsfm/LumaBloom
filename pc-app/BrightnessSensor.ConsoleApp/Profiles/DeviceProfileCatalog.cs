@@ -14,7 +14,8 @@ internal static class DeviceProfileCatalog
             AdcMax: 4095,
             Invert: true,
             EmaAlpha: 0.2,
-            HysteresisPercent: 3,
+            HysteresisPercent: 1,
+            MaxBrightnessStepPercent: 2,
             Gamma: 1.0),
         Calibration: new CalibrationSettings(
             Enabled: true,
@@ -39,7 +40,8 @@ internal static class DeviceProfileCatalog
                 AdcMax: 3200,
                 Invert: true,
                 EmaAlpha: 0.2,
-                HysteresisPercent: 3,
+                HysteresisPercent: 1,
+                MaxBrightnessStepPercent: 2,
                 Gamma: 2.0),
             Calibration: new CalibrationSettings(
                 Enabled: true,
@@ -60,7 +62,8 @@ internal static class DeviceProfileCatalog
                 AdcMax: 1000,
                 Invert: false,
                 EmaAlpha: 0.2,
-                HysteresisPercent: 3,
+                HysteresisPercent: 1,
+                MaxBrightnessStepPercent: 2,
                 Gamma: 1.0),
             Calibration: new CalibrationSettings(
                 Enabled: true,

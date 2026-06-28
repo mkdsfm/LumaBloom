@@ -7,6 +7,7 @@ public sealed record BrightnessComputationSettings(
     bool Invert,
     double EmaAlpha,
     int HysteresisPercent,
+    int MaxBrightnessStepPercent,
     double? Gamma,
     int MinBrightnessPercent,
     int MaxBrightnessPercent);

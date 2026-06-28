@@ -29,29 +29,42 @@ public sealed class BrightnessProcessor(BrightnessComputationSettings settings)
             ? _emaValue.Value
             : Math.Pow(_emaValue.Value, settings.Gamma.Value);
 
-        var targetBrightness = (int)Math.Round(
+        var requestedBrightness = (int)Math.Round(
             settings.MinBrightnessPercent +
             (effectiveValue * (settings.MaxBrightnessPercent - settings.MinBrightnessPercent)),
             MidpointRounding.AwayFromZero);
 
-        targetBrightness = Math.Clamp(
-            targetBrightness,
+        requestedBrightness = Math.Clamp(
+            requestedBrightness,
             settings.MinBrightnessPercent,
             settings.MaxBrightnessPercent);
 
         if (_lastAppliedBrightness.HasValue &&
-            Math.Abs(targetBrightness - _lastAppliedBrightness.Value) < settings.HysteresisPercent)
+            Math.Abs(requestedBrightness - _lastAppliedBrightness.Value) < settings.HysteresisPercent)
         {
             return new EvaluationResult(
                 ShouldApply: false,
-                TargetBrightness: targetBrightness,
+                RequestedBrightness: requestedBrightness,
+                TargetBrightness: _lastAppliedBrightness.Value,
                 Normalized: normalized,
                 Filtered: _emaValue.Value);
+        }
+
+        var targetBrightness = requestedBrightness;
+        if (_lastAppliedBrightness.HasValue)
+        {
+            var delta = requestedBrightness - _lastAppliedBrightness.Value;
+            if (Math.Abs(delta) > settings.MaxBrightnessStepPercent)
+            {
+                targetBrightness = _lastAppliedBrightness.Value +
+                    Math.Sign(delta) * settings.MaxBrightnessStepPercent;
+            }
         }
 
         _lastAppliedBrightness = targetBrightness;
         return new EvaluationResult(
             ShouldApply: true,
+            RequestedBrightness: requestedBrightness,
             TargetBrightness: targetBrightness,
             Normalized: normalized,
             Filtered: _emaValue.Value);

@@ -19,6 +19,9 @@ internal sealed class ProcessingOverrides
     [JsonPropertyName("hysteresisPercent")]
     public int? HysteresisPercent { get; init; }
 
+    [JsonPropertyName("maxBrightnessStepPercent")]
+    public int? MaxBrightnessStepPercent { get; init; }
+
     [JsonPropertyName("gamma")]
     public double? Gamma { get; init; }
 }

@@ -69,6 +69,8 @@ The PC application expects a `pc-app/appsettings.json` file with the following s
     Effect: higher values react faster, lower values make brightness changes smoother and slower.
   - `hysteresisPercent` - minimum brightness change step in percent (`0..100`).
     Effect: suppresses small fluctuations by ignoring tiny changes.
+  - `maxBrightnessStepPercent` - maximum brightness delta per update (`1..100`).
+    Effect: prevents abrupt jumps by moving toward the computed target in small steps.
   - `gamma` - optional gamma correction after EMA (`null` disables it, typically `1.8..2.2`).
     Effect: makes the brightness curve feel more natural, softer in dark areas and less abrupt overall.
 - `brightness`

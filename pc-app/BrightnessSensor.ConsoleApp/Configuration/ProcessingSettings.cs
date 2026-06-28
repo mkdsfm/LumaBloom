@@ -7,4 +7,5 @@ internal sealed record ProcessingSettings(
     bool Invert,
     double EmaAlpha,
     int HysteresisPercent,
+    int MaxBrightnessStepPercent,
     double? Gamma);
