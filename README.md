@@ -21,7 +21,7 @@ A bundle of firmware and a simple Windows console application for automatically 
    `pc-app/appsettings.esp32c6.example.json` for a minimal ESP32-C6 + KY-018 setup,
    or `appsettings.full.example.json` for a full template with all optional fields.
 4. Start the PC application from `pc-app/`.
-5. For `ESP32-C6`, wait for startup calibration to complete. Until then the device LCD shows `UNCAL` and telemetry keeps `calibrated=false`.
+5. For `ESP32-C6`, wait for startup calibration to complete. Until then the device LCD keeps the value at `0` with a closed flower and telemetry keeps `calibrated=false`.
 
 Important: the current PC application supports Windows only. Linux and macOS would require a separate application that preserves the same device communication contract, meaning the same JSON protocol from `docs/protocol.md`.
 

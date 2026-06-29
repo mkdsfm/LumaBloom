@@ -1,0 +1,4 @@
+interface:
+  display_name: "Release Notes"
+  short_description: "Draft repo release notes in English"
+  default_prompt: "Use $release-notes-github and specify the source tag and target tag to draft English LumaBloom release notes."

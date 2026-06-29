@@ -1,0 +1,4 @@
+interface:
+  display_name: "LumaBloom Release"
+  short_description: "Create notes, bin, and portable zip"
+  default_prompt: "Use $luma-bloom-release and specify the source tag and target tag to prepare a full LumaBloom release."

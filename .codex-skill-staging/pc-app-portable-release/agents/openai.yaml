@@ -1,0 +1,4 @@
+interface:
+  display_name: "PC App Portable"
+  short_description: "Build a versioned Windows portable zip"
+  default_prompt: "Use $pc-app-portable-release to build the Windows portable zip for a target release tag."
