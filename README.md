@@ -21,7 +21,7 @@ A bundle of firmware and a simple Windows console application for automatically 
    `pc-app/appsettings.esp32c6.example.json` for a minimal ESP32-C6 + KY-018 setup,
    or `appsettings.full.example.json` for a full template with all optional fields.
 4. Start the PC application from `pc-app/`.
-5. For `ESP32-C6`, wait for startup calibration to complete. Until then the device LCD keeps the value at `0` with a closed flower and telemetry keeps `calibrated=false`.
+5. For `ESP32-C6`, wait for startup calibration to complete. Until then the device LCD shows `--%` plus the current `ADC` line, and telemetry keeps `calibrated=false`.
 
 Important: the current PC application supports Windows only. Linux and macOS would require a separate application that preserves the same device communication contract, meaning the same JSON protocol from `docs/protocol.md`.
 
@@ -32,7 +32,7 @@ Important: the current PC application supports Windows only. Linux and macOS wou
 - the firmware sends `value` as a normalized calibrated value in the `0..1000` range;
 - it also sends `raw` as a diagnostic/raw ADC field for startup calibration;
 - `pc-app` must send a `calibrate` command after reading the current monitor brightness;
-- before calibration, the device remains in `UNCAL` state and publishes `value=0`.
+- before calibration, the device publishes `value=0` while the LCD keeps the percentage placeholder at `--%`.
 
 ## `pc-app/` Structure
 

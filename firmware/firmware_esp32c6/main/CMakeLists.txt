@@ -6,7 +6,6 @@ idf_component_register(
         "sensor_ky018.c"
         "serial_command.c"
         "telemetry_serial.c"
-        "ui_generated_screen.c"
         "ui_screen.c"
     INCLUDE_DIRS
         "."

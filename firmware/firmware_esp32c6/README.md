@@ -6,7 +6,7 @@
 
 - uses the built-in `1.47"` LCD driven by `ST7789`;
 - reads the raw `ADC` value from a `KY-018` photoresistor module;
-- shows status and the current reading on the horizontal LCD;
+- shows a monochrome percentage-based UI on the horizontal LCD;
 - exchanges JSONL messages with `pc-app` over `USB Serial`;
 - stays compatible with the Windows application in `pc-app/`.
 
@@ -16,7 +16,7 @@ Telemetry format:
 
 For this firmware, the `value` field contains a calibrated normalized reading in the `0..1000` range.
 Before startup calibration arrives from `pc-app`, the firmware publishes `value=0` and `calibrated=false`.
-The built-in LCD also shows `UNCAL` until calibration completes.
+The built-in LCD shows `--%` plus the current `ADC` line until calibration completes.
 
 Calibration command from `pc-app`:
 
@@ -26,36 +26,28 @@ Calibration response from the firmware:
 
 `{"type":"calibrationResult","success":true,"calibrated":true,"normalizedOffset":0.153846,"message":"calibration applied"}`
 
-## Editable UI Layout
+## LCD UI
 
-The LCD screen now uses a generated layout file plus fixed placeholder names instead of a hard-coded one-off render function.
+The LCD uses a dedicated code-rendered screen instead of generated placeholders.
 
 Relevant files:
 
-- `main/ui_generated_screen.c` - the editable/generated screen definition
-- `main/ui_screen.c` - runtime binding for dynamic values
-- `main/display_lcd.c` - low-level LCD primitives only
+- `main/ui_screen.c` - the complete screen renderer and UI state update entrypoint
+- `main/display_lcd.c` - low-level LCD primitives and pixel font rendering
 
-Supported dynamic placeholders:
+Current screen layout:
 
-- `{{NORMALIZED}}`
-- `{{RAW}}`
-- `{{STATUS}}`
+- a thin double border around the screen;
+- a large percentage value on the left;
+- a smaller `ADC ####` diagnostic line below it;
+- a pixel-art sun icon when the percentage is above `50`, otherwise a moon icon;
+- a bottom `0..100` progress bar with a dashed `50` marker.
 
-Notes:
+Runtime behavior:
 
-- you can keep only part of them on the screen; missing placeholders are simply ignored;
-- `{{NORMALIZED}}` shows `UNCAL` until calibration completes;
-- `{{RAW}}` falls back to `0` when the sensor reading is invalid;
-- `{{STATUS}}` changes color depending on the current state.
-
-Current workflow:
-
-1. Edit `main/ui_generated_screen.c` or replace it with code exported from your own editor/generator.
-2. Keep dynamic text items named exactly as `{{NORMALIZED}}`, `{{RAW}}`, `{{STATUS}}`.
-3. Run `idf.py build`.
-
-For v1, the placeholder names above are the public UI contract. Arbitrary dynamic field names are not supported.
+- before calibration, the main value is shown as `--%`;
+- after calibration, the screen uses the normalized `0..1000` reading converted to `0..100`;
+- the raw ADC line keeps updating independently of calibration state.
 
 ## Quick Flashing with a Prebuilt Binary
 
@@ -159,10 +151,10 @@ If the sensor does not provide valid readings:
 
 On the screen:
 
-- `NORMALIZED`
-- `RAW`
-- `UNCAL` before startup calibration, then a numeric normalized value after calibration
-- the current status
+- `--%` before startup calibration, then a numeric percentage after calibration
+- `ADC ####`
+- a moon icon at `<= 50%` or a sun icon at `> 50%`
+- a bottom progress bar with `0`, `50`, and `100` markers
 
 In the monitor:
 

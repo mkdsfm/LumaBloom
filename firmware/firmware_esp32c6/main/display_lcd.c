@@ -34,6 +34,7 @@ static const glyph_t kGlyphs[] = {
     {' ', {0x00, 0x00, 0x00, 0x00, 0x00}},
     {'-', {0x08, 0x08, 0x08, 0x08, 0x08}},
     {'.', {0x00, 0x00, 0x00, 0x18, 0x18}},
+    {'%', {0x63, 0x64, 0x08, 0x13, 0x63}},
     {'/', {0x03, 0x04, 0x08, 0x10, 0x60}},
     {':', {0x00, 0x18, 0x18, 0x00, 0x18}},
     {'0', {0x3E, 0x45, 0x49, 0x51, 0x3E}},
@@ -70,7 +71,7 @@ static const glyph_t kGlyphs[] = {
     {'Y', {0x70, 0x08, 0x07, 0x08, 0x70}},
 };
 
-static int text_width(const char *text, int scale)
+int display_lcd_text_width(const char *text, int scale)
 {
     if (text == NULL) {
         return 0;
@@ -113,6 +114,79 @@ void display_lcd_fill_rect(int x, int y, int w, int h, uint16_t color)
     }
 }
 
+void display_lcd_draw_rect(int x, int y, int w, int h, uint16_t color)
+{
+    if (w <= 0 || h <= 0) {
+        return;
+    }
+
+    for (int px = 0; px < w; ++px) {
+        set_pixel(x + px, y, color);
+        set_pixel(x + px, y + h - 1, color);
+    }
+
+    for (int py = 0; py < h; ++py) {
+        set_pixel(x, y + py, color);
+        set_pixel(x + w - 1, y + py, color);
+    }
+}
+
+void display_lcd_draw_line(int x0, int y0, int x1, int y1, uint16_t color)
+{
+    int dx = (x1 > x0) ? (x1 - x0) : (x0 - x1);
+    int sx = (x0 < x1) ? 1 : -1;
+    int dy = -((y1 > y0) ? (y1 - y0) : (y0 - y1));
+    int sy = (y0 < y1) ? 1 : -1;
+    int err = dx + dy;
+
+    while (true) {
+        set_pixel(x0, y0, color);
+        if (x0 == x1 && y0 == y1) {
+            break;
+        }
+
+        int e2 = err * 2;
+        if (e2 >= dy) {
+            err += dy;
+            x0 += sx;
+        }
+        if (e2 <= dx) {
+            err += dx;
+            y0 += sy;
+        }
+    }
+}
+
+void display_lcd_draw_circle(int center_x, int center_y, int radius, uint16_t color)
+{
+    if (radius < 0) {
+        return;
+    }
+
+    int x = radius;
+    int y = 0;
+    int err = 1 - x;
+
+    while (x >= y) {
+        set_pixel(center_x + x, center_y + y, color);
+        set_pixel(center_x + y, center_y + x, color);
+        set_pixel(center_x - y, center_y + x, color);
+        set_pixel(center_x - x, center_y + y, color);
+        set_pixel(center_x - x, center_y - y, color);
+        set_pixel(center_x - y, center_y - x, color);
+        set_pixel(center_x + y, center_y - x, color);
+        set_pixel(center_x + x, center_y - y, color);
+
+        ++y;
+        if (err < 0) {
+            err += (2 * y) + 1;
+        } else {
+            --x;
+            err += (2 * (y - x)) + 1;
+        }
+    }
+}
+
 static void draw_char(int x, int y, char c, uint16_t color, int scale)
 {
     const uint8_t *glyph = find_glyph(c);
@@ -141,12 +215,12 @@ void display_lcd_draw_text(int x, int y, const char *text, uint16_t color, int s
 
 void display_lcd_draw_text_centered(int center_x, int y, const char *text, uint16_t color, int scale)
 {
-    display_lcd_draw_text(center_x - (text_width(text, scale) / 2), y, text, color, scale);
+    display_lcd_draw_text(center_x - (display_lcd_text_width(text, scale) / 2), y, text, color, scale);
 }
 
 void display_lcd_draw_text_right(int right_x, int y, const char *text, uint16_t color, int scale)
 {
-    display_lcd_draw_text(right_x - text_width(text, scale), y, text, color, scale);
+    display_lcd_draw_text(right_x - display_lcd_text_width(text, scale), y, text, color, scale);
 }
 
 esp_err_t display_lcd_flush(void)

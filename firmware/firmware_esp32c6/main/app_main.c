@@ -20,6 +20,17 @@
 
 static const char *TAG = "app_main";
 
+static int normalized_to_percent(int normalized_value_1000)
+{
+    if (normalized_value_1000 < 0) {
+        return 0;
+    }
+    if (normalized_value_1000 > 1000) {
+        return 100;
+    }
+    return (normalized_value_1000 + 5) / 10;
+}
+
 typedef struct {
     device_reading_t latest_reading;
     char status_text[16];
@@ -252,12 +263,12 @@ static void display_task(void *arg)
 
     while (true) {
         device_reading_t reading;
-        char status_text[16];
 
-        app_state_read(&reading, status_text, sizeof(status_text));
-        ui_update_normalized(reading.normalized_value_1000, reading.calibrated);
-        ui_update_raw(reading.raw_adc, reading.valid);
-        ui_update_status(status_text, reading.valid && reading.calibrated);
+        app_state_read(&reading, NULL, 0);
+        ui_update_reading(
+            normalized_to_percent(reading.normalized_value_1000),
+            reading.raw_adc,
+            reading.calibrated);
         ui_screen_render();
 
         vTaskDelay(pdMS_TO_TICKS(APP_DISPLAY_INTERVAL_MS));
@@ -296,9 +307,10 @@ void app_main(void)
     if (display_err != ESP_OK) {
         ESP_LOGE(TAG, "ui_screen_init failed: %s", esp_err_to_name(display_err));
     } else {
-        ui_update_normalized(s_app_state.latest_reading.normalized_value_1000, s_app_state.latest_reading.calibrated);
-        ui_update_raw(s_app_state.latest_reading.raw_adc, s_app_state.latest_reading.valid);
-        ui_update_status(s_app_state.status_text, false);
+        ui_update_reading(
+            normalized_to_percent(s_app_state.latest_reading.normalized_value_1000),
+            s_app_state.latest_reading.raw_adc,
+            s_app_state.latest_reading.calibrated);
         ui_screen_render();
     }
 

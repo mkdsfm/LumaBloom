@@ -1,152 +1,261 @@
 #include "ui_screen.h"
 
+#include <stdbool.h>
+#include <stdint.h>
 #include <stdio.h>
-#include <string.h>
 
 #include "display_lcd.h"
 #include "esp_log.h"
-#include "ui_generated_screen.h"
+#include "app_config.h"
 
 static const char *TAG = "ui_screen";
 
-static const uint16_t COLOR_STATUS_OK = 0x07E0;
-static const uint16_t COLOR_STATUS_BAD = 0xF800;
-static const uint16_t COLOR_TEXT = 0xFFFF;
+static const uint16_t COLOR_BG = 0x0000;
+static const uint16_t COLOR_PRIMARY = 0xFFFF;
+static const uint16_t COLOR_SECONDARY = 0x7BEF;
+
+static const int OUTER_FRAME_X = 2;
+static const int OUTER_FRAME_Y = 2;
+static const int OUTER_FRAME_W = 316;
+static const int OUTER_FRAME_H = 168;
+static const int INNER_FRAME_X = 5;
+static const int INNER_FRAME_Y = 5;
+static const int INNER_FRAME_W = 310;
+static const int INNER_FRAME_H = 162;
+
+static const int SPLIT_LINE_X = 154;
+static const int SPLIT_LINE_Y0 = 14;
+static const int SPLIT_LINE_Y1 = 101;
+static const int LOWER_LINE_X0 = 8;
+static const int LOWER_LINE_Y = 104;
+static const int LOWER_LINE_X1 = 312;
+
+static const int PERCENT_X = 18;
+static const int PERCENT_Y = 20;
+static const int PERCENT_SCALE = 7;
+static const int PERCENT_100_X = 16;
+static const int PERCENT_100_Y = 22;
+static const int PERCENT_100_SCALE = 6;
+static const int ADC_X = 18;
+static const int ADC_Y = 76;
+static const int ADC_SCALE = 2;
+
+static const int LABEL_LEFT_X = 12;
+static const int LABEL_CENTER_X = 154;
+static const int LABEL_RIGHT_X = 291;
+static const int LABEL_Y = 132;
+static const int LABEL_SCALE = 1;
+
+static const int BAR_X = 12;
+static const int BAR_Y = 112;
+static const int BAR_W = 296;
+static const int BAR_H = 14;
+static const int BAR_INNER_X = 13;
+static const int BAR_INNER_Y = 113;
+static const int BAR_INNER_W = 294;
+static const int BAR_INNER_H = 12;
+static const int BAR_CENTER_X = 160;
 
 typedef struct {
-    char normalized_text[16];
-    char raw_text[16];
-    char status_text[16];
-    bool normalized_present;
-    bool raw_present;
-    bool status_present;
+    int brightness_percent;
+    int adc_raw;
     bool calibrated;
-    bool valid;
-    bool status_ok;
 } ui_state_t;
 
 static ui_state_t s_ui_state = {
-    .normalized_text = "UNCAL",
-    .raw_text = "0",
-    .status_text = "INIT",
-    .normalized_present = false,
-    .raw_present = false,
-    .status_present = false,
+    .brightness_percent = 0,
+    .adc_raw = 0,
     .calibrated = false,
-    .valid = false,
-    .status_ok = false,
 };
 
-static bool is_placeholder(const char *text, const char *placeholder)
+static const char *percentage_text(void)
 {
-    return text != NULL && placeholder != NULL && strcmp(text, placeholder) == 0;
+    static char buffer[8];
+
+    if (!s_ui_state.calibrated) {
+        return "--%";
+    }
+
+    snprintf(buffer, sizeof(buffer), "%d%%", s_ui_state.brightness_percent);
+    return buffer;
 }
 
-static void scan_placeholders(const ui_layout_screen_t *screen)
+static void adc_text(char *buffer, size_t buffer_size)
 {
-    bool normalized_present = false;
-    bool raw_present = false;
-    bool status_present = false;
-
-    for (size_t i = 0; i < screen->element_count; ++i) {
-        const ui_layout_element_t *element = &screen->elements[i];
-        if (element->kind != UI_LAYOUT_ELEMENT_TEXT) {
-            continue;
-        }
-
-        if (is_placeholder(element->text.text, UI_PLACEHOLDER_NORMALIZED)) {
-            normalized_present = true;
-        }
-        if (is_placeholder(element->text.text, UI_PLACEHOLDER_RAW)) {
-            raw_present = true;
-        }
-        if (is_placeholder(element->text.text, UI_PLACEHOLDER_STATUS)) {
-            status_present = true;
-        }
-    }
-
-    s_ui_state.normalized_present = normalized_present;
-    s_ui_state.raw_present = raw_present;
-    s_ui_state.status_present = status_present;
-
-    ESP_LOGI(
-        TAG,
-        "UI placeholders: normalized=%s raw=%s status=%s",
-        normalized_present ? "yes" : "no",
-        raw_present ? "yes" : "no",
-        status_present ? "yes" : "no");
+    snprintf(buffer, buffer_size, "ADC %d", s_ui_state.adc_raw);
 }
 
-static const char *resolve_dynamic_text(const ui_layout_text_t *text_element, uint16_t *color)
+static int clamp_percent(int value)
 {
-    if (is_placeholder(text_element->text, UI_PLACEHOLDER_NORMALIZED)) {
-        *color = COLOR_TEXT;
-        return s_ui_state.calibrated ? s_ui_state.normalized_text : "UNCAL";
+    if (value < 0) {
+        return 0;
     }
-
-    if (is_placeholder(text_element->text, UI_PLACEHOLDER_RAW)) {
-        *color = COLOR_TEXT;
-        return s_ui_state.valid ? s_ui_state.raw_text : "0";
+    if (value > 100) {
+        return 100;
     }
-
-    if (is_placeholder(text_element->text, UI_PLACEHOLDER_STATUS)) {
-        *color = s_ui_state.status_ok ? COLOR_STATUS_OK : COLOR_STATUS_BAD;
-        return s_ui_state.status_text;
-    }
-
-    *color = text_element->color;
-    return text_element->text;
+    return value;
 }
 
-static void draw_text_element(const ui_layout_text_t *text_element)
+static int ui_y_rect(int y, int h)
 {
-    uint16_t color = text_element->color;
-    const char *text = resolve_dynamic_text(text_element, &color);
+    return APP_LCD_HEIGHT - y - h;
+}
 
-    switch (text_element->align) {
-    case UI_LAYOUT_ALIGN_CENTER:
-        display_lcd_draw_text_centered(text_element->anchor_x, text_element->y, text, color, text_element->scale);
-        break;
-    case UI_LAYOUT_ALIGN_RIGHT:
-        display_lcd_draw_text_right(text_element->anchor_x, text_element->y, text, color, text_element->scale);
-        break;
-    case UI_LAYOUT_ALIGN_LEFT:
-    default:
-        display_lcd_draw_text(text_element->anchor_x, text_element->y, text, color, text_element->scale);
-        break;
+static int ui_y_point(int y)
+{
+    return APP_LCD_HEIGHT - 1 - y;
+}
+
+static void ui_fill_rect(int x, int y, int w, int h, uint16_t color)
+{
+    display_lcd_fill_rect(x, ui_y_rect(y, h), w, h, color);
+}
+
+static void ui_draw_rect(int x, int y, int w, int h, uint16_t color)
+{
+    display_lcd_draw_rect(x, ui_y_rect(y, h), w, h, color);
+}
+
+static void ui_draw_line(int x0, int y0, int x1, int y1, uint16_t color)
+{
+    display_lcd_draw_line(x0, ui_y_point(y0), x1, ui_y_point(y1), color);
+}
+
+static void ui_draw_text(int x, int y, const char *text, uint16_t color, int scale)
+{
+    display_lcd_draw_text(x, ui_y_rect(y, 7 * scale), text, color, scale);
+}
+
+static void ui_draw_circle(int center_x, int center_y, int radius, uint16_t color)
+{
+    display_lcd_draw_circle(center_x, ui_y_point(center_y), radius, color);
+}
+
+static void draw_dashed_vertical_line(int x, int y, int height, uint16_t color)
+{
+    for (int offset = 0; offset < height; offset += 4) {
+        int y0 = y + offset;
+        int y1 = y0 + 1;
+        if (y1 >= y + height) {
+            y1 = y + height - 1;
+        }
+        ui_draw_line(x, y0, x, y1, color);
     }
+}
+
+static void draw_frame(void)
+{
+    ui_draw_rect(OUTER_FRAME_X, OUTER_FRAME_Y, OUTER_FRAME_W, OUTER_FRAME_H, COLOR_PRIMARY);
+    ui_draw_rect(INNER_FRAME_X, INNER_FRAME_Y, INNER_FRAME_W, INNER_FRAME_H, COLOR_SECONDARY);
+}
+
+static void draw_region_lines(void)
+{
+    ui_draw_line(SPLIT_LINE_X, SPLIT_LINE_Y0, SPLIT_LINE_X, SPLIT_LINE_Y1, COLOR_PRIMARY);
+    ui_draw_line(LOWER_LINE_X0, LOWER_LINE_Y, LOWER_LINE_X1, LOWER_LINE_Y, COLOR_PRIMARY);
+}
+
+static void draw_main_value(void)
+{
+    const char *text = percentage_text();
+
+    if (s_ui_state.calibrated && s_ui_state.brightness_percent >= 100) {
+        ui_draw_text(PERCENT_100_X, PERCENT_100_Y, text, COLOR_PRIMARY, PERCENT_100_SCALE);
+        return;
+    }
+
+    ui_draw_text(PERCENT_X, PERCENT_Y, text, COLOR_PRIMARY, PERCENT_SCALE);
+}
+
+static void draw_adc_line(void)
+{
+    char buffer[16];
+    adc_text(buffer, sizeof(buffer));
+    ui_draw_text(ADC_X, ADC_Y, buffer, COLOR_PRIMARY, ADC_SCALE);
+}
+
+static void draw_moon_icon(void)
+{
+    const int center_x = 226;
+    const int center_y = 56;
+    const int outer_radius = 28;
+    const int inner_center_x = 242;
+    const int inner_center_y = 53;
+    const int inner_radius = 28;
+
+    ui_draw_circle(center_x, center_y, outer_radius, COLOR_PRIMARY);
+    ui_draw_circle(center_x, center_y, outer_radius - 1, COLOR_PRIMARY);
+
+    for (int radius = inner_radius; radius >= 0; --radius) {
+        ui_draw_circle(inner_center_x, inner_center_y, radius, COLOR_BG);
+    }
+
+    ui_draw_line(276, 20, 276, 24, COLOR_PRIMARY);
+    ui_draw_line(274, 22, 278, 22, COLOR_PRIMARY);
+
+    ui_draw_line(260, 56, 260, 60, COLOR_PRIMARY);
+    ui_draw_line(258, 58, 262, 58, COLOR_PRIMARY);
+
+    ui_draw_line(280, 80, 280, 84, COLOR_PRIMARY);
+    ui_draw_line(278, 82, 282, 82, COLOR_PRIMARY);
+}
+
+static void draw_sun_icon(void)
+{
+    const int center_x = 235;
+    const int center_y = 56;
+    const int inner_radius = 17;
+
+    ui_draw_circle(center_x, center_y, inner_radius, COLOR_PRIMARY);
+    ui_draw_circle(center_x, center_y, inner_radius - 1, COLOR_PRIMARY);
+
+    ui_draw_line(center_x, center_y - 29, center_x, center_y - 23, COLOR_PRIMARY);
+    ui_draw_line(center_x, center_y + 23, center_x, center_y + 29, COLOR_PRIMARY);
+    ui_draw_line(center_x - 29, center_y, center_x - 23, center_y, COLOR_PRIMARY);
+    ui_draw_line(center_x + 23, center_y, center_x + 29, center_y, COLOR_PRIMARY);
+
+    ui_draw_line(center_x - 21, center_y - 21, center_x - 16, center_y - 16, COLOR_PRIMARY);
+    ui_draw_line(center_x + 16, center_y - 16, center_x + 21, center_y - 21, COLOR_PRIMARY);
+    ui_draw_line(center_x - 21, center_y + 21, center_x - 16, center_y + 16, COLOR_PRIMARY);
+    ui_draw_line(center_x + 16, center_y + 16, center_x + 21, center_y + 21, COLOR_PRIMARY);
+}
+
+static void draw_icon(void)
+{
+    if (s_ui_state.brightness_percent > 50) {
+        draw_sun_icon();
+        return;
+    }
+
+    draw_moon_icon();
+}
+
+static void draw_progress_bar(void)
+{
+    const int fill_w = (BAR_INNER_W * s_ui_state.brightness_percent) / 100;
+
+    ui_draw_rect(BAR_X, BAR_Y, BAR_W, BAR_H, COLOR_PRIMARY);
+    if (fill_w > 0) {
+        ui_fill_rect(BAR_INNER_X, BAR_INNER_Y, fill_w, BAR_INNER_H, COLOR_PRIMARY);
+    }
+
+    draw_dashed_vertical_line(BAR_CENTER_X, BAR_INNER_Y, BAR_INNER_H, COLOR_SECONDARY);
+
+    ui_draw_text(LABEL_LEFT_X, LABEL_Y, "0", COLOR_PRIMARY, LABEL_SCALE);
+    ui_draw_text(LABEL_CENTER_X, LABEL_Y, "50", COLOR_PRIMARY, LABEL_SCALE);
+    ui_draw_text(LABEL_RIGHT_X, LABEL_Y, "100", COLOR_PRIMARY, LABEL_SCALE);
 }
 
 esp_err_t ui_screen_init(void)
 {
-    esp_err_t err = display_lcd_init();
-    if (err != ESP_OK) {
-        return err;
-    }
-
-    scan_placeholders(ui_generated_screen_get());
-    return ESP_OK;
+    return display_lcd_init();
 }
 
-void ui_update_normalized(int value, bool calibrated)
+void ui_update_reading(int brightness_percent, int adc_raw, bool calibrated)
 {
+    s_ui_state.brightness_percent = clamp_percent(brightness_percent);
+    s_ui_state.adc_raw = adc_raw < 0 ? 0 : adc_raw;
     s_ui_state.calibrated = calibrated;
-    snprintf(s_ui_state.normalized_text, sizeof(s_ui_state.normalized_text), "%d", calibrated ? value : 0);
-}
-
-void ui_update_raw(int raw, bool valid)
-{
-    s_ui_state.valid = valid;
-    snprintf(s_ui_state.raw_text, sizeof(s_ui_state.raw_text), "%d", valid ? raw : 0);
-}
-
-void ui_update_status(const char *status, bool ok)
-{
-    s_ui_state.status_ok = ok;
-    if (status != NULL) {
-        strncpy(s_ui_state.status_text, status, sizeof(s_ui_state.status_text) - 1);
-        s_ui_state.status_text[sizeof(s_ui_state.status_text) - 1] = '\0';
-    }
 }
 
 void ui_screen_render(void)
@@ -155,27 +264,13 @@ void ui_screen_render(void)
         return;
     }
 
-    const ui_layout_screen_t *screen = ui_generated_screen_get();
-    display_lcd_fill_screen(screen->background_color);
-
-    for (size_t i = 0; i < screen->element_count; ++i) {
-        const ui_layout_element_t *element = &screen->elements[i];
-        switch (element->kind) {
-        case UI_LAYOUT_ELEMENT_RECT:
-            display_lcd_fill_rect(
-                element->rect.x,
-                element->rect.y,
-                element->rect.w,
-                element->rect.h,
-                element->rect.color);
-            break;
-        case UI_LAYOUT_ELEMENT_TEXT:
-            draw_text_element(&element->text);
-            break;
-        default:
-            break;
-        }
-    }
+    display_lcd_fill_screen(COLOR_BG);
+    draw_frame();
+    draw_region_lines();
+    draw_main_value();
+    draw_adc_line();
+    draw_icon();
+    draw_progress_bar();
 
     if (display_lcd_flush() != ESP_OK) {
         ESP_LOGE(TAG, "panel flush failed");
