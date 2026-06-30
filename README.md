@@ -9,7 +9,7 @@ A bundle of firmware and a simple Windows console application for automatically 
 
 - `firmware/firmware_esp32c3/` - Arduino firmware for ESP32-C3, plus build and flashing instructions.
 - `firmware/firmware_esp32c6/` - ESP-IDF project for Waveshare ESP32-C6-LCD-1.47 with KY-018, onboard LCD, and runtime calibration from `pc-app`.
-- `pc-app/` - Windows-only .NET application that reads JSON from a COM port and controls brightness through WMI.
+- `pc-app/` - Windows-only .NET application with a live console dashboard that reads JSON from a COM port and controls brightness through WMI.
 - `docs/` - wiring, protocol, and run instructions.
 - `appsettings.example.json` - example configuration for the PC application.
 - `appsettings.full.example.json` - full example with all optional override parameters.
@@ -24,9 +24,17 @@ A bundle of firmware and a simple Windows console application for automatically 
    `pc-app/appsettings.esp32c6.example.json` for a minimal ESP32-C6 + KY-018 setup,
    or `appsettings.full.example.json` for a full template with all optional fields.
 4. Start the PC application from `pc-app/`.
+   It opens a live console dashboard with status panels and runtime hotkeys.
 5. For `ESP32-C6`, wait for startup calibration to complete. Until then the device LCD shows `--%` plus the current `ADC` line, and telemetry keeps `calibrated=false`.
 
 Important: the current PC application supports Windows only. Linux and macOS would require a separate application that preserves the same device communication contract, meaning the same JSON protocol from `docs/protocol.md`.
+
+## `pc-app/` Runtime Hotkeys
+
+- `q` - quit
+- `p` - pause/resume brightness writes while keeping telemetry running
+- `c` - trigger recalibration
+- `l` - show/hide the recent event log panel
 
 ## ESP32-C6 Behavior
 

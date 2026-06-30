@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="Spectre.Console" Version="0.49.1" />
     <PackageReference Include="xunit" Version="2.9.3" />
     <PackageReference Include="xunit.runner.visualstudio" Version="3.1.5">
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -36,6 +37,20 @@
     <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\MeasurementKind.cs" Link="ConsoleApp.Profiles\MeasurementKind.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\ResolvedAppSettings.cs" Link="ConsoleApp.Profiles\ResolvedAppSettings.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\ResolvedSettingsFactory.cs" Link="ConsoleApp.Profiles\ResolvedSettingsFactory.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Application\MonitorSession.cs" Link="ConsoleApp.Application\MonitorSession.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Application\MessageProcessor.cs" Link="ConsoleApp.Application\MessageProcessor.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\AppLifecycleState.cs" Link="ConsoleApp.Runtime\AppLifecycleState.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\DashboardSnapshot.cs" Link="ConsoleApp.Runtime\DashboardSnapshot.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\MonitorRuntimeSnapshot.cs" Link="ConsoleApp.Runtime\MonitorRuntimeSnapshot.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\ConsoleDashboardHost.cs" Link="ConsoleApp.Runtime\ConsoleDashboardHost.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\ConsoleDashboardRenderer.cs" Link="ConsoleApp.Runtime\ConsoleDashboardRenderer.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\RuntimeCommand.cs" Link="ConsoleApp.Runtime\RuntimeCommand.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\RuntimeCommandMapper.cs" Link="ConsoleApp.Runtime\RuntimeCommandMapper.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\RuntimeEventEntry.cs" Link="ConsoleApp.Runtime\RuntimeEventEntry.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\RuntimeEventSeverity.cs" Link="ConsoleApp.Runtime\RuntimeEventSeverity.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\RuntimeStateStore.cs" Link="ConsoleApp.Runtime\RuntimeStateStore.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\SensorRuntimeSnapshot.cs" Link="ConsoleApp.Runtime\SensorRuntimeSnapshot.cs" />
     <Compile Include="..\BrightnessSensor.DeviceReading\Models\SensorMessage.cs" Link="DeviceReading\Models\SensorMessage.cs" />
+    <Compile Include="..\BrightnessSensor.WindowsBrightness\IMonitorBrightness.cs" Link="WindowsBrightness\IMonitorBrightness.cs" />
   </ItemGroup>
 </Project>

@@ -123,7 +123,14 @@ dotnet restore
 dotnet run
 ```
 
-The application automatically finds the COM port, reads the first valid messages, selects a built-in hardware profile by `deviceId + sensorId`, logs the effective settings, then computes the target brightness and applies it through WMI to the built-in display.
+The application starts a live console dashboard. It automatically finds the COM port, reads the first valid messages, selects a built-in hardware profile by `deviceId + sensorId`, shows the effective settings and runtime status, then computes the target brightness and applies it through WMI to the built-in display.
+
+Runtime hotkeys:
+
+- `q` - quit
+- `p` - pause/resume brightness writes while keeping telemetry reads active
+- `c` - trigger recalibration
+- `l` - toggle the recent event log panel
 
 For `ESP32-C6`, startup behavior is:
 
