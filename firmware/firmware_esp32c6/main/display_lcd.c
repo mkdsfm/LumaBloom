@@ -6,6 +6,7 @@
 
 #include "app_config.h"
 #include "driver/gpio.h"
+#include "driver/ledc.h"
 #include "driver/spi_master.h"
 #include "esp_check.h"
 #include "esp_heap_caps.h"
@@ -16,6 +17,13 @@
 
 static const char *TAG = "display_lcd";
 
+static const ledc_mode_t BACKLIGHT_LEDC_MODE = LEDC_LOW_SPEED_MODE;
+static const ledc_timer_t BACKLIGHT_LEDC_TIMER = LEDC_TIMER_0;
+static const ledc_channel_t BACKLIGHT_LEDC_CHANNEL = LEDC_CHANNEL_0;
+static const ledc_timer_bit_t BACKLIGHT_LEDC_RESOLUTION = LEDC_TIMER_10_BIT;
+static const int BACKLIGHT_LEDC_FREQUENCY_HZ = 5000;
+static const int BACKLIGHT_LEDC_MAX_DUTY = (1 << 10) - 1;
+
 typedef struct {
     esp_lcd_panel_io_handle_t io_handle;
     esp_lcd_panel_handle_t panel_handle;
@@ -24,6 +32,46 @@ typedef struct {
 } lcd_state_t;
 
 static lcd_state_t s_lcd;
+
+static int clamp_backlight_percent(int percent)
+{
+    if (percent < 0) {
+        return 0;
+    }
+    if (percent > 100) {
+        return 100;
+    }
+    return percent;
+}
+
+static esp_err_t configure_backlight(void)
+{
+    const int percent = clamp_backlight_percent(APP_LCD_BACKLIGHT_PERCENT);
+    const uint32_t duty = (uint32_t)((BACKLIGHT_LEDC_MAX_DUTY * percent) / 100);
+
+    const ledc_timer_config_t timer_config = {
+        .speed_mode = BACKLIGHT_LEDC_MODE,
+        .duty_resolution = BACKLIGHT_LEDC_RESOLUTION,
+        .timer_num = BACKLIGHT_LEDC_TIMER,
+        .freq_hz = BACKLIGHT_LEDC_FREQUENCY_HZ,
+        .clk_cfg = LEDC_AUTO_CLK,
+    };
+    ESP_RETURN_ON_ERROR(ledc_timer_config(&timer_config), TAG, "backlight ledc_timer_config failed");
+
+    const ledc_channel_config_t channel_config = {
+        .gpio_num = APP_LCD_BL,
+        .speed_mode = BACKLIGHT_LEDC_MODE,
+        .channel = BACKLIGHT_LEDC_CHANNEL,
+        .intr_type = LEDC_INTR_DISABLE,
+        .timer_sel = BACKLIGHT_LEDC_TIMER,
+        .duty = duty,
+        .hpoint = 0,
+    };
+    ESP_RETURN_ON_ERROR(ledc_channel_config(&channel_config), TAG, "backlight ledc_channel_config failed");
+
+    ESP_LOGI(TAG, "LCD backlight set to %d%%", percent);
+    return ESP_OK;
+}
 
 typedef struct {
     char c;
@@ -280,12 +328,7 @@ esp_err_t display_lcd_init(void)
     ESP_RETURN_ON_ERROR(esp_lcd_panel_invert_color(s_lcd.panel_handle, true), TAG, "panel invert color failed");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_disp_on_off(s_lcd.panel_handle, true), TAG, "panel on failed");
 
-    gpio_config_t backlight_config = {
-        .pin_bit_mask = 1ULL << APP_LCD_BL,
-        .mode = GPIO_MODE_OUTPUT,
-    };
-    ESP_RETURN_ON_ERROR(gpio_config(&backlight_config), TAG, "backlight gpio_config failed");
-    ESP_RETURN_ON_ERROR(gpio_set_level(APP_LCD_BL, 1), TAG, "backlight enable failed");
+    ESP_RETURN_ON_ERROR(configure_backlight(), TAG, "backlight configure failed");
 
     s_lcd.ready = true;
     ESP_LOGI(TAG, "LCD ready (%dx%d, x_offset=%d, y_offset=%d)",

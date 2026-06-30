@@ -95,7 +95,7 @@ idf.py -p COMx flash monitor
 
 Expected result:
 
-- the LCD shows a large percentage value, a smaller `ADC ####` line, a sun/moon icon, and a bottom progress bar;
+- the LCD shows a centered large percentage value with a smaller centered `ADC ####` line below it;
 - before `pc-app` calibration, the LCD shows `--%` while telemetry keeps `calibrated=false`;
 - after calibration, the serial monitor receives JSON lines with `deviceId`, `sensorId`, `ts`, `value`, `raw`, and `calibrated`;
 - the Windows application from `pc-app/` calibrates the device at startup and then uses normalized `0..1000` readings.

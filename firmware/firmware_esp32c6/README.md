@@ -37,11 +37,8 @@ Relevant files:
 
 Current screen layout:
 
-- a thin double border around the screen;
-- a large percentage value on the left;
-- a smaller `ADC ####` diagnostic line below it;
-- a pixel-art sun icon when the percentage is above `50`, otherwise a moon icon;
-- a bottom `0..100` progress bar with a dashed `50` marker.
+- a large centered percentage value;
+- a smaller centered `ADC ####` diagnostic line below it.
 
 Runtime behavior:
 
@@ -153,8 +150,6 @@ On the screen:
 
 - `--%` before startup calibration, then a numeric percentage after calibration
 - `ADC ####`
-- a moon icon at `<= 50%` or a sun icon at `> 50%`
-- a bottom progress bar with `0`, `50`, and `100` markers
 
 In the monitor:
 

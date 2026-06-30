@@ -12,6 +12,7 @@ idf_component_register(
     REQUIRES
         driver
         esp_adc
+        esp_driver_ledc
         esp_driver_usb_serial_jtag
         esp_lcd
         esp_timer
