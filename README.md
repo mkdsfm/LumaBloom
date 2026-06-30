@@ -2,6 +2,9 @@
 
 A bundle of firmware and a simple Windows console application for automatically adjusting the built-in display brightness based on an ambient light sensor.
 
+<img width="964" height="1280" alt="image" src="https://github.com/user-attachments/assets/c9080153-6f3e-4f87-9e20-5d9c1311d273" />
+
+
 ## Contents
 
 - `firmware/firmware_esp32c3/` - Arduino firmware for ESP32-C3, plus build and flashing instructions.
