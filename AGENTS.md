@@ -9,7 +9,7 @@ This file gives Codex and similar coding agents repo-specific guidance for worki
 - `firmware/firmware_esp32c6/` - `ESP-IDF` firmware for `Waveshare ESP32-C6-LCD-1.47` with `KY-018`
 - `hardware/` - wiring, BOM, assembly checks, revision notes, and printable enclosure assets
 - `pc-app/` - Windows-only `.NET` console application that reads telemetry from a serial port and controls monitor brightness through WMI
-- `docs/` - protocol, profiles, and build/run notes
+- `docs/` - getting started, firmware, build, protocol, profiles, and workflow notes
 
 The current documented hardware and enclosure flow targets `ESP32-C6`.
 
@@ -19,13 +19,17 @@ Before making non-trivial changes, read the smallest relevant set of files:
 
 1. Root [`README.md`](README.md)
 2. The target-specific docs:
-   - [`docs/build-and-run.md`](docs/build-and-run.md)
+   - [`docs/getting-started.md`](docs/getting-started.md)
+   - [`docs/firmware.md`](docs/firmware.md) when touching firmware
+   - [`docs/build.md`](docs/build.md) when touching the Windows app build/run flow
    - [`docs/protocol.md`](docs/protocol.md)
    - [`docs/device-profiles.md`](docs/device-profiles.md) when profile logic is involved
    - [`hardware/README.md`](hardware/README.md) and [`hardware/WIRING.md`](hardware/WIRING.md) when hardware wiring or assembly is involved
-3. Firmware-specific README when touching firmware:
+3. Contribution workflow when changing project structure, validation rules, or contributor-facing docs:
+   - [`CONTRIBUTING.md`](CONTRIBUTING.md)
+4. Firmware-specific README when touching firmware:
    - [`firmware/firmware_esp32c6/README.md`](firmware/firmware_esp32c6/README.md)
-4. Solution and test projects when touching `pc-app/`:
+5. Solution and test projects when touching `pc-app/`:
    - [`pc-app/brightness-sensor.sln`](pc-app/brightness-sensor.sln)
 
 If the user mentions Codex skills or release workflows, also read [`docs/skills-for-users.md`](docs/skills-for-users.md).
@@ -158,7 +162,10 @@ Update docs when behavior changes in any user-visible way, especially when touch
 The most likely docs to need updates are:
 
 - `README.md`
-- `docs/build-and-run.md`
+- `docs/getting-started.md`
+- `docs/firmware.md`
+- `docs/build.md`
+- `CONTRIBUTING.md`
 - `hardware/README.md`
 - `hardware/WIRING.md`
 - `docs/protocol.md`

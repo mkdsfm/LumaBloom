@@ -1,157 +1,68 @@
-# brightness-sensor
+# LumaBloom
 
-A bundle of firmware and a Windows console application for automatically adjusting display brightness based on an ambient light sensor.
+Smart ambient-light sensor for Windows displays, wrapped in a printable flower-shaped ESP32-C6 device.
 
-<img width="964" height="1280" alt="image" src="https://github.com/user-attachments/assets/c9080153-6f3e-4f87-9e20-5d9c1311d273" />
+![LumaBloom product preview](hardware/3d-print/images/main.png)
 
-## Contents
+<video src="hardware/3d-print/videos/demo.mp4" controls width="100%"></video>
 
-- `firmware/firmware_esp32c6/` - ESP-IDF project for Waveshare ESP32-C6-LCD-1.47 with KY-018, onboard LCD, and runtime calibration from `pc-app`.
-- `hardware/` - wiring, BOM, hardware revisions, and the printable LumaBloom enclosure assembly for the ESP32-C6 build.
-- `pc-app/` - Windows-only .NET application with a live console dashboard that reads JSON from a COM port and controls brightness through WMI.
-- `docs/` - protocol, device profiles, and build/run instructions.
-- `appsettings.example.json` - example configuration for the PC application.
-- `appsettings.full.example.json` - full example with all optional override parameters.
-- `pc-app/appsettings.esp32c6.example.json` - example configuration for ESP32-C6 + KY-018.
+[Watch the demo video](hardware/3d-print/videos/demo.mp4)
 
-## Quick Start
+LumaBloom reads room light from a KY-018 sensor, calibrates the reading on an ESP32-C6, streams JSON telemetry over USB, and lets the Windows companion app adjust monitor brightness automatically.
 
-1. Build and flash the controller. See `docs/build-and-run.md`.
-2. Wire the sensor. See `hardware/WIRING.md`.
-3. Copy the appropriate example to `pc-app/appsettings.json`:
-   `pc-app/appsettings.esp32c6.example.json` for a minimal ESP32-C6 + KY-018 setup,
-   or `appsettings.full.example.json` for a full template with all optional fields.
-4. Start the PC application from `pc-app/`.
-   It opens a live terminal dashboard with tabs, arrow-key navigation, and mouse-clickable actions.
-5. For `ESP32-C6`, wait for startup calibration to complete. Until then the device LCD shows `--%` plus the current `ADC` line, and telemetry keeps `calibrated=false`.
+## Highlights
 
-Important: the current PC application supports Windows only. Linux and macOS would require a separate application that preserves the same device communication contract, meaning the same JSON protocol from `docs/protocol.md`.
+- ESP32-C6 firmware for Waveshare `ESP32-C6-LCD-1.47`.
+- Runtime calibration from the Windows app, with normalized `0..1000` telemetry.
+- Live Windows terminal dashboard for status, calibration, manual brightness, settings, events, and diagnostics.
+- Printable enclosure with `.3mf` plates, STEP sources, STL exports, photos, and demo media.
+- User-tunable brightness curve, smoothing, hysteresis, gamma, language, and autostart settings.
 
-## `pc-app/` Runtime UI
-
-The Windows application opens a rich terminal UI with top-level screens:
-
-- `Overview` - normal runtime status and primary actions.
-- `Settings` - language, autostart, brightness curve, and response tuning.
-- `Events` - recent runtime event log.
-- `Diagnostics` - raw telemetry, profile, connection, and monitor details.
-
-Navigation:
-
-- Arrow keys - move between screens and visible controls.
-- Enter - activate the focused control.
-- Esc - cancel, go back, or return to a safe default.
-- Mouse click - activate visible tabs and controls when supported by the terminal.
-- Ctrl+C - request shutdown.
-
-`Settings` contains:
-
-- `General` - language selection for English, Russian, and Spanish, plus Windows autostart.
-- `Calibration` - brightness curve points that map ambient light percent to display brightness percent; values between points are interpolated smoothly.
-- `Response` / `Реагирование` - modal editors for `processing` overrides such as `emaAlpha`, `hysteresisPercent`, and `gamma`.
-
-The app also supports a single-file Windows publish. On first run without a bundled config, it creates a minimal `appsettings.json` next to the executable and then persists user settings there.
-
-## ESP32-C6 Behavior
-
-`firmware_esp32c6` behavior:
-
-- the firmware sends `value` as a normalized calibrated value in the `0..1000` range;
-- it also sends `raw` as a diagnostic/raw ADC field for startup calibration;
-- `pc-app` must send a `calibrate` command after reading the current monitor brightness;
-- before calibration, the device publishes `value=0` while the LCD keeps the percentage placeholder at `--%`.
-
-## Hardware
-
-Hardware documentation:
+## Project Map
 
 | Path | Purpose |
 | --- | --- |
-| `hardware/README.md` | Hardware section index |
-| `hardware/WIRING.md` | KY-018 wiring for ESP32-C6 |
-| `hardware/BOM.md` | Bill of materials |
-| `hardware/ASSEMBLY.md` | ESP32-C6 enclosure assembly steps and smoke checks |
-| `hardware/REVISIONS.md` | Hardware revision log |
-| `hardware/3d-print/README.md` | Enclosure and 3D-print notes |
-| `hardware/3d-print/enclosure/` | Slicer-ready `.3mf` plates grouped by color |
-| `hardware/3d-print/images/` | Print preparation and assembly-reference images |
-| `hardware/3d-print/source/` | STEP source models and selected STL exports |
+| [`firmware/firmware_esp32c6/`](firmware/firmware_esp32c6/) | ESP-IDF firmware for the device |
+| [`pc-app/`](pc-app/) | Windows-only .NET companion app |
+| [`hardware/`](hardware/) | Wiring, BOM, assembly, printable enclosure, and hardware revisions |
+| [`docs/`](docs/) | Protocol, profiles, setup, firmware, and build docs |
 
-## `pc-app/` Structure
+## Documentation
 
-- `pc-app/Program.cs` - entry point.
-- `pc-app/Application/` - main application workflow.
-- `pc-app/Configuration/` - `appsettings.json` loading and validation.
-- `pc-app/BrightnessSensor.BrightnessMath/` - separate library with math for mapping sensor readings to screen brightness.
-- `pc-app/BrightnessSensor.DeviceReading/` - separate library for reading device data and parsing telemetry.
-- `pc-app/BrightnessSensor.WindowsBrightness/` - separate library for Windows-specific monitor brightness control.
+| Start here | What it covers |
+| --- | --- |
+| [`docs/getting-started.md`](docs/getting-started.md) | End-to-end setup from device to Windows app |
+| [`docs/firmware.md`](docs/firmware.md) | ESP32-C6 firmware build, flash, monitor, and release binary notes |
+| [`docs/build.md`](docs/build.md) | PC app restore, build, test, run, and publish commands |
+| [`hardware/README.md`](hardware/README.md) | Hardware index, assembly, wiring, BOM, and enclosure assets |
+| [`docs/protocol.md`](docs/protocol.md) | USB JSONL telemetry and calibration command contract |
+| [`docs/device-profiles.md`](docs/device-profiles.md) | Built-in profile resolution and runtime defaults |
+| [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution workflow and validation expectations |
 
-## Expected Configuration
+## How It Works
 
-The PC application expects an `appsettings.json` file. When no explicit config path is passed and the default file is missing, the app creates a minimal config beside the executable.
+1. The ESP32-C6 reads the KY-018 sensor and shows status on the onboard LCD.
+2. The Windows app discovers the device over a COM port.
+3. The app samples raw light data and sends a `calibrate` command with the current monitor brightness.
+4. The device starts streaming calibrated normalized readings.
+5. The app maps ambient light to monitor brightness using the configured curve and smoothing settings.
 
-- `serial`
-  - `deviceId` - optional device identifier from JSON telemetry.
-    Effect: if set, the app looks for the COM port of that exact device; if not set, it chooses the first port with valid telemetry.
-  - `baudRate` - optional port speed override.
-    Effect: by default this comes from the built-in profile; only set it when you need to override the built-in value.
-  - `discoveryTimeoutMs` - optional timeout override for probing one COM port.
-    Effect: by default this comes from the built-in profile; only set it when you need a non-standard timeout.
-- `deviceProfile`
-  - `autoDetect` - enables automatic selection of a built-in hardware profile from the first valid messages.
-  - `profileId` - optionally forces a built-in profile for debugging.
-- `processing`
-  - All fields are optional and work as overrides on top of the built-in profile.
-  - These values can also be edited from `Settings / Response` / `Реагирование`; confirmed edits are saved to `appsettings.json` and applied without restart.
-  - `adcMin` - lower bound of the ADC range.
-  - `adcMax` - upper bound of the ADC range; `adcMax > adcMin` is required.
-  - `invert` - inverts the scale (`true/false`).
-  - `emaAlpha` - EMA coefficient in the `(0; 1]` range.
-  - `hysteresisPercent` - minimum brightness change step in percent (`0..100`).
-  - `maxBrightnessStepPercent` - maximum brightness delta per update (`1..100`).
-  - `gamma` - optional gamma correction after EMA (`null` disables it, typically `1.8..2.2`).
-- `brightness`
-  - Fields work as user overrides for the final brightness range.
-  - `minPercent` - lower brightness bound (`0..100`).
-  - `maxPercent` - upper brightness bound (`0..100`, `min <= max`).
-  - `curve` - optional points mapping normalized ambient light to display brightness.
-    Each point has `lightPercent` and `brightnessPercent` in `0..100`; at least two unique `lightPercent` values are required.
-    Effect: the app linearly interpolates between neighboring points, so brightness changes smoothly instead of jumping between thresholds.
-- `calibration`
-  - All fields are optional and work as overrides on top of the built-in profile.
-  - `enabled` - enables firmware/device calibration on startup (`true/false`).
-  - `sampleCount` - number of valid measurements to average (`>= 1`).
-  - `maxReadAttempts` - maximum sensor read attempts (`>= sampleCount`).
-- `ui`
-  - `language` - terminal UI language: `auto`, `en`, `ru`, or `es`.
-    Effect: `auto` uses the OS culture when supported and falls back to English.
-    The language can also be selected from `Settings / General` and is saved to this field.
+Telemetry example:
 
-Examples:
+```json
+{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"value":742,"raw":1840,"calibrated":true}
+```
 
-- `appsettings.example.json` - minimal user config.
-- `pc-app/appsettings.esp32c6.example.json` - minimal config for ESP32-C6 + KY-018.
-- `appsettings.full.example.json` - full template with all optional fields and overrides.
+## Current Target
 
-For details on built-in profiles, the generic fallback, and how to add new profiles, see `docs/device-profiles.md`.
+- Board: Waveshare `ESP32-C6-LCD-1.47`
+- Sensor: KY-018 analog light sensor
+- Desktop app: Windows 10/11
+- Firmware: ESP-IDF
+- App runtime: .NET SDK 10.0+
 
-## Built-In Profiles
+## License
 
-- `esp32c6-analog-ky018` - `deviceId=esp32c6-01`, `sensorId=light0`, measurement type `Normalized1000`.
-- `generic-adc-safe` - fallback profile for unknown devices, measurement type `ADC`.
+Repository code and documentation use the root repository license.
 
-## Telemetry Format
-
-Each measurement is sent as a single JSON line, for example:
-
-`{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"value":742,"raw":1840,"calibrated":true}`
-
-`deviceId` is used by the PC application for COM port autodiscovery when `serial.deviceId` is set. After that, `deviceId + sensorId` is used to select the built-in hardware profile.
-
-ESP-IDF firmware for ESP32-C6 sends the calibrated normalized `value` in the `0..1000` range.
-
-Details: `docs/protocol.md`.
-
-## Codex Skills
-
-If you use Codex in this repo, see [docs/skills-for-users.md](docs/skills-for-users.md) for the recommended user-facing workflow for skills such as building and flashing the ESP32 release firmware.
+Custom physical enclosure assets in [`hardware/3d-print/`](hardware/3d-print/) are licensed separately under `CC BY-NC 4.0`; see [`hardware/3d-print/LICENSE.md`](hardware/3d-print/LICENSE.md).
