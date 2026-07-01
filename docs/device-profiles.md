@@ -12,7 +12,6 @@
 
 ## Built-In Profiles
 
-- `esp32c3-analog-ky018` for `deviceId=esp32c3-01`, `sensorId=light0`, measurement kind `Adc`
 - `esp32c6-analog-ky018` for `deviceId=esp32c6-01`, `sensorId=light0`, measurement kind `Normalized1000`
 - `generic-adc-safe` as a fallback profile
 

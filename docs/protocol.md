@@ -22,7 +22,6 @@ The firmware uses USB Serial as a bidirectional JSONL channel.
 
 ## `value` Semantics
 
-- For `firmware/firmware_esp32c3/firmware_esp32c3.ino`, `value` contains the raw ADC reading in the `0..4095` range.
 - For `firmware/firmware_esp32c6/`, `value` contains the calibrated normalized sensor reading in the `0..1000` range.
 - Before `firmware/firmware_esp32c6/` is calibrated, it publishes `value=0` and `calibrated=false`.
 
