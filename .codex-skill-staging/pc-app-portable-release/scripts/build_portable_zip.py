@@ -28,7 +28,9 @@ def zip_dir(source_dir: Path, zip_path: Path, root_name: str) -> None:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Build the versioned portable Windows zip for pc-app.")
+    parser = argparse.ArgumentParser(
+        description="Build the documented repo-root portable Windows zip for pc-app using the single-file publish output."
+    )
     parser.add_argument("--tag", required=True, help="Target release tag, for example 0.3.0")
     parser.add_argument("--repo-root", default=".", help="Repository root")
     args = parser.parse_args()
@@ -36,9 +38,9 @@ def main() -> int:
     repo_root = Path(args.repo_root).resolve()
     pc_app_root = repo_root / "pc-app"
     project = pc_app_root / "BrightnessSensor.ConsoleApp" / "BrightnessSensor.ConsoleApp.csproj"
-    publish_dir = pc_app_root / "artifacts" / "portable" / "win-x64"
+    publish_dir = pc_app_root / "artifacts" / "single-file" / "win-x64"
     zip_name = f"luma-bloom-pc-app_{args.tag}_win-x64-portable.zip"
-    zip_path = pc_app_root / "artifacts" / "portable" / zip_name
+    zip_path = pc_app_root / "artifacts" / "single-file" / zip_name
 
     publish_dir.mkdir(parents=True, exist_ok=True)
     zip_path.parent.mkdir(parents=True, exist_ok=True)
@@ -56,6 +58,11 @@ def main() -> int:
             "true",
             "-o",
             str(publish_dir),
+            "/p:PublishSingleFile=true",
+            "/p:IncludeNativeLibrariesForSelfExtract=true",
+            "/p:EnableCompressionInSingleFile=true",
+            "/p:DebugType=None",
+            "/p:DebugSymbols=false",
         ],
         repo_root,
     )
