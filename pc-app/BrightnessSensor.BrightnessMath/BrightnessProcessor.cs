@@ -29,10 +29,7 @@ public sealed class BrightnessProcessor(BrightnessComputationSettings settings)
             ? _emaValue.Value
             : Math.Pow(_emaValue.Value, settings.Gamma.Value);
 
-        var requestedBrightness = (int)Math.Round(
-            settings.MinBrightnessPercent +
-            (effectiveValue * (settings.MaxBrightnessPercent - settings.MinBrightnessPercent)),
-            MidpointRounding.AwayFromZero);
+        var requestedBrightness = MapBrightness(effectiveValue);
 
         requestedBrightness = Math.Clamp(
             requestedBrightness,
@@ -111,6 +108,55 @@ public sealed class BrightnessProcessor(BrightnessComputationSettings settings)
         _lastAppliedBrightness = expectedBrightness;
 
         return true;
+    }
+
+    private int MapBrightness(double effectiveValue)
+    {
+        var curve = settings.BrightnessCurve?
+            .OrderBy(point => point.LightPercent)
+            .ToArray();
+
+        if (curve is null || curve.Length < 2)
+        {
+            return (int)Math.Round(
+                settings.MinBrightnessPercent +
+                (effectiveValue * (settings.MaxBrightnessPercent - settings.MinBrightnessPercent)),
+                MidpointRounding.AwayFromZero);
+        }
+
+        var lightPercent = Math.Clamp(effectiveValue * 100.0, 0.0, 100.0);
+        if (lightPercent <= curve[0].LightPercent)
+        {
+            return curve[0].BrightnessPercent;
+        }
+
+        if (lightPercent >= curve[^1].LightPercent)
+        {
+            return curve[^1].BrightnessPercent;
+        }
+
+        for (var i = 0; i < curve.Length - 1; i++)
+        {
+            var left = curve[i];
+            var right = curve[i + 1];
+            if (lightPercent < left.LightPercent || lightPercent > right.LightPercent)
+            {
+                continue;
+            }
+
+            var span = right.LightPercent - left.LightPercent;
+            if (span <= 0)
+            {
+                return right.BrightnessPercent;
+            }
+
+            var ratio = (lightPercent - left.LightPercent) / span;
+            return (int)Math.Round(
+                left.BrightnessPercent + (ratio * (right.BrightnessPercent - left.BrightnessPercent)),
+                MidpointRounding.AwayFromZero);
+        }
+
+        return curve[^1].BrightnessPercent;
     }
 
     private double Normalize(int rawAdcValue)

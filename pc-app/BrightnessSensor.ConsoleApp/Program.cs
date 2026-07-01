@@ -17,7 +17,7 @@ internal static class Program
             return 1;
         }
 
-        var loadResult = TryLoadConfig(args, out var config, out var configError);
+        var loadResult = TryLoadConfig(args, out var config, out var configPath, out var configError);
         if (!loadResult)
         {
             Console.Error.WriteLine($"Configuration error: {configError}");
@@ -29,14 +29,19 @@ internal static class Program
             return 1;
         }
         
-        return BrightnessApplication.Run(config);
+        return BrightnessApplication.Run(config, configPath);
     }
     
-    private static bool TryLoadConfig(string[] args, out AppConfig? config, out string error)
+    private static bool TryLoadConfig(string[] args, out AppConfig? config, out string configPath, out string error)
     {
         try
         {
-            var configPath = args.Length > 0 ? args[0] : AppConfigLoader.ResolveDefaultPath();
+            configPath = args.Length > 0 ? args[0] : AppConfigLoader.ResolveDefaultPath();
+            if (args.Length == 0)
+            {
+                AppConfigLoader.EnsureDefaultFile(configPath);
+            }
+
             config = AppConfigLoader.Load(configPath);
             error = string.Empty;
             return true;
@@ -44,6 +49,7 @@ internal static class Program
         catch (Exception exception)
         {
             config = null;
+            configPath = string.Empty;
             error = exception.Message;
             return false;
         }

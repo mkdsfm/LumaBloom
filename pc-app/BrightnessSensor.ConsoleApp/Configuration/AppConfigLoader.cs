@@ -1,4 +1,5 @@
 using System.Text.Json;
+using System.Globalization;
 
 namespace BrightnessSensor.ConsoleApp.Configuration;
 
@@ -12,10 +13,41 @@ internal static class AppConfigLoader
 
     public static string ResolveDefaultPath()
     {
-        var outputPath = Path.Combine(AppContext.BaseDirectory, "appsettings.json");
-        return File.Exists(outputPath)
-            ? outputPath
-            : Path.Combine(Directory.GetCurrentDirectory(), "appsettings.json");
+        return Path.Combine(AppContext.BaseDirectory, "appsettings.json");
+    }
+
+    public static void EnsureDefaultFile(string path)
+    {
+        if (File.Exists(path))
+        {
+            return;
+        }
+
+        var directory = Path.GetDirectoryName(path);
+        if (!string.IsNullOrWhiteSpace(directory))
+        {
+            Directory.CreateDirectory(directory);
+        }
+
+        File.WriteAllText(path, """
+                                {
+                                  "deviceProfile": {
+                                    "autoDetect": true
+                                  },
+                                  "processing": {
+                                    "emaAlpha": 0.25,
+                                    "hysteresisPercent": 1,
+                                    "maxBrightnessStepPercent": 2
+                                  },
+                                  "brightness": {
+                                    "minPercent": 10,
+                                    "maxPercent": 100
+                                  },
+                                  "ui": {
+                                    "language": "en"
+                                  }
+                                }
+                                """);
     }
 
     public static AppConfig Load(string path)
@@ -97,6 +129,11 @@ internal static class AppConfigLoader
                 "brightness.minPercent cannot be greater than brightness.maxPercent.");
         }
 
+        if (config.Brightness?.Curve is { Count: >= 2 })
+        {
+            ValidateBrightnessCurve(config.Brightness.Curve);
+        }
+
         if (config.Calibration?.SampleCount is <= 0)
         {
             throw new InvalidOperationException("calibration.sampleCount must be greater than 0.");
@@ -113,6 +150,49 @@ internal static class AppConfigLoader
         {
             throw new InvalidOperationException(
                 "calibration.maxReadAttempts must be greater than or equal to calibration.sampleCount.");
+        }
+
+        if (!IsSupportedUiLanguage(config.Ui.Language))
+        {
+            throw new InvalidOperationException("ui.language must be one of: auto, en, ru, es.");
+        }
+    }
+
+    private static bool IsSupportedUiLanguage(string? language)
+    {
+        if (string.IsNullOrWhiteSpace(language))
+        {
+            return false;
+        }
+
+        var normalized = language.Trim().ToLower(CultureInfo.InvariantCulture);
+        return normalized is UiSettings.AutoLanguage or "en" or "ru" or "es";
+    }
+
+    private static void ValidateBrightnessCurve(IReadOnlyList<BrightnessCurvePoint> curve)
+    {
+        if (curve.Count < 2)
+        {
+            throw new InvalidOperationException("brightness.curve must contain at least two points.");
+        }
+
+        var seen = new HashSet<int>();
+        foreach (var point in curve)
+        {
+            if (point.LightPercent is < 0 or > 100)
+            {
+                throw new InvalidOperationException("brightness.curve lightPercent must be in the range 0..100.");
+            }
+
+            if (point.BrightnessPercent is < 0 or > 100)
+            {
+                throw new InvalidOperationException("brightness.curve brightnessPercent must be in the range 0..100.");
+            }
+
+            if (!seen.Add(point.LightPercent))
+            {
+                throw new InvalidOperationException("brightness.curve cannot contain duplicate lightPercent values.");
+            }
         }
     }
 }

@@ -32,6 +32,35 @@ public sealed class BrightnessProcessorTests
         Assert.Equal(result.TargetBrightness, result.RequestedBrightness);
     }
 
+    [Fact]
+    public void Evaluate_InterpolatesBrightnessCurve_BetweenUserPoints()
+    {
+        var processor = new BrightnessProcessor(
+            new BrightnessComputationSettings(
+                InputIsNormalized1000: true,
+                AdcMin: 0,
+                AdcMax: 1000,
+                Invert: false,
+                EmaAlpha: 1.0,
+                HysteresisPercent: 0,
+                MaxBrightnessStepPercent: 100,
+                Gamma: null,
+                MinBrightnessPercent: 0,
+                MaxBrightnessPercent: 100,
+                BrightnessCurve:
+                [
+                    new BrightnessCurvePointSetting(0, 10),
+                    new BrightnessCurvePointSetting(50, 40),
+                    new BrightnessCurvePointSetting(100, 90)
+                ]));
+
+        var result = processor.Evaluate(250);
+
+        Assert.Equal(25, result.Normalized * 100, precision: 3);
+        Assert.Equal(25, result.RequestedBrightness);
+        Assert.Equal(25, result.TargetBrightness);
+    }
+
     private static BrightnessProcessor CreateProcessor()
     {
         return new BrightnessProcessor(

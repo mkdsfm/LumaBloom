@@ -34,4 +34,10 @@ internal sealed class AppConfig
     /// </summary>
     [JsonPropertyName("calibration")]
     public CalibrationOverrides? Calibration { get; init; }
+
+    /// <summary>
+    /// Runtime terminal UI preferences.
+    /// </summary>
+    [JsonPropertyName("ui")]
+    public UiSettings Ui { get; init; } = new();
 }

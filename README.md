@@ -1,9 +1,8 @@
 # brightness-sensor
 
-A bundle of firmware and a simple Windows console application for automatically adjusting the built-in display brightness based on an ambient light sensor.
+A bundle of firmware and a Windows console application for automatically adjusting display brightness based on an ambient light sensor.
 
 <img width="964" height="1280" alt="image" src="https://github.com/user-attachments/assets/c9080153-6f3e-4f87-9e20-5d9c1311d273" />
-
 
 ## Contents
 
@@ -24,17 +23,35 @@ A bundle of firmware and a simple Windows console application for automatically 
    `pc-app/appsettings.esp32c6.example.json` for a minimal ESP32-C6 + KY-018 setup,
    or `appsettings.full.example.json` for a full template with all optional fields.
 4. Start the PC application from `pc-app/`.
-   It opens a live console dashboard with status panels and runtime hotkeys.
+   It opens a live terminal dashboard with tabs, arrow-key navigation, and mouse-clickable actions.
 5. For `ESP32-C6`, wait for startup calibration to complete. Until then the device LCD shows `--%` plus the current `ADC` line, and telemetry keeps `calibrated=false`.
 
 Important: the current PC application supports Windows only. Linux and macOS would require a separate application that preserves the same device communication contract, meaning the same JSON protocol from `docs/protocol.md`.
 
-## `pc-app/` Runtime Hotkeys
+## `pc-app/` Runtime UI
 
-- `q` - quit
-- `p` - pause/resume brightness writes while keeping telemetry running
-- `c` - trigger recalibration
-- `l` - show/hide the recent event log panel
+The Windows application opens a rich terminal UI with top-level screens:
+
+- `Overview` - normal runtime status and primary actions.
+- `Settings` - language, autostart, brightness curve, and response tuning.
+- `Events` - recent runtime event log.
+- `Diagnostics` - raw telemetry, profile, connection, and monitor details.
+
+Navigation:
+
+- Arrow keys - move between screens and visible controls.
+- Enter - activate the focused control.
+- Esc - cancel, go back, or return to a safe default.
+- Mouse click - activate visible tabs and controls when supported by the terminal.
+- Ctrl+C - request shutdown.
+
+`Settings` contains:
+
+- `General` - language selection for English, Russian, and Spanish, plus Windows autostart.
+- `Calibration` - brightness curve points that map ambient light percent to display brightness percent; values between points are interpolated smoothly.
+- `Response` / `Реагирование` - modal editors for `processing` overrides such as `emaAlpha`, `hysteresisPercent`, and `gamma`.
+
+The app also supports a single-file Windows publish. On first run without a bundled config, it creates a minimal `appsettings.json` next to the executable and then persists user settings there.
 
 ## ESP32-C6 Behavior
 
@@ -56,7 +73,7 @@ Important: the current PC application supports Windows only. Linux and macOS wou
 
 ## Expected Configuration
 
-The PC application expects a `pc-app/appsettings.json` file with the following sections:
+The PC application expects an `appsettings.json` file. When no explicit config path is passed and the default file is missing, the app creates a minimal config beside the executable.
 
 - `serial`
   - `deviceId` - optional device identifier from JSON telemetry.
@@ -70,48 +87,44 @@ The PC application expects a `pc-app/appsettings.json` file with the following s
   - `profileId` - optionally forces a built-in profile for debugging.
 - `processing`
   - All fields are optional and work as overrides on top of the built-in profile.
+  - These values can also be edited from `Settings / Response` / `Реагирование`; confirmed edits are saved to `appsettings.json` and applied without restart.
   - `adcMin` - lower bound of the ADC range.
-    Effect: values below it are clamped to `adcMin`, which defines the start of the normalization scale.
   - `adcMax` - upper bound of the ADC range; `adcMax > adcMin` is required.
-    Effect: values above it are clamped to `adcMax`, which defines the end of the normalization scale.
   - `invert` - inverts the scale (`true/false`).
-    Effect: reverses the mapping direction, useful when the sensor logic is effectively upside down.
   - `emaAlpha` - EMA coefficient in the `(0; 1]` range.
-    Effect: higher values react faster, lower values make brightness changes smoother and slower.
   - `hysteresisPercent` - minimum brightness change step in percent (`0..100`).
-    Effect: suppresses small fluctuations by ignoring tiny changes.
   - `maxBrightnessStepPercent` - maximum brightness delta per update (`1..100`).
-    Effect: prevents abrupt jumps by moving toward the computed target in small steps.
   - `gamma` - optional gamma correction after EMA (`null` disables it, typically `1.8..2.2`).
-    Effect: makes the brightness curve feel more natural, softer in dark areas and less abrupt overall.
 - `brightness`
   - Fields work as user overrides for the final brightness range.
   - `minPercent` - lower brightness bound (`0..100`).
-    Effect: brightness will not go below this value even in darkness.
   - `maxPercent` - upper brightness bound (`0..100`, `min <= max`).
-    Effect: brightness will not exceed this value even in strong light.
+  - `curve` - optional points mapping normalized ambient light to display brightness.
+    Each point has `lightPercent` and `brightnessPercent` in `0..100`; at least two unique `lightPercent` values are required.
+    Effect: the app linearly interpolates between neighboring points, so brightness changes smoothly instead of jumping between thresholds.
 - `calibration`
   - All fields are optional and work as overrides on top of the built-in profile.
-  - `enabled` - enables calibration on startup (`true/false`).
-    Effect: the initial screen brightness and sensor readings are treated as the ideal baseline.
+  - `enabled` - enables firmware/device calibration on startup (`true/false`).
   - `sampleCount` - number of valid measurements to average (`>= 1`).
-    Effect: higher values give a more stable baseline but make calibration take longer.
   - `maxReadAttempts` - maximum sensor read attempts (`>= sampleCount`).
-    Effect: limits how long calibration waits when data is missing.
+- `ui`
+  - `language` - terminal UI language: `auto`, `en`, `ru`, or `es`.
+    Effect: `auto` uses the OS culture when supported and falls back to English.
+    The language can also be selected from `Settings / General` and is saved to this field.
 
 Examples:
 
-- `appsettings.example.json` - minimal user config
-- `pc-app/appsettings.esp32c6.example.json` - minimal config for ESP32-C6 + KY-018
-- `appsettings.full.example.json` - full template with all optional fields and overrides
+- `appsettings.example.json` - minimal user config.
+- `pc-app/appsettings.esp32c6.example.json` - minimal config for ESP32-C6 + KY-018.
+- `appsettings.full.example.json` - full template with all optional fields and overrides.
 
 For details on built-in profiles, the generic fallback, and how to add new profiles, see `docs/device-profiles.md`.
 
 ## Built-In Profiles
 
-- `esp32c3-analog-ky018` - `deviceId=esp32c3-01`, `sensorId=light0`, measurement type `ADC`
-- `esp32c6-analog-ky018` - `deviceId=esp32c6-01`, `sensorId=light0`, measurement type `Normalized1000`
-- `generic-adc-safe` - fallback profile for unknown devices, measurement type `ADC`
+- `esp32c3-analog-ky018` - `deviceId=esp32c3-01`, `sensorId=light0`, measurement type `ADC`.
+- `esp32c6-analog-ky018` - `deviceId=esp32c6-01`, `sensorId=light0`, measurement type `Normalized1000`.
+- `generic-adc-safe` - fallback profile for unknown devices, measurement type `ADC`.
 
 ## Telemetry Format
 
