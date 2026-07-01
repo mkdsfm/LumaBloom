@@ -1,53 +1,5 @@
 # Build and Run
 
-## Hardware Assembly (ESP32-C3 + Light Sensor)
-
-Required components:
-
-- ESP32-C3 board with USB for flashing and power
-- KY-018 light sensor module
-- Breadboard or another safe mounting method
-- Dupont jumper wires, at least 3
-- USB cable for connecting the ESP32-C3 to a PC
-
-Wiring requirements:
-
-- `KY-018 VCC` -> `ESP32-C3 3V3` (not `5V`)
-- `KY-018 GND` -> `ESP32-C3 GND`
-- `KY-018 AO` -> `ESP32-C3 GPIO0` (ADC)
-- Only the analog sensor output (`AO`) is used
-- A common `GND` between the sensor and the board is required
-
-Signal quality recommendations:
-
-- Use short wires and reliable contacts
-- Do not route the signal wire near interference sources such as noisy USB hubs or unshielded power supplies
-- Before flashing, verify the assembly against the diagram in `docs/wiring.md`
-
-## Firmware (ESP32-C3, Arduino `.ino`)
-
-Requirements:
-
-- Arduino IDE 2.x
-- Installed `esp32` board package from Espressif Systems
-- ESP32-C3 connected over USB
-
-Steps:
-
-1. Open `firmware/firmware_esp32c3/firmware_esp32c3.ino` in Arduino IDE.
-2. Select the ESP32-C3 board in **Tools -> Board**.
-3. Select the device COM port in **Tools -> Port**.
-4. Enable `USB CDC On Boot` in the tools menu if your board requires it.
-5. Check `kDeviceId`: it should be unique and should later match `serial.deviceId` in the PC application config.
-6. Click **Upload** to flash the firmware.
-7. Open **Serial Monitor** and set the speed to `115200`.
-
-Expected monitor output: JSON lines with `deviceId`, `sensorId`, `ts`, and `value`.
-
-Detailed instructions, including `arduino-cli` and release binary builds:
-
-- `firmware/firmware_esp32c3/README.md`
-
 ## Firmware (ESP32-C6, ESP-IDF, KY-018 + LCD 1.47)
 
 Requirements:
@@ -111,8 +63,7 @@ Requirements:
 
 Preparation:
 
-1. Create `pc-app/appsettings.json` from the appropriate example:
-   `../appsettings.example.json` for ESP32-C3, or `appsettings.esp32c6.example.json` for ESP32-C6 + KY-018.
+1. Create `pc-app/appsettings.json` from `appsettings.esp32c6.example.json` for ESP32-C6 + KY-018.
 2. Optionally set `serial.deviceId` if you want to limit autodiscovery to one specific device. If this field is not set, the app uses the first COM port with valid telemetry.
 3. Only add the overrides you actually need, such as brightness limits, a forced `deviceProfile.profileId` for debugging, or selected `processing` / `calibration` fields on top of the built-in profile.
 

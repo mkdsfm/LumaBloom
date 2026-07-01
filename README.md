@@ -6,10 +6,10 @@ A bundle of firmware and a Windows console application for automatically adjusti
 
 ## Contents
 
-- `firmware/firmware_esp32c3/` - Arduino firmware for ESP32-C3, plus build and flashing instructions.
 - `firmware/firmware_esp32c6/` - ESP-IDF project for Waveshare ESP32-C6-LCD-1.47 with KY-018, onboard LCD, and runtime calibration from `pc-app`.
+- `hardware/` - wiring, BOM, hardware revisions, and the printable LumaBloom enclosure assembly for the ESP32-C6 build.
 - `pc-app/` - Windows-only .NET application with a live console dashboard that reads JSON from a COM port and controls brightness through WMI.
-- `docs/` - wiring, protocol, and run instructions.
+- `docs/` - protocol, device profiles, and build/run instructions.
 - `appsettings.example.json` - example configuration for the PC application.
 - `appsettings.full.example.json` - full example with all optional override parameters.
 - `pc-app/appsettings.esp32c6.example.json` - example configuration for ESP32-C6 + KY-018.
@@ -17,9 +17,8 @@ A bundle of firmware and a Windows console application for automatically adjusti
 ## Quick Start
 
 1. Build and flash the controller. See `docs/build-and-run.md`.
-2. Wire the sensor. See `docs/wiring.md`.
+2. Wire the sensor. See `hardware/WIRING.md`.
 3. Copy the appropriate example to `pc-app/appsettings.json`:
-   `appsettings.example.json` for a minimal ESP32-C3 setup,
    `pc-app/appsettings.esp32c6.example.json` for a minimal ESP32-C6 + KY-018 setup,
    or `appsettings.full.example.json` for a full template with all optional fields.
 4. Start the PC application from `pc-app/`.
@@ -55,12 +54,28 @@ The app also supports a single-file Windows publish. On first run without a bund
 
 ## ESP32-C6 Behavior
 
-`firmware_esp32c6` differs from the simple ESP32-C3 flow:
+`firmware_esp32c6` behavior:
 
 - the firmware sends `value` as a normalized calibrated value in the `0..1000` range;
 - it also sends `raw` as a diagnostic/raw ADC field for startup calibration;
 - `pc-app` must send a `calibrate` command after reading the current monitor brightness;
 - before calibration, the device publishes `value=0` while the LCD keeps the percentage placeholder at `--%`.
+
+## Hardware
+
+Hardware documentation:
+
+| Path | Purpose |
+| --- | --- |
+| `hardware/README.md` | Hardware section index |
+| `hardware/WIRING.md` | KY-018 wiring for ESP32-C6 |
+| `hardware/BOM.md` | Bill of materials |
+| `hardware/ASSEMBLY.md` | ESP32-C6 enclosure assembly steps and smoke checks |
+| `hardware/REVISIONS.md` | Hardware revision log |
+| `hardware/3d-print/README.md` | Enclosure and 3D-print notes |
+| `hardware/3d-print/enclosure/` | Slicer-ready `.3mf` plates grouped by color |
+| `hardware/3d-print/images/` | Print preparation and assembly-reference images |
+| `hardware/3d-print/source/` | STEP source models and selected STL exports |
 
 ## `pc-app/` Structure
 
@@ -122,7 +137,6 @@ For details on built-in profiles, the generic fallback, and how to add new profi
 
 ## Built-In Profiles
 
-- `esp32c3-analog-ky018` - `deviceId=esp32c3-01`, `sensorId=light0`, measurement type `ADC`.
 - `esp32c6-analog-ky018` - `deviceId=esp32c6-01`, `sensorId=light0`, measurement type `Normalized1000`.
 - `generic-adc-safe` - fallback profile for unknown devices, measurement type `ADC`.
 
@@ -134,10 +148,7 @@ Each measurement is sent as a single JSON line, for example:
 
 `deviceId` is used by the PC application for COM port autodiscovery when `serial.deviceId` is set. After that, `deviceId + sensorId` is used to select the built-in hardware profile.
 
-The `value` field depends on the firmware type:
-
-- Arduino firmware for ESP32-C3 sends the raw ADC value.
-- ESP-IDF firmware for ESP32-C6 sends the calibrated normalized value in the `0..1000` range.
+ESP-IDF firmware for ESP32-C6 sends the calibrated normalized `value` in the `0..1000` range.
 
 Details: `docs/protocol.md`.
 

@@ -4,14 +4,14 @@ This file gives Codex and similar coding agents repo-specific guidance for worki
 
 ## Purpose
 
-`brightness-sensor` is a mixed hardware/software repository with two distinct firmware tracks and one Windows desktop application:
+`brightness-sensor` is a mixed hardware/software repository with one ESP32-C6 firmware track and one Windows desktop application:
 
-- `firmware/firmware_esp32c3/` - Arduino firmware for `ESP32-C3`
 - `firmware/firmware_esp32c6/` - `ESP-IDF` firmware for `Waveshare ESP32-C6-LCD-1.47` with `KY-018`
+- `hardware/` - wiring, BOM, assembly checks, revision notes, and printable enclosure assets
 - `pc-app/` - Windows-only `.NET` console application that reads telemetry from a serial port and controls monitor brightness through WMI
-- `docs/` - wiring, protocol, profiles, and build/run notes
+- `docs/` - protocol, profiles, and build/run notes
 
-The most common failure mode in this repo is mixing up the `esp32c3` and `esp32c6` flows. Treat them as separate products that share the same overall goal and telemetry contract.
+The current documented hardware and enclosure flow targets `ESP32-C6`.
 
 ## Read This First
 
@@ -22,8 +22,8 @@ Before making non-trivial changes, read the smallest relevant set of files:
    - [`docs/build-and-run.md`](docs/build-and-run.md)
    - [`docs/protocol.md`](docs/protocol.md)
    - [`docs/device-profiles.md`](docs/device-profiles.md) when profile logic is involved
+   - [`hardware/README.md`](hardware/README.md) and [`hardware/WIRING.md`](hardware/WIRING.md) when hardware wiring or assembly is involved
 3. Firmware-specific README when touching firmware:
-   - [`firmware/firmware_esp32c3/README.md`](firmware/firmware_esp32c3/README.md)
    - [`firmware/firmware_esp32c6/README.md`](firmware/firmware_esp32c6/README.md)
 4. Solution and test projects when touching `pc-app/`:
    - [`pc-app/brightness-sensor.sln`](pc-app/brightness-sensor.sln)
@@ -34,7 +34,6 @@ If the user mentions Codex skills or release workflows, also read [`docs/skills-
 
 - `pc-app` is Windows-only by design.
 - The serial protocol is newline-delimited JSON; see `docs/protocol.md`.
-- `ESP32-C3` firmware sends raw ADC-style readings in `value`.
 - `ESP32-C6` firmware sends calibrated normalized readings in `value` in the `0..1000` range and may also send `raw`.
 - `pc-app` resolves built-in runtime defaults from `deviceId + sensorId`, then applies user overrides from `appsettings.json`.
 - For `ESP32-C6`, startup calibration is part of the expected runtime contract. `pc-app` sends a `calibrate` command and the device stays effectively `UNCAL` until calibration completes.
@@ -52,12 +51,6 @@ Main solution:
 - `BrightnessSensor.ConsoleApp.Tests/` - config/profile/processing tests
 - `BrightnessSensor.DeviceReading.Tests/` - parser and discovery tests
 
-### `firmware/firmware_esp32c3/`
-
-- Arduino `.ino` project
-- Simpler telemetry path
-- Device identity must stay aligned with `pc-app/appsettings.json` when `serial.deviceId` is used
-
 ### `firmware/firmware_esp32c6/`
 
 - `ESP-IDF` project
@@ -67,7 +60,6 @@ Main solution:
 
 ## Safe Working Rules
 
-- Do not conflate `ESP32-C3` and `ESP32-C6` telemetry semantics.
 - Do not change `deviceId`, `sensorId`, measurement kind, or calibration flow casually; these affect cross-component compatibility.
 - Do not edit generated/build artifacts unless the user explicitly asks for that.
 - Prefer editing source files rather than anything under `build/`, `bin/`, `obj/`, or generated outputs.
@@ -77,9 +69,9 @@ Main solution:
 ## Files Usually Safe To Edit
 
 - Documentation in `docs/`
+- Hardware documentation in `hardware/`
 - `.cs` files and `.csproj` files in `pc-app/`
 - Tests in `pc-app/*Tests/`
-- `firmware/firmware_esp32c3/firmware_esp32c3.ino`
 - `firmware/firmware_esp32c6/main/*.c` and `main/*.h`
 - `firmware/firmware_esp32c6/CMakeLists.txt` and related source-level build files
 
@@ -135,16 +127,6 @@ idf.py merge-bin -f raw -o build\release\brightness_sensor_esp32c6_merged.bin
 
 If the user explicitly asks to use a Codex skill for flashing or release packaging, prefer the documented skill workflow from `docs/skills-for-users.md`.
 
-### When changing `ESP32-C3` firmware
-
-This track is Arduino-based. Follow the instructions in `firmware/firmware_esp32c3/README.md`.
-
-Be careful with:
-
-- serial baud expectations
-- `kDeviceId` consistency with the desktop app config
-- preserving the JSON telemetry shape expected by `pc-app`
-
 ## Validation Expectations
 
 Choose the smallest validation that meaningfully covers the change.
@@ -157,7 +139,6 @@ Choose the smallest validation that meaningfully covers the change.
 
 ## Integration Pitfalls
 
-- `ESP32-C6` uses calibration and normalized values; `ESP32-C3` does not follow the same flow.
 - `pc-app` selects the hardware profile from the first valid telemetry, so message shape and identity fields matter.
 - Changing `APP_DEVICE_ID` in `firmware_esp32c6/main/app_config.h` requires matching updates to local app config if `serial.deviceId` is set.
 - For `ESP32-C6`, the LCD placeholders `{{NORMALIZED}}`, `{{RAW}}`, and `{{STATUS}}` are a public runtime contract for the current UI binding code.
@@ -178,6 +159,8 @@ The most likely docs to need updates are:
 
 - `README.md`
 - `docs/build-and-run.md`
+- `hardware/README.md`
+- `hardware/WIRING.md`
 - `docs/protocol.md`
 - `docs/device-profiles.md`
 - `firmware/firmware_esp32c6/README.md`
@@ -192,7 +175,7 @@ This repo already documents Codex skill usage for repeatable release/flash flows
 
 ## Good Agent Behavior In This Repo
 
-- State clearly which track you are touching: `pc-app`, `esp32c3`, or `esp32c6`.
+- State clearly which track you are touching: `pc-app` or `esp32c6`.
 - Keep cross-component compatibility in mind before changing protocol or identity fields.
 - Prefer minimal, targeted changes over wide refactors.
 - Preserve existing naming and project structure unless there is a clear reason to change them.
@@ -202,5 +185,4 @@ This repo already documents Codex skill usage for repeatable release/flash flows
 
 - If the task is about brightness math, config parsing, or serial discovery: start in `pc-app/`.
 - If the task is about `UNCAL`, LCD, normalized `0..1000`, or `calibrate`: start in `firmware/firmware_esp32c6/`.
-- If the task is about Arduino upload flow or raw ADC telemetry from the simple board: start in `firmware/firmware_esp32c3/`.
 - If the task is about matching values between firmware and desktop behavior: inspect `docs/protocol.md`, profile resolution, and the relevant firmware README before editing.
