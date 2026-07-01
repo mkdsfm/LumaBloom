@@ -10,4 +10,5 @@ public sealed record BrightnessComputationSettings(
     int MaxBrightnessStepPercent,
     double? Gamma,
     int MinBrightnessPercent,
-    int MaxBrightnessPercent);
+    int MaxBrightnessPercent,
+    IReadOnlyList<BrightnessCurvePointSetting>? BrightnessCurve = null);

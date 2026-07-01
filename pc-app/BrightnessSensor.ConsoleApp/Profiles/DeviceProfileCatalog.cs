@@ -23,7 +23,8 @@ internal static class DeviceProfileCatalog
             MaxReadAttempts: 20),
         Brightness: new BrightnessSettings(
             MinPercent: 10,
-            MaxPercent: 100),
+            MaxPercent: 100,
+            Curve: CreateDefaultCurve(10, 100)),
         BaudRate: SerialSettings.DefaultBaudRate,
         DiscoveryTimeoutMs: SerialSettings.DefaultDiscoveryTimeoutMs,
         IsGeneric: true);
@@ -49,7 +50,8 @@ internal static class DeviceProfileCatalog
                 MaxReadAttempts: 20),
             Brightness: new BrightnessSettings(
                 MinPercent: 10,
-                MaxPercent: 100),
+                MaxPercent: 100,
+                Curve: CreateDefaultCurve(10, 100)),
             BaudRate: SerialSettings.DefaultBaudRate,
             DiscoveryTimeoutMs: SerialSettings.DefaultDiscoveryTimeoutMs),
         new DeviceProfile(
@@ -71,8 +73,26 @@ internal static class DeviceProfileCatalog
                 MaxReadAttempts: 20),
             Brightness: new BrightnessSettings(
                 MinPercent: 10,
-                MaxPercent: 100),
+                MaxPercent: 100,
+                Curve: CreateDefaultCurve(10, 100)),
             BaudRate: SerialSettings.DefaultBaudRate,
             DiscoveryTimeoutMs: SerialSettings.DefaultDiscoveryTimeoutMs)
     ];
+
+    private static IReadOnlyList<BrightnessCurvePoint> CreateDefaultCurve(int minPercent, int maxPercent)
+    {
+        return
+        [
+            new BrightnessCurvePoint(0, minPercent),
+            new BrightnessCurvePoint(25, Interpolate(minPercent, maxPercent, 0.25)),
+            new BrightnessCurvePoint(50, Interpolate(minPercent, maxPercent, 0.50)),
+            new BrightnessCurvePoint(75, Interpolate(minPercent, maxPercent, 0.75)),
+            new BrightnessCurvePoint(100, maxPercent)
+        ];
+    }
+
+    private static int Interpolate(int minPercent, int maxPercent, double ratio)
+    {
+        return (int)Math.Round(minPercent + ((maxPercent - minPercent) * ratio), MidpointRounding.AwayFromZero);
+    }
 }

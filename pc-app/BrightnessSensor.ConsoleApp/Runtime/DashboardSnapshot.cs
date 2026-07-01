@@ -1,6 +1,17 @@
+using BrightnessSensor.ConsoleApp.Configuration;
+
 namespace BrightnessSensor.ConsoleApp.Runtime;
 
 internal sealed record DashboardSnapshot(
+    RuntimeScreen ActiveScreen,
+    UiLanguage Language,
+    bool IsCompact,
+    OverviewAction FocusedOverviewAction,
+    CalibrationWizardStep CalibrationWizardStep,
+    CalibrationAction FocusedCalibrationAction,
+    CalibrationTargetMode? CalibrationTargetMode,
+    string CalibrationManualInputBuffer,
+    string? CalibrationInputError,
     AppLifecycleState LifecycleState,
     string StatusMessage,
     string CalibrationStatus,
@@ -19,4 +30,17 @@ internal sealed record DashboardSnapshot(
     bool? IsGenericProfile,
     SensorRuntimeSnapshot? LatestSensor,
     IReadOnlyList<MonitorRuntimeSnapshot> Monitors,
-    IReadOnlyList<RuntimeEventEntry> Events);
+    IReadOnlyList<RuntimeEventEntry> Events,
+    BrightnessControlMode BrightnessControlMode = BrightnessControlMode.Auto,
+    int ManualBrightnessPercent = 50,
+    int? LastManualAppliedBrightnessPercent = null,
+    SettingsSection ActiveSettingsSection = SettingsSection.General,
+    IReadOnlyList<BrightnessCurvePoint>? BrightnessCurve = null,
+    int? ProcessingAdcMin = null,
+    int? ProcessingAdcMax = null,
+    bool? ProcessingInvert = null,
+    double? ProcessingEmaAlpha = null,
+    int? ProcessingHysteresisPercent = null,
+    int? ProcessingMaxBrightnessStepPercent = null,
+    double? ProcessingGamma = null,
+    bool AutostartEnabled = false);

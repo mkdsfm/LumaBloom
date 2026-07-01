@@ -1,4 +1,6 @@
 using Spectre.Console;
+using Terminal.Gui.App;
+using Terminal.Gui.Drivers;
 
 namespace BrightnessSensor.ConsoleApp.Runtime;
 
@@ -24,47 +26,120 @@ internal sealed class ConsoleDashboardHost(RuntimeStateStore stateStore)
         };
 
         Console.CancelKeyPress += handler;
-        Console.CursorVisible = false;
+        TrySetCursorVisible(false);
+        var alternateScreenEnabled = false;
+        var interactionController = new RuntimeInteractionController(
+            _stateStore,
+            message => RequestStop(cancellationTokenSource, message));
 
         try
         {
-            var worker = Task.Run(() => applicationRunner(cancellationTokenSource.Token), CancellationToken.None);
-            var initialSnapshot = _stateStore.GetSnapshot();
-            var initialVersion = _stateStore.GetVersion();
-
-            return AnsiConsole
-                .Live(_renderer.Build(initialSnapshot))
-                .AutoClear(false)
-                .Start(ctx =>
+            if (Console.IsOutputRedirected || Console.IsInputRedirected)
             {
-                var lastRenderedVersion = initialVersion;
-                var lastRenderedAt = DateTimeOffset.UtcNow;
+                return RunWithoutLiveDashboard(applicationRunner, cancellationTokenSource.Token);
+            }
 
-                while (!worker.IsCompleted)
+            var worker = Task.Run(() => applicationRunner(cancellationTokenSource.Token), CancellationToken.None);
+            using var app = Terminal.Gui.App.Application.Create();
+            app.Init();
+
+            var dashboard = new TerminalGuiDashboard(
+                _stateStore,
+                interactionController,
+                () => app.RequestStop());
+            var window = dashboard.Build();
+            dashboard.Refresh();
+            var lastRenderedVersion = _stateStore.GetVersion();
+            var lastRenderedAt = DateTimeOffset.Now;
+
+            app.Keyboard.KeyDown += (_, args) =>
+            {
+                var keyCode = args.KeyCode;
+                if (dashboard.IsModalOpen)
                 {
-                    HandleInput(cancellationTokenSource);
-
-                    var currentVersion = _stateStore.GetVersion();
-                    var now = DateTimeOffset.UtcNow;
-                    if (ShouldRefresh(lastRenderedVersion, currentVersion, lastRenderedAt, now))
+                    if (keyCode == KeyCode.Esc)
                     {
-                        ctx.UpdateTarget(_renderer.Build(_stateStore.GetSnapshot()));
-                        ctx.Refresh();
-                        lastRenderedVersion = currentVersion;
-                        lastRenderedAt = now;
+                        dashboard.HandleBack();
+                    }
+                    else if (keyCode == KeyCode.Enter)
+                    {
+                        dashboard.HandleEnter();
                     }
 
-                    Thread.Sleep(PollInterval);
+                    return;
                 }
 
-                ctx.UpdateTarget(_renderer.Build(_stateStore.GetSnapshot()));
-                ctx.Refresh();
-                return worker.GetAwaiter().GetResult();
+                if (keyCode == KeyCode.CursorLeft)
+                {
+                    dashboard.HandleLeft();
+                }
+                else if (keyCode == KeyCode.CursorRight)
+                {
+                    dashboard.HandleRight();
+                }
+                else if (keyCode == KeyCode.CursorUp)
+                {
+                    interactionController.ApplyIntent(new UiInputIntent(UiInputIntentKind.MoveUp));
+                    dashboard.Refresh();
+                }
+                else if (keyCode == KeyCode.CursorDown)
+                {
+                    interactionController.ApplyIntent(new UiInputIntent(UiInputIntentKind.MoveDown));
+                    dashboard.Refresh();
+                }
+                else if (keyCode == KeyCode.Esc)
+                {
+                    dashboard.HandleBack();
+                }
+                else if (keyCode == KeyCode.Enter)
+                {
+                    dashboard.HandleEnter();
+                }
+                else if (keyCode == (KeyCode.Q | KeyCode.CtrlMask))
+                {
+                    RequestStop(cancellationTokenSource, "Stop requested via Ctrl+Q.");
+                    dashboard.RequestStop();
+                }
+                else if (TryGetDigit(keyCode, out var digit))
+                {
+                    interactionController.ApplyIntent(UiInputIntent.AppendDigit(digit));
+                    dashboard.Refresh();
+                }
+            };
+
+            app.AddTimeout(PollInterval, () =>
+            {
+                if (worker.IsCompleted)
+                {
+                    app.RequestStop();
+                    return false;
+                }
+
+                _stateStore.SetCompactMode(Console.WindowWidth < 100 || Console.WindowHeight < 24);
+                var now = DateTimeOffset.Now;
+                var currentVersion = _stateStore.GetVersion();
+                if (!dashboard.IsModalOpen && ShouldRefresh(lastRenderedVersion, currentVersion, lastRenderedAt, now))
+                {
+                    dashboard.Refresh();
+                    lastRenderedVersion = currentVersion;
+                    lastRenderedAt = now;
+                }
+
+                return true;
             });
+
+            app.Run(window);
+            cancellationTokenSource.Cancel();
+            return worker.GetAwaiter().GetResult();
         }
         finally
         {
-            Console.CursorVisible = true;
+            if (alternateScreenEnabled)
+            {
+                TryExitAlternateScreen();
+            }
+
+            TrySetCursorVisible(true);
             Console.CancelKeyPress -= handler;
         }
     }
@@ -83,96 +158,148 @@ internal sealed class ConsoleDashboardHost(RuntimeStateStore stateStore)
         return (now - lastRenderedAt) >= IdleRefreshInterval;
     }
 
-    private void HandleInput(CancellationTokenSource cancellationTokenSource)
+    private void HandleInput(RuntimeInteractionController interactionController)
     {
         while (Console.KeyAvailable)
         {
             var keyInfo = Console.ReadKey(intercept: true);
 
-            if (_stateStore.IsCalibrationInputActive)
+            if (keyInfo.Key == ConsoleKey.Escape)
             {
-                HandleCalibrationInputModeKey(keyInfo);
+                var sequence = MouseInputParser.ReadEscapeSequenceIfAvailable(keyInfo);
+                if (MouseInputParser.TryParseSgrMouseSequence(sequence, out var click))
+                {
+                    interactionController.HandleMouseClick(click);
+                    continue;
+                }
+            }
+
+            if (!RuntimeCommandMapper.TryMap(keyInfo, out var intent))
+            {
                 continue;
             }
 
-            if (!RuntimeCommandMapper.TryMap(keyInfo, out var command))
-            {
-                continue;
-            }
-
-            switch (command)
-            {
-                case RuntimeCommand.Stop:
-                    _stateStore.SetLifecycle(AppLifecycleState.Stopping, "Stopping...");
-                    _stateStore.AddEvent("Stop requested from keyboard.", RuntimeEventSeverity.Warning);
-                    cancellationTokenSource.Cancel();
-                    break;
-                case RuntimeCommand.TogglePause:
-                    var paused = _stateStore.TogglePause();
-                    _stateStore.AddEvent(
-                        paused
-                            ? "Paused brightness application."
-                            : "Resumed brightness application.",
-                        RuntimeEventSeverity.Info);
-                    break;
-                case RuntimeCommand.ToggleLogVisibility:
-                    var visible = _stateStore.ToggleLogVisibility();
-                    _stateStore.AddEvent(
-                        visible
-                            ? "Expanded recent event log."
-                            : "Collapsed recent event log.",
-                        RuntimeEventSeverity.Info);
-                    break;
-                case RuntimeCommand.Recalibrate:
-                    _stateStore.BeginCalibrationInput();
-                    _stateStore.SetCalibrationStatus("Enter desired brightness 0..100, then press Enter. Leave blank to use current monitor brightness.");
-                    _stateStore.AddEvent("Calibration input mode opened.", RuntimeEventSeverity.Info);
-                    break;
-            }
+            interactionController.ApplyIntent(intent);
         }
     }
 
-    private void HandleCalibrationInputModeKey(ConsoleKeyInfo keyInfo)
+    private void RequestStop(CancellationTokenSource cancellationTokenSource, string message)
     {
-        switch (keyInfo.Key)
+        _stateStore.SetLifecycle(AppLifecycleState.Stopping, "Stopping...");
+        _stateStore.AddEvent(message, RuntimeEventSeverity.Warning);
+        cancellationTokenSource.Cancel();
+    }
+
+    private int RunWithoutLiveDashboard(Func<CancellationToken, int> applicationRunner, CancellationToken cancellationToken)
+    {
+        var worker = Task.Run(() => applicationRunner(cancellationToken), CancellationToken.None);
+        var lastVersion = -1L;
+
+        while (!worker.IsCompleted)
         {
-            case ConsoleKey.Enter:
-                if (_stateStore.TryCommitCalibrationInput(out var targetBrightnessPercent))
-                {
-                    if (_stateStore.TryRequestRecalibration(targetBrightnessPercent))
-                    {
-                        _stateStore.AddEvent(
-                            targetBrightnessPercent.HasValue
-                                ? $"Recalibration requested with target brightness {targetBrightnessPercent}%."
-                                : "Recalibration requested using current monitor brightness.",
-                            RuntimeEventSeverity.Warning);
-                    }
-                    else
-                    {
-                        _stateStore.AddEvent("Recalibration already pending.", RuntimeEventSeverity.Warning);
-                    }
-                }
+            var version = _stateStore.GetVersion();
+            if (version != lastVersion)
+            {
+                WritePlainStatus(_stateStore.GetSnapshot());
+                lastVersion = version;
+            }
 
-                break;
-            case ConsoleKey.Escape:
-                _stateStore.CancelCalibrationInput();
-                _stateStore.SetCalibrationStatus("Calibration input canceled.");
-                _stateStore.AddEvent("Calibration input canceled.", RuntimeEventSeverity.Warning);
-                break;
-            case ConsoleKey.Backspace:
-                _stateStore.TryBackspaceCalibrationInput();
-                break;
-            default:
-                if (char.IsDigit(keyInfo.KeyChar))
-                {
-                    var appended = _stateStore.TryAppendCalibrationInputDigit(keyInfo.KeyChar);
-                    if (!appended)
-                    {
-                        _stateStore.AddEvent("Brightness target must stay in range 0..100.", RuntimeEventSeverity.Warning);
-                    }
-                }
-
-                break;
+            Thread.Sleep(IdleRefreshInterval);
         }
+
+        WritePlainStatus(_stateStore.GetSnapshot());
+        return worker.GetAwaiter().GetResult();
+    }
+
+    private static void WritePlainStatus(DashboardSnapshot snapshot)
+    {
+        var sensor = snapshot.LatestSensor is null
+            ? "sensor=none"
+            : $"sensor={snapshot.LatestSensor.DeviceId}/{snapshot.LatestSensor.SensorId} value={snapshot.LatestSensor.Value} raw={snapshot.LatestSensor.Raw?.ToString() ?? "null"} calibrated={snapshot.LatestSensor.Calibrated}";
+        var connection = snapshot.PortName is null
+            ? "port=unresolved"
+            : $"port={snapshot.PortName}@{snapshot.BaudRate}";
+
+        Console.WriteLine(
+            $"[{DateTimeOffset.Now:HH:mm:ss}] {snapshot.LifecycleState}: {snapshot.StatusMessage} | {connection} | calibration={snapshot.CalibrationStatus} | {sensor}");
+    }
+
+    private static void TrySetCursorVisible(bool visible)
+    {
+        try
+        {
+            Console.CursorVisible = visible;
+        }
+        catch (IOException)
+        {
+            // Redirected/non-interactive consoles can reject cursor operations.
+        }
+    }
+
+    private static void TryRestoreWindowSize(int width, int height)
+    {
+        if (!OperatingSystem.IsWindows())
+        {
+            return;
+        }
+
+        try
+        {
+            if (Console.WindowWidth == width && Console.WindowHeight == height)
+            {
+                return;
+            }
+
+            Console.SetWindowSize(width, height);
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            // Windows Terminal may reject resize requests while the user is dragging the window.
+        }
+        catch (IOException)
+        {
+            // Pseudo terminals can expose size but reject programmatic resizing.
+        }
+        catch (PlatformNotSupportedException)
+        {
+            // Non-Windows terminals cannot be locked this way.
+        }
+    }
+
+    private static bool TryEnterAlternateScreen()
+    {
+        try
+        {
+            Console.Write("\u001b[?1049h");
+            return true;
+        }
+        catch (IOException)
+        {
+            return false;
+        }
+    }
+
+    private static void TryExitAlternateScreen()
+    {
+        try
+        {
+            Console.Write("\u001b[?1049l");
+        }
+        catch (IOException)
+        {
+            // Ignore cleanup failure in a closing terminal.
+        }
+    }
+
+    private static bool TryGetDigit(KeyCode keyCode, out char digit)
+    {
+        if (keyCode is >= KeyCode.D0 and <= KeyCode.D9)
+        {
+            digit = (char)('0' + (keyCode - KeyCode.D0));
+            return true;
+        }
+
+        digit = '\0';
+        return false;
     }
 }

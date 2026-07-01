@@ -17,7 +17,10 @@ internal static class ResolvedSettingsFactory
 
         var brightness = new BrightnessSettings(
             MinPercent: config.Brightness?.MinPercent ?? profile.Brightness.MinPercent,
-            MaxPercent: config.Brightness?.MaxPercent ?? profile.Brightness.MaxPercent);
+            MaxPercent: config.Brightness?.MaxPercent ?? profile.Brightness.MaxPercent,
+            Curve: HasUsableCurve(config.Brightness?.Curve)
+                ? config.Brightness!.Curve!
+                : profile.Brightness.Curve);
 
         var calibration = new CalibrationSettings(
             Enabled: config.Calibration?.Enabled ?? profile.Calibration.Enabled,
@@ -88,6 +91,8 @@ internal static class ResolvedSettingsFactory
                 "brightness.minPercent cannot be greater than brightness.maxPercent.");
         }
 
+        ValidateBrightnessCurve(settings.Brightness.Curve);
+
         if (settings.Calibration.SampleCount <= 0)
         {
             throw new InvalidOperationException("calibration.sampleCount must be greater than 0.");
@@ -103,5 +108,37 @@ internal static class ResolvedSettingsFactory
             throw new InvalidOperationException(
                 "calibration.maxReadAttempts must be greater than or equal to calibration.sampleCount.");
         }
+    }
+
+    private static void ValidateBrightnessCurve(IReadOnlyList<BrightnessCurvePoint> curve)
+    {
+        if (curve.Count < 2)
+        {
+            throw new InvalidOperationException("brightness.curve must contain at least two points.");
+        }
+
+        var seen = new HashSet<int>();
+        foreach (var point in curve)
+        {
+            if (point.LightPercent is < 0 or > 100)
+            {
+                throw new InvalidOperationException("brightness.curve lightPercent must be in the range 0..100.");
+            }
+
+            if (point.BrightnessPercent is < 0 or > 100)
+            {
+                throw new InvalidOperationException("brightness.curve brightnessPercent must be in the range 0..100.");
+            }
+
+            if (!seen.Add(point.LightPercent))
+            {
+                throw new InvalidOperationException("brightness.curve cannot contain duplicate lightPercent values.");
+            }
+        }
+    }
+
+    private static bool HasUsableCurve(IReadOnlyList<BrightnessCurvePoint>? curve)
+    {
+        return curve is { Count: >= 2 };
     }
 }
