@@ -7,6 +7,7 @@ typedef struct {
     int adc_max;
     bool invert;
     float gamma;
+    float normalized_scale;
     float normalized_offset;
     bool calibrated;
 } device_calibration_t;

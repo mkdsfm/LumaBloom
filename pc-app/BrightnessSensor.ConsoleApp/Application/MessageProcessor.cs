@@ -8,6 +8,16 @@ internal sealed class MessageProcessor(RuntimeStateStore stateStore)
 {
     private readonly RuntimeStateStore _stateStore = stateStore;
 
+    private static int GetMeasurementValue(SensorMessage sensorMessage, MeasurementKind measurementKind)
+    {
+        if (measurementKind == MeasurementKind.Normalized1000)
+        {
+            return sensorMessage.Value;
+        }
+
+        return sensorMessage.Raw ?? sensorMessage.Value;
+    }
+
     public void ProcessMessage(
         SensorMessage sensorMessage,
         IReadOnlyList<MonitorSession> monitorSessions,
@@ -43,7 +53,8 @@ internal sealed class MessageProcessor(RuntimeStateStore stateStore)
 
             var task = Task.Run(() =>
             {
-                var evaluationResult = session.Processor.Evaluate(sensorMessage.Value);
+                var measurementValue = GetMeasurementValue(sensorMessage, measurementKind);
+                var evaluationResult = session.Processor.Evaluate(measurementValue);
                 if (!evaluationResult.ShouldApply && !forceApply)
                 {
                     _stateStore.RecordMonitorStatus(
@@ -75,7 +86,7 @@ internal sealed class MessageProcessor(RuntimeStateStore stateStore)
                     ? string.Empty
                     : $" requested={evaluationResult.RequestedBrightness}%";
                 _stateStore.AddEvent(
-                    $"[{sourceLabel}] {session.Monitor.Source}:{session.Monitor.Name} value={sensorMessage.Value} norm={evaluationResult.Normalized:F3} filt={evaluationResult.Filtered:F3}{requestedLabel} -> brightness={evaluationResult.TargetBrightness}%",
+                    $"[{sourceLabel}] {session.Monitor.Source}:{session.Monitor.Name} value={measurementValue} norm={evaluationResult.Normalized:F3} filt={evaluationResult.Filtered:F3}{requestedLabel} -> brightness={evaluationResult.TargetBrightness}%",
                     RuntimeEventSeverity.Info);
             }, cancellationToken);
 

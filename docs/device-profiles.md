@@ -12,7 +12,7 @@
 
 ## Built-In Profiles
 
-- `esp32c6-analog-ky018` for `deviceId=esp32c6-01`, `sensorId=light0`, measurement kind `Normalized1000`
+- `esp32c6-analog-ky018` for `deviceId=esp32c6-01`, `sensorId=light0`, measurement kind `Adc`
 - `generic-adc-safe` as a fallback profile
 
 ## User Config
@@ -43,9 +43,9 @@ Optional overrides:
 
 For `esp32c6-analog-ky018` specifically:
 
-- `processing.adcMin` and `processing.adcMax` describe the already-normalized `0..1000` input range, not the raw ADC range;
-- `processing.invert` should usually stay `false` because inversion and calibration now happen on the device;
-- startup calibration is mandatory for normal operation, because the device stays in `UNCAL` until `pc-app` sends the calibration command.
+- `processing.adcMin=200` and `processing.adcMax=3200` describe the practical raw KY-018 range used by both the LCD and the Windows app;
+- `processing.invert` should stay `true`, because lower raw values mean brighter ambient light on this wiring;
+- startup calibration is disabled for this profile, because the Windows app now maps brightness directly from the sensor raw field and the configured response curve.
 
 ## Adding a New Profile
 

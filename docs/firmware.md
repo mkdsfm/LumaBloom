@@ -30,6 +30,15 @@ firmware/firmware_esp32c6/main/app_config.h
 
 If the KY-018 sensor is connected to a different ADC pin, update `APP_KY018_ADC_CHANNEL` and the related `APP_KY018_ADC_GPIO`.
 
+Current KY-018 defaults are tuned for the common working range observed on this board:
+
+- `APP_KY018_ADC_MIN 200`
+- `APP_KY018_ADC_MAX 3200`
+- `APP_KY018_INVERT 1`
+- `APP_KY018_GAMMA 2.0f`
+
+The on-device LCD percentage is derived directly from this raw range, so a reading near `200` is treated as bright and a reading near `3200` is treated as dark.
+
 Do not use `GPIO0` for the KY-018 signal; it can interfere with normal board startup.
 
 ## Expected Serial Output

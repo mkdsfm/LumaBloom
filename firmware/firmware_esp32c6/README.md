@@ -24,7 +24,9 @@ Calibration command from `pc-app`:
 
 Calibration response from the firmware:
 
-`{"type":"calibrationResult","success":true,"calibrated":true,"normalizedOffset":0.153846,"message":"calibration applied"}`
+`{"type":"calibrationResult","success":true,"calibrated":true,"normalizedOffset":0.000000,"message":"calibration applied"}`
+
+The current calibration flow keeps the dark endpoint anchored near `0%` and scales the live reading to the startup brightness reference, instead of shifting the whole range upward with a constant offset.
 
 ## LCD UI
 
@@ -43,7 +45,7 @@ Current screen layout:
 Runtime behavior:
 
 - before calibration, the main value is shown as `--%`;
-- after calibration, the screen uses the normalized `0..1000` reading converted to `0..100`;
+- after startup, the screen shows a direct ambient-light percentage derived from the raw `KY-018` range instead of the PC calibration output;
 - the raw ADC line keeps updating independently of calibration state.
 
 ## Quick Flashing with a Prebuilt Binary
@@ -187,6 +189,16 @@ You can change:
 - refresh intervals
 - `APP_KY018_ADC_CHANNEL`
 - `APP_KY018_ADC_GPIO`
+- `APP_KY018_ADC_MIN`
+- `APP_KY018_ADC_MAX`
+- `APP_KY018_GAMMA`
 - LCD pins and dimensions
+
+Current defaults for the built-in KY-018 path are tuned to a practical raw range on the ESP32-C6 board:
+
+- `APP_KY018_ADC_MIN=200`
+- `APP_KY018_ADC_MAX=3200`
+- `APP_KY018_INVERT=1`
+- `APP_KY018_GAMMA=2.0f`
 
 If you change `APP_DEVICE_ID`, do not forget to update `serial.deviceId` in `pc-app/appsettings.json`.

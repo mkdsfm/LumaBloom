@@ -37,13 +37,13 @@ Fields:
 
 ## Calibration Response From ESP32-C6
 
-`{"type":"calibrationResult","success":true,"calibrated":true,"normalizedOffset":0.153846,"message":"calibration applied"}`
+`{"type":"calibrationResult","success":true,"calibrated":true,"normalizedOffset":0.000000,"message":"calibration applied"}`
 
 Fields:
 
 - `success` indicates whether the command was accepted
 - `calibrated` indicates whether the device is now calibrated
-- `normalizedOffset` is the runtime offset applied before the `0..1000` output mapping
+- `normalizedOffset` is a compatibility diagnostics field from the firmware calibration state; with the current zero-anchored ESP32-C6 calibration flow it is usually `0`
 - `message` is a short status string for logs or diagnostics
 
 ## Message Separator

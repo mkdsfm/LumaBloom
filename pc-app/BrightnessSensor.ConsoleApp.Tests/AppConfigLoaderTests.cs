@@ -220,7 +220,7 @@ public sealed class AppConfigLoaderTests
     }
 
     [Fact]
-    public void Resolve_Esp32C6Profile_UsesNormalized1000Measurement()
+    public void Resolve_Esp32C6Profile_UsesRawAdcMeasurement()
     {
         var config = LoadConfig("""
                                 {
@@ -243,9 +243,11 @@ public sealed class AppConfigLoaderTests
         var profile = resolver.Resolve(config, message, out _);
         var resolved = ResolvedSettingsFactory.Create(config, profile);
 
-        Assert.Equal(MeasurementKind.Normalized1000, resolved.MeasurementKind);
-        Assert.False(resolved.Processing.Invert);
-        Assert.Equal(1000, resolved.Processing.AdcMax);
+        Assert.Equal(MeasurementKind.Adc, resolved.MeasurementKind);
+        Assert.True(resolved.Processing.Invert);
+        Assert.Equal(200, resolved.Processing.AdcMin);
+        Assert.Equal(3200, resolved.Processing.AdcMax);
+        Assert.False(resolved.Calibration.Enabled);
     }
 
     [Fact]

@@ -14,6 +14,17 @@ static float clampf(float value, float min_value, float max_value)
     return value;
 }
 
+static float apply_gamma(const device_calibration_t *calibration, float normalized_value)
+{
+    float clamped = clampf(normalized_value, 0.0f, 1.0f);
+
+    if (calibration == NULL || calibration->gamma <= 0.0f || fabsf(calibration->gamma - 1.0f) <= 0.0001f) {
+        return clamped;
+    }
+
+    return clampf(powf(clamped, calibration->gamma), 0.0f, 1.0f);
+}
+
 static float normalize_raw(const device_calibration_t *calibration, int raw_adc_value)
 {
     int clamped = raw_adc_value;
@@ -43,6 +54,7 @@ void device_calibration_init(device_calibration_t *calibration, int adc_min, int
     calibration->adc_max = adc_max;
     calibration->invert = invert;
     calibration->gamma = gamma;
+    calibration->normalized_scale = 1.0f;
     calibration->normalized_offset = 0.0f;
     calibration->calibrated = false;
 }
@@ -84,7 +96,15 @@ bool device_calibration_try_calibrate(
     }
 
     float normalized = normalize_raw(calibration, raw_adc_value);
-    calibration->normalized_offset = expected_pre_gamma - normalized;
+    if (normalized <= 0.0001f && expected_pre_gamma > 0.0001f) {
+        if (error_text != NULL && error_text_size > 0) {
+            snprintf(error_text, (size_t)error_text_size, "sensor reading is too close to the dark endpoint for calibration");
+        }
+        return false;
+    }
+
+    calibration->normalized_scale = normalized > 0.0001f ? (expected_pre_gamma / normalized) : 0.0f;
+    calibration->normalized_offset = 0.0f;
     calibration->calibrated = true;
 
     if (error_text != NULL && error_text_size > 0) {
@@ -100,7 +120,8 @@ bool device_calibration_apply(const device_calibration_t *calibration, int raw_a
     }
 
     float normalized = normalize_raw(calibration, raw_adc_value);
-    normalized = clampf(normalized + calibration->normalized_offset, 0.0f, 1.0f);
+    normalized = clampf((normalized * calibration->normalized_scale) + calibration->normalized_offset, 0.0f, 1.0f);
+    normalized = apply_gamma(calibration, normalized);
     *normalized_value_1000 = (int)lroundf(normalized * 1000.0f);
     return true;
 }

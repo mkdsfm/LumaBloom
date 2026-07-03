@@ -31,6 +31,25 @@ static int normalized_to_percent(int normalized_value_1000)
     return (normalized_value_1000 + 5) / 10;
 }
 
+static int raw_to_ambient_percent(int raw_adc)
+{
+    int clamped = raw_adc;
+    if (clamped < APP_KY018_ADC_MIN) {
+        clamped = APP_KY018_ADC_MIN;
+    }
+    if (clamped > APP_KY018_ADC_MAX) {
+        clamped = APP_KY018_ADC_MAX;
+    }
+
+    int range = APP_KY018_ADC_MAX - APP_KY018_ADC_MIN;
+    if (range <= 0) {
+        return 0;
+    }
+
+    int normalized_value_1000 = ((APP_KY018_ADC_MAX - clamped) * 1000) / range;
+    return normalized_to_percent(normalized_value_1000);
+}
+
 typedef struct {
     device_reading_t latest_reading;
     char status_text[16];
@@ -266,9 +285,9 @@ static void display_task(void *arg)
 
         app_state_read(&reading, NULL, 0);
         ui_update_reading(
-            normalized_to_percent(reading.normalized_value_1000),
+            raw_to_ambient_percent(reading.raw_adc),
             reading.raw_adc,
-            reading.calibrated);
+            true);
         ui_screen_render();
 
         vTaskDelay(pdMS_TO_TICKS(APP_DISPLAY_INTERVAL_MS));
@@ -308,9 +327,9 @@ void app_main(void)
         ESP_LOGE(TAG, "ui_screen_init failed: %s", esp_err_to_name(display_err));
     } else {
         ui_update_reading(
-            normalized_to_percent(s_app_state.latest_reading.normalized_value_1000),
+            raw_to_ambient_percent(s_app_state.latest_reading.raw_adc),
             s_app_state.latest_reading.raw_adc,
-            s_app_state.latest_reading.calibrated);
+            true);
         ui_screen_render();
     }
 

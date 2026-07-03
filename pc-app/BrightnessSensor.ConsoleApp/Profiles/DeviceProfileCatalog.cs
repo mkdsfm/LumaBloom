@@ -58,17 +58,17 @@ internal static class DeviceProfileCatalog
             ProfileId: "esp32c6-analog-ky018",
             DeviceId: "esp32c6-01",
             SensorId: "light0",
-            MeasurementKind: MeasurementKind.Normalized1000,
+            MeasurementKind: MeasurementKind.Adc,
             Processing: new ProcessingSettings(
-                AdcMin: 0,
-                AdcMax: 1000,
-                Invert: false,
+                AdcMin: 200,
+                AdcMax: 3200,
+                Invert: true,
                 EmaAlpha: 0.2,
                 HysteresisPercent: 1,
                 MaxBrightnessStepPercent: 2,
                 Gamma: 1.0),
             Calibration: new CalibrationSettings(
-                Enabled: true,
+                Enabled: false,
                 SampleCount: 5,
                 MaxReadAttempts: 20),
             Brightness: new BrightnessSettings(
