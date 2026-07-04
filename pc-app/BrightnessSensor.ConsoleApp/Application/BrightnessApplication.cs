@@ -459,6 +459,83 @@ internal static class BrightnessApplication
             }
         }
 
+        while (stateStore.TryConsumeAnchorCurrentLightCurveRequest(out var anchorRequest))
+        {
+            try
+            {
+                var snapshot = stateStore.GetSnapshot();
+                if (!BrightnessCurveAnchorHelper.TryGetAmbientPercent(snapshot.LatestSensor, effectiveSettings, out var ambientPercent))
+                {
+                    stateStore.AddEvent(
+                        "Cannot anchor the brightness curve yet: live sensor data is not available.",
+                        RuntimeEventSeverity.Warning);
+                    continue;
+                }
+
+                var rebuiltCurve = BrightnessCurveAnchorHelper.RebuildAnchoredCurve(
+                    effectiveSettings.Brightness.Curve,
+                    ambientPercent,
+                    anchorRequest.DesiredBrightnessPercent);
+                AppConfigWriter.UpdateBrightnessCurve(configPath, rebuiltCurve);
+                var updatedConfig = AppConfigLoader.Load(configPath);
+                var updatedSettings = ResolvedSettingsFactory.Create(updatedConfig, resolvedProfile);
+
+                foreach (var session in monitorSessions)
+                {
+                    session.ReplaceProcessor(new BrightnessProcessor(CreateBrightnessSettings(updatedSettings)));
+                }
+
+                config = updatedConfig;
+                effectiveSettings = updatedSettings;
+                stateStore.SetEffectiveSettings(updatedSettings, $"Effective settings: {Describe(updatedSettings)}");
+                stateStore.ForceNextAutoBrightnessApply();
+
+                if (stateStore.IsPaused)
+                {
+                    stateStore.AddEvent(
+                        $"Anchored curve at current light {ambientPercent}% -> {anchorRequest.DesiredBrightnessPercent}%. Saved the curve and queued the next auto apply for after pause.",
+                        RuntimeEventSeverity.Success);
+                    continue;
+                }
+
+                foreach (var session in monitorSessions)
+                {
+                    if (!session.IsEnabled)
+                    {
+                        continue;
+                    }
+
+                    if (!session.Monitor.TrySetBrightness(anchorRequest.DesiredBrightnessPercent, out var error))
+                    {
+                        session.Disable();
+                        stateStore.RecordMonitorDisabled(session.Monitor.Source, session.Monitor.Name, error ?? "Unknown error");
+                        stateStore.AddEvent(
+                            $"Immediate anchored-brightness update failed ({session.Monitor.Source}:{session.Monitor.Name}): {error}",
+                            RuntimeEventSeverity.Error);
+                        continue;
+                    }
+
+                    stateStore.RecordBrightnessApplied(
+                        session.Monitor.Source,
+                        session.Monitor.Name,
+                        anchorRequest.DesiredBrightnessPercent,
+                        anchorRequest.DesiredBrightnessPercent,
+                        ambientPercent / 100.0,
+                        ambientPercent / 100.0);
+                }
+
+                stateStore.AddEvent(
+                    $"Anchored curve at current light {ambientPercent}% -> {anchorRequest.DesiredBrightnessPercent}%. Saved and applied immediately.",
+                    RuntimeEventSeverity.Success);
+            }
+            catch (Exception exception)
+            {
+                stateStore.AddEvent(
+                    $"Failed to anchor the brightness curve from current light: {exception.Message}",
+                    RuntimeEventSeverity.Error);
+            }
+        }
+
         while (stateStore.TryConsumeTestBrightnessRequest(out var testRequest))
         {
             foreach (var session in monitorSessions)

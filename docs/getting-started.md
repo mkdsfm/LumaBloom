@@ -50,7 +50,7 @@ dotnet restore
 dotnet run
 ```
 
-On startup, the app discovers the serial device, reads raw samples, gets the current monitor brightness, and sends the calibration command to the ESP32-C6.
+On startup, the app discovers the serial device and starts applying brightness from the active device profile and response curve. Some profiles may also run a calibration flow, but `esp32c6-analog-ky018` now uses the live raw sensor range directly and does not require startup calibration.
 
 ## Expected Result
 
@@ -62,5 +62,8 @@ On startup, the app discovers the serial device, reads raw samples, gets the cur
 ## Next Steps
 
 - Tune brightness behavior in the app settings UI.
+- In `Settings -> Response`, you can either edit the main `0/25/50/75/100` curve points directly or use the `Current light` action to say "for the light level right now, I want brightness X%".
+- The `Current light` action reads the live sensor value, converts it with the active `adcMin`, `adcMax`, and `invert` settings, rebuilds the whole response curve around that anchor, and saves it immediately.
+- The saved curve may contain an extra anchor point such as `16 -> 60` in addition to the usual five visible control points. This is expected and makes the chosen current-light target exact instead of approximate.
 - Review [`docs/protocol.md`](protocol.md) when changing telemetry or calibration.
 - Review [`docs/device-profiles.md`](device-profiles.md) when changing runtime defaults.

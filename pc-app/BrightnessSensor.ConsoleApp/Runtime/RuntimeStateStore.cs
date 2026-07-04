@@ -68,6 +68,7 @@ internal sealed class RuntimeStateStore
     private readonly Queue<AutostartUpdateRequest> _autostartUpdateRequests = [];
     private readonly Queue<ProcessingUpdateRequest> _processingUpdateRequests = [];
     private readonly Queue<BrightnessCurveUpdateRequest> _brightnessCurveUpdateRequests = [];
+    private readonly Queue<AnchorCurrentLightCurveRequest> _anchorCurrentLightCurveRequests = [];
     private readonly Queue<TestBrightnessRequest> _testBrightnessRequests = [];
     private SensorRuntimeSnapshot? _latestSensor;
     private long _version;
@@ -259,6 +260,16 @@ internal sealed class RuntimeStateStore
         }
     }
 
+    public void RequestAnchorCurrentLightCurve(int desiredBrightnessPercent)
+    {
+        lock (_gate)
+        {
+            _anchorCurrentLightCurveRequests.Enqueue(new AnchorCurrentLightCurveRequest(
+                Math.Clamp(desiredBrightnessPercent, 0, 100)));
+            IncrementVersion();
+        }
+    }
+
     public bool TryConsumeBrightnessCurveUpdateRequest(out BrightnessCurveUpdateRequest request)
     {
         lock (_gate)
@@ -270,6 +281,21 @@ internal sealed class RuntimeStateStore
             }
 
             request = _brightnessCurveUpdateRequests.Dequeue();
+            return true;
+        }
+    }
+
+    public bool TryConsumeAnchorCurrentLightCurveRequest(out AnchorCurrentLightCurveRequest request)
+    {
+        lock (_gate)
+        {
+            if (_anchorCurrentLightCurveRequests.Count == 0)
+            {
+                request = new AnchorCurrentLightCurveRequest(0);
+                return false;
+            }
+
+            request = _anchorCurrentLightCurveRequests.Dequeue();
             return true;
         }
     }
@@ -644,6 +670,15 @@ internal sealed class RuntimeStateStore
 
             _forceNextAutoBrightnessApply = false;
             return true;
+        }
+    }
+
+    public void ForceNextAutoBrightnessApply()
+    {
+        lock (_gate)
+        {
+            _forceNextAutoBrightnessApply = true;
+            IncrementVersion();
         }
     }
 

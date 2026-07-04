@@ -50,6 +50,7 @@ internal sealed class TerminalGuiDashboard
     private readonly Button _calibrationConfirmButton;
     private readonly Button _calibrationCancelButton;
     private readonly Button[] _curvePointButtons;
+    private readonly Button _curveAnchorButton;
     private readonly Button _settingsCalibrationButton;
     private readonly Button _settingsGeneralButton;
     private readonly Button _settingsResponseButton;
@@ -75,6 +76,7 @@ internal sealed class TerminalGuiDashboard
     private readonly Button _modalCancelButton;
     private ProcessingParameter? _activeProcessingModal;
     private int? _activeCurveLightPercent;
+    private bool _activeCurveAnchorModal;
     private bool _activeCalibrationTargetModal;
     private bool _isUpdatingInvertRadio;
 
@@ -134,6 +136,7 @@ internal sealed class TerminalGuiDashboard
             CreateButton("75%", () => ShowCurvePointModal(75)),
             CreateButton("100%", () => ShowCurvePointModal(100))
         ];
+        _curveAnchorButton = CreateButton("Current light", ShowCurveAnchorModal);
         _settingsCalibrationButton = CreateButton("Calibration", () => _stateStore.SetActiveSettingsSection(SettingsSection.Calibration));
         _settingsGeneralButton = CreateButton("General", () => _stateStore.SetActiveSettingsSection(SettingsSection.General));
         _settingsResponseButton = CreateButton("Реагирование", () => _stateStore.SetActiveSettingsSection(SettingsSection.Response));
@@ -280,6 +283,7 @@ internal sealed class TerminalGuiDashboard
             _curvePointButtons[2],
             _curvePointButtons[3],
             _curvePointButtons[4],
+            _curveAnchorButton,
             _settingsCalibrationButton,
             _settingsGeneralButton,
             _settingsResponseButton,
@@ -318,7 +322,7 @@ internal sealed class TerminalGuiDashboard
         _curveTable.X = 1;
         _curveTable.Y = 10;
         _curveTable.Width = 66;
-        _curveTable.Height = 6;
+        _curveTable.Height = 8;
         _curveTable.SchemeName = CardSchemeName;
         _curveLightRow.X = 1;
         _curveLightRow.Y = 1;
@@ -350,6 +354,10 @@ internal sealed class TerminalGuiDashboard
         {
             _curveTable.Add(button);
         }
+        _curveAnchorButton.X = 20;
+        _curveAnchorButton.Y = 4;
+        _curveAnchorButton.Width = 26;
+        _curveTable.Add(_curveAnchorButton);
 
         _settingsContentView.X = 1;
         _settingsContentView.Y = 1;
@@ -570,6 +578,7 @@ internal sealed class TerminalGuiDashboard
         _calibrationManualButton.Text = localizer["action.manualTarget"];
         _calibrationConfirmButton.Text = localizer["action.confirm"];
         _calibrationCancelButton.Text = localizer["action.cancel"];
+        _curveAnchorButton.Text = localizer["action.anchorCurrentLight"];
         _modalConfirmButton.Text = localizer["action.confirm"];
         _modalTestButton.Text = localizer["action.test"];
         _modalCancelButton.Text = localizer["action.cancel"];
@@ -803,6 +812,7 @@ internal sealed class TerminalGuiDashboard
         var snapshot = _stateStore.GetSnapshot();
         var localizer = new Localizer(snapshot.Language);
         _activeCalibrationTargetModal = false;
+        _activeCurveAnchorModal = false;
         _activeProcessingModal = null;
         _activeCurveLightPercent = lightPercent;
         _modalFrame.Title = $"{localizer["settings.curve.point"]} {lightPercent}%";
@@ -812,6 +822,26 @@ internal sealed class TerminalGuiDashboard
         _modalError.Text = string.Empty;
         _modalTestButton.Visible = true;
         _modalFrame.Visible = true;
+        _modalInput.SetFocus();
+    }
+
+    private void ShowCurveAnchorModal()
+    {
+        var snapshot = _stateStore.GetSnapshot();
+        var localizer = new Localizer(snapshot.Language);
+        _activeCalibrationTargetModal = false;
+        _activeCurveAnchorModal = true;
+        _activeProcessingModal = null;
+        _activeCurveLightPercent = null;
+        _modalFrame.Title = localizer["settings.curve.anchor"];
+        _modalDescription.Text = localizer["settings.curve.anchor.modal"];
+        _modalInput.Text = string.Empty;
+        SetModalInputMode(true);
+        _modalTestButton.Visible = false;
+        _modalFrame.Visible = true;
+        _modalError.Text = TryGetAmbientPercent(snapshot, out var ambientPercent)
+            ? string.Format(CultureInfo.InvariantCulture, localizer["settings.curve.anchor.current"], ambientPercent)
+            : localizer["settings.curve.anchor.unavailable"];
         _modalInput.SetFocus();
     }
 
@@ -848,6 +878,26 @@ internal sealed class TerminalGuiDashboard
 
         if (!_activeProcessingModal.HasValue)
         {
+            if (_activeCurveAnchorModal)
+            {
+                if (!TryParseInt(value, out var brightness) || brightness is < 0 or > 100)
+                {
+                    _modalError.Text = new Localizer(_stateStore.GetSnapshot().Language)["calibration.invalid"];
+                    return;
+                }
+
+                if (!TryGetAmbientPercent(_stateStore.GetSnapshot(), out _))
+                {
+                    _modalError.Text = new Localizer(_stateStore.GetSnapshot().Language)["settings.curve.anchor.unavailable"];
+                    return;
+                }
+
+                _stateStore.RequestAnchorCurrentLightCurve(brightness);
+                CloseModal();
+                Refresh();
+                return;
+            }
+
             if (_activeCurveLightPercent.HasValue)
             {
                 if (!TryParseInt(value, out var brightness) || brightness is < 0 or > 100)
@@ -892,6 +942,7 @@ internal sealed class TerminalGuiDashboard
         _modalFrame.Visible = false;
         _modalError.Text = string.Empty;
         _activeCalibrationTargetModal = false;
+        _activeCurveAnchorModal = false;
         _activeProcessingModal = null;
         _activeCurveLightPercent = null;
         SetModalInputMode(true);
@@ -938,6 +989,46 @@ internal sealed class TerminalGuiDashboard
         var cells = new[] { 0, 25, 50, 75, 100 }
             .Select(light => Center($"{light}%", 9));
         return $"{localizer["settings.curve.ambient"],-18} {string.Concat(cells)}";
+    }
+
+    private static bool TryGetAmbientPercent(DashboardSnapshot snapshot, out int ambientPercent)
+    {
+        ambientPercent = 0;
+        if (snapshot.LatestSensor is null ||
+            snapshot.ProcessingAdcMin is null ||
+            snapshot.ProcessingAdcMax is null ||
+            snapshot.ProcessingInvert is null ||
+            snapshot.MeasurementKind is null)
+        {
+            return false;
+        }
+
+        if (string.Equals(snapshot.MeasurementKind, "Normalized1000", StringComparison.OrdinalIgnoreCase))
+        {
+            ambientPercent = (int)Math.Round(
+                Math.Clamp(snapshot.LatestSensor.Value, 0, 1000) / 10.0,
+                MidpointRounding.AwayFromZero);
+            return true;
+        }
+
+        var rawValue = snapshot.LatestSensor.Raw ?? snapshot.LatestSensor.Value;
+        var range = snapshot.ProcessingAdcMax.Value - snapshot.ProcessingAdcMin.Value;
+        if (range <= 0)
+        {
+            return false;
+        }
+
+        var clamped = Math.Clamp(rawValue, snapshot.ProcessingAdcMin.Value, snapshot.ProcessingAdcMax.Value);
+        var normalized = (clamped - snapshot.ProcessingAdcMin.Value) / (double)range;
+        if (snapshot.ProcessingInvert.Value)
+        {
+            normalized = 1.0 - normalized;
+        }
+
+        ambientPercent = (int)Math.Round(
+            Math.Clamp(normalized, 0.0, 1.0) * 100.0,
+            MidpointRounding.AwayFromZero);
+        return true;
     }
 
     private static string Center(string value, int width)
@@ -1268,16 +1359,9 @@ internal sealed class TerminalGuiDashboard
 
     private static int? GetNormalizedSensorPercent(DashboardSnapshot snapshot)
     {
-        if (snapshot.LatestSensor is null)
-        {
-            return null;
-        }
-
-        var max = string.Equals(snapshot.MeasurementKind, "Normalized1000", StringComparison.OrdinalIgnoreCase)
-            ? 1000
-            : 4095;
-        var clamped = Math.Clamp(snapshot.LatestSensor.Value, 0, max);
-        return (int)Math.Round(clamped * 100.0 / max, MidpointRounding.AwayFromZero);
+        return TryGetAmbientPercent(snapshot, out var ambientPercent)
+            ? ambientPercent
+            : null;
     }
 
     private static string GetSunState(int? normalizedPercent)

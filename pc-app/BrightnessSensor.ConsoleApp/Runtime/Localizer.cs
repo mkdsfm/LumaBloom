@@ -22,8 +22,8 @@ internal sealed class Localizer(UiLanguage language)
     {
         return language switch
         {
-            UiLanguage.Russian => Russian.ContainsKey(key),
-            UiLanguage.Spanish => Spanish.ContainsKey(key),
+            UiLanguage.Russian => Russian.ContainsKey(key) || English.ContainsKey(key),
+            UiLanguage.Spanish => Spanish.ContainsKey(key) || English.ContainsKey(key),
             _ => English.ContainsKey(key)
         };
     }
@@ -52,6 +52,10 @@ internal sealed class Localizer(UiLanguage language)
         ["settings.curve.display"] = "Display brightness",
         ["settings.curve.point"] = "Curve point",
         ["settings.curve.modal"] = "Enter desired display brightness for this light level, 0..100.",
+        ["settings.curve.anchor"] = "Current light anchor",
+        ["settings.curve.anchor.modal"] = "Use the current ambient light as the anchor and enter the desired display brightness, 0..100.",
+        ["settings.curve.anchor.current"] = "Current ambient light: {0}%",
+        ["settings.curve.anchor.unavailable"] = "Live sensor data is not available yet.",
         ["action.pause"] = "Pause",
         ["action.resume"] = "Resume",
         ["action.recalibrate"] = "Recalibrate",
@@ -60,6 +64,7 @@ internal sealed class Localizer(UiLanguage language)
         ["action.quit"] = "Quit",
         ["action.useCurrent"] = "Use current brightness",
         ["action.manualTarget"] = "Set target manually",
+        ["action.anchorCurrentLight"] = "Use current light",
         ["action.confirm"] = "Confirm",
         ["action.test"] = "Test",
         ["action.cancel"] = "Cancel",
@@ -224,6 +229,11 @@ internal sealed class Localizer(UiLanguage language)
         ["processing.hysteresis.help"] = "Минимальное изменение яркости перед применением. Диапазон: 0..100.",
         ["processing.step.help"] = "Максимальный шаг яркости за обновление. Диапазон: 1..100.",
         ["processing.gamma.help"] = "Сила кривой. Должна быть больше 0."
+        ,["settings.curve.anchor"] = "\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u0441\u0432\u0435\u0442",
+        ["settings.curve.anchor.modal"] = "\u0418\u0441\u043f\u043e\u043b\u044c\u0437\u0443\u0439\u0442\u0435 \u0442\u0435\u043a\u0443\u0449\u0435\u0435 \u043e\u0441\u0432\u0435\u0449\u0435\u043d\u0438\u0435 \u043a\u0430\u043a \u044f\u043a\u043e\u0440\u044c \u0438 \u0432\u0432\u0435\u0434\u0438\u0442\u0435 \u0436\u0435\u043b\u0430\u0435\u043c\u0443\u044e \u044f\u0440\u043a\u043e\u0441\u0442\u044c \u044d\u043a\u0440\u0430\u043d\u0430, 0..100.",
+        ["settings.curve.anchor.current"] = "\u0422\u0435\u043a\u0443\u0449\u0430\u044f \u043e\u0441\u0432\u0435\u0449\u0435\u043d\u043d\u043e\u0441\u0442\u044c: {0}%",
+        ["settings.curve.anchor.unavailable"] = "\u0416\u0438\u0432\u044b\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u0434\u0430\u0442\u0447\u0438\u043a\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b.",
+        ["action.anchorCurrentLight"] = "\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u0441\u0432\u0435\u0442"
     };
 
     private static readonly Dictionary<string, string> Spanish = new(StringComparer.Ordinal)
@@ -322,6 +332,11 @@ internal sealed class Localizer(UiLanguage language)
         ["processing.emaAlpha.help"] = "Factor de suavizado. Rango: (0, 1]. Más alto reacciona más rápido.",
         ["processing.hysteresis.help"] = "Cambio mínimo de brillo antes de aplicar. Rango: 0..100.",
         ["processing.step.help"] = "Paso máximo de brillo por actualización. Rango: 1..100.",
-        ["processing.gamma.help"] = "Fuerza de la curva. Debe ser mayor que 0."
+        ["processing.gamma.help"] = "Fuerza de la curva. Debe ser mayor que 0.",
+        ["settings.curve.anchor"] = "Luz actual",
+        ["settings.curve.anchor.modal"] = "Usa la luz ambiente actual como ancla e introduce el brillo deseado de la pantalla, 0..100.",
+        ["settings.curve.anchor.current"] = "Luz ambiente actual: {0}%",
+        ["settings.curve.anchor.unavailable"] = "Todavia no hay datos en vivo del sensor.",
+        ["action.anchorCurrentLight"] = "Usar luz actual"
     };
 }

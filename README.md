@@ -16,7 +16,7 @@ LumaBloom reads room light from a KY-018 sensor, calibrates the reading on an ES
 - Runtime calibration from the Windows app, with normalized `0..1000` telemetry.
 - Live Windows terminal dashboard for status, calibration, manual brightness, settings, events, and diagnostics.
 - Printable enclosure with `.3mf` plates, STEP sources, STL exports, photos, and demo media.
-- User-tunable brightness curve, smoothing, hysteresis, gamma, language, and autostart settings.
+- User-tunable brightness curve, including anchoring the curve to the current room light, plus smoothing, hysteresis, gamma, language, and autostart settings.
 
 ## Project Map
 

@@ -73,6 +73,25 @@ internal static class AppConfigWriter
         SaveRoot(path, root);
     }
 
+    public static void UpdateBrightnessCurve(string path, IReadOnlyList<BrightnessCurvePoint> curvePoints)
+    {
+        var root = LoadRoot(path);
+        var brightness = GetOrCreateObject(root, "brightness");
+        var sorted = new JsonArray();
+
+        foreach (var point in curvePoints.OrderBy(point => point.LightPercent))
+        {
+            sorted.Add(new JsonObject
+            {
+                ["lightPercent"] = point.LightPercent,
+                ["brightnessPercent"] = point.BrightnessPercent
+            });
+        }
+
+        brightness["curve"] = sorted;
+        SaveRoot(path, root);
+    }
+
     private static JsonArray NormalizeBrightnessCurve(JsonArray? curve, JsonObject brightness)
     {
         var existingPoints = curve?

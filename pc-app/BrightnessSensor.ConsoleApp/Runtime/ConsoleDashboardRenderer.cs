@@ -399,16 +399,39 @@ internal sealed class ConsoleDashboardRenderer
 
     private static int? GetNormalizedSensorPercent(DashboardSnapshot snapshot)
     {
-        if (snapshot.LatestSensor is null)
+        if (snapshot.LatestSensor is null ||
+            snapshot.ProcessingAdcMin is null ||
+            snapshot.ProcessingAdcMax is null ||
+            snapshot.ProcessingInvert is null ||
+            snapshot.MeasurementKind is null)
         {
             return null;
         }
 
-        var max = string.Equals(snapshot.MeasurementKind, "Normalized1000", StringComparison.OrdinalIgnoreCase)
-            ? 1000
-            : 4095;
-        var clamped = Math.Clamp(snapshot.LatestSensor.Value, 0, max);
-        return (int)Math.Round(clamped * 100.0 / max, MidpointRounding.AwayFromZero);
+        if (string.Equals(snapshot.MeasurementKind, "Normalized1000", StringComparison.OrdinalIgnoreCase))
+        {
+            return (int)Math.Round(
+                Math.Clamp(snapshot.LatestSensor.Value, 0, 1000) / 10.0,
+                MidpointRounding.AwayFromZero);
+        }
+
+        var rawValue = snapshot.LatestSensor.Raw ?? snapshot.LatestSensor.Value;
+        var range = snapshot.ProcessingAdcMax.Value - snapshot.ProcessingAdcMin.Value;
+        if (range <= 0)
+        {
+            return null;
+        }
+
+        var clamped = Math.Clamp(rawValue, snapshot.ProcessingAdcMin.Value, snapshot.ProcessingAdcMax.Value);
+        var normalized = (clamped - snapshot.ProcessingAdcMin.Value) / (double)range;
+        if (snapshot.ProcessingInvert.Value)
+        {
+            normalized = 1.0 - normalized;
+        }
+
+        return (int)Math.Round(
+            Math.Clamp(normalized, 0.0, 1.0) * 100.0,
+            MidpointRounding.AwayFromZero);
     }
 
     private static string CreateApproxUptime(DashboardSnapshot snapshot)

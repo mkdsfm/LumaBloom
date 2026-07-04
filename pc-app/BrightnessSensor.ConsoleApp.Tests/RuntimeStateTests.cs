@@ -116,6 +116,18 @@ public sealed class RuntimeStateTests
     }
 
     [Fact]
+    public void AnchorCurrentLightCurveRequest_IsQueuedForPersistenceAndRuntimeApply()
+    {
+        var state = new RuntimeStateStore();
+
+        state.RequestAnchorCurrentLightCurve(42);
+
+        Assert.True(state.TryConsumeAnchorCurrentLightCurveRequest(out var request));
+        Assert.Equal(42, request.DesiredBrightnessPercent);
+        Assert.False(state.TryConsumeAnchorCurrentLightCurveRequest(out _));
+    }
+
+    [Fact]
     public void AutostartUpdate_IsQueuedAndSnapshotCanBeUpdated()
     {
         var state = new RuntimeStateStore();

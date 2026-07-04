@@ -47,6 +47,18 @@ For `esp32c6-analog-ky018` specifically:
 - `processing.invert` should stay `true`, because lower raw values mean brighter ambient light on this wiring;
 - startup calibration is disabled for this profile, because the Windows app now maps brightness directly from the sensor raw field and the configured response curve.
 
+## Brightness Curve Editing
+
+The response curve is stored in `brightness.curve` as a sorted list of `{ lightPercent, brightnessPercent }` points.
+
+Important behavior:
+
+- The settings screen still presents the familiar five visible curve positions at `0/25/50/75/100`.
+- The `Current light` action in the UI is additive: it uses the latest live ambient reading as an anchor and rebuilds the stored curve around that point.
+- For `esp32c6-analog-ky018`, the current ambient percent for this action is derived from the live `raw` sensor field together with the active `processing.adcMin`, `processing.adcMax`, and `processing.invert` values.
+- When needed, the saved curve may contain extra points beyond the base five, for example `{ "lightPercent": 16, "brightnessPercent": 60 }`.
+- Extra anchor points are valid configuration and are used by interpolation so that the chosen current-light target is preserved exactly.
+
 ## Adding a New Profile
 
 1. Add a new entry to `pc-app/BrightnessSensor.ConsoleApp/Profiles/DeviceProfileCatalog.cs`.
