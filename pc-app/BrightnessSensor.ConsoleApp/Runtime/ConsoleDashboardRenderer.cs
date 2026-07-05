@@ -49,7 +49,7 @@ internal sealed class ConsoleDashboardRenderer
 
         var lines = new List<string>
         {
-            $"[white]LumaBloom v1.2.0[/]                       [grey]|[/]  [{titleColor}]Ambient Light Sensor[/]                 [grey]|[/]  [white]{DateTime.Now:HH:mm:ss}[/]  [grey]|[/]  [{green}]* AUTO[/]",
+            $"[white]LumaBloom v1.3.0[/]                       [grey]|[/]  [{titleColor}]Ambient Light Sensor[/]                 [grey]|[/]  [white]{DateTime.Now:HH:mm:ss}[/]  [grey]|[/]  [{green}]* AUTO[/]",
             $"[grey]{new string('-', 112)}[/]",
             JoinDashboardLine(PadMarkupRight($"[{titleColor}]> Dashboard[/]", 11, leftWidth), $"      [white]Ambient Light[/]        [grey]|[/]        [white]ADC Value[/]        [grey]|[/]        [white]Lux (est.)[/]"),
             JoinDashboardLine(PadMarkupRight("[white]  Settings[/]", 10, leftWidth), $"         [{green}]{ambient,5}[/]            [grey]|[/]          [{yellow}]{adcText,5}[/]          [grey]|[/]          [{blue}]{lux,7}[/]"),
@@ -103,7 +103,7 @@ internal sealed class ConsoleDashboardRenderer
 
         var lines = new[]
         {
-            $"[white]LumaBloom v1.2.0[/]  [deepskyblue1]Ambient Light Sensor[/]  [white]{DateTime.Now:HH:mm:ss}[/]  [green]* AUTO[/]",
+            $"[white]LumaBloom v1.3.0[/]  [deepskyblue1]Ambient Light Sensor[/]  [white]{DateTime.Now:HH:mm:ss}[/]  [green]* AUTO[/]",
             $"[grey]{new string('-', 76)}[/]",
             $"[deepskyblue1]> Dashboard[/]  [white]Settings[/]  [white]Calibration[/]  [white]Display[/]  [white]About[/]  [white]Exit[/]",
             string.Empty,
