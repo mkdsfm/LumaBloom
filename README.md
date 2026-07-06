@@ -4,9 +4,7 @@ Smart ambient-light sensor for Windows displays, wrapped in a printable flower-s
 
 ![LumaBloom product preview](hardware/3d-print/images/main.png)
 
-<video src="hardware/3d-print/videos/demo.mp4" controls width="100%"></video>
-
-[Watch the demo video](hardware/3d-print/videos/demo.mp4)
+[Watch the demo video](https://youtu.be/8JuLW-chpVk?si=8Hq7ECl7L5f6ZxNs)
 
 LumaBloom reads room light from a KY-018 sensor, calibrates the reading on an ESP32-C6, streams JSON telemetry over USB, and lets the Windows companion app adjust monitor brightness automatically.
 
