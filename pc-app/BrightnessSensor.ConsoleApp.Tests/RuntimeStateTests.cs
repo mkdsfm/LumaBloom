@@ -52,8 +52,7 @@ public sealed class RuntimeStateTests
             SensorId = "light0",
             Timestamp = 123,
             Value = 800,
-            Raw = 1900,
-            Calibrated = true
+            Raw = 1900
         };
 
         processor.ProcessMessage(message, [session], MeasurementKind.Normalized1000, CancellationToken.None);
@@ -185,8 +184,7 @@ public sealed class RuntimeStateTests
             SensorId = "light0",
             Timestamp = 123,
             Value = 800,
-            Raw = 1900,
-            Calibrated = true
+            Raw = 1900
         };
 
         processor.ProcessMessage(
@@ -217,8 +215,7 @@ public sealed class RuntimeStateTests
             SensorId = "light0",
             Timestamp = 123,
             Value = 1000,
-            Raw = 1900,
-            Calibrated = true
+            Raw = 1900
         };
 
         processor.ProcessMessage(
@@ -244,8 +241,7 @@ public sealed class RuntimeStateTests
             SensorId = "light0",
             Timestamp = 123,
             Value = 1000,
-            Raw = 1900,
-            Calibrated = true
+            Raw = 1900
         };
 
         processor.ProcessMessage(message, [session], MeasurementKind.Normalized1000, CancellationToken.None);
@@ -574,7 +570,6 @@ public sealed class RuntimeStateTests
                 123,
                 1000,
                 456,
-                Calibrated: true,
                 DateTimeOffset.Now),
             Monitors:
             [
@@ -630,7 +625,6 @@ public sealed class RuntimeStateTests
                 123,
                 670,
                 684,
-                Calibrated: true,
                 DateTimeOffset.Now),
             Monitors: [],
             Events: []);
@@ -678,7 +672,6 @@ public sealed class RuntimeStateTests
                 123,
                 normalizedValue,
                 684,
-                Calibrated: true,
                 DateTimeOffset.Now),
             Monitors: [],
             Events: []);
@@ -721,7 +714,6 @@ public sealed class RuntimeStateTests
                 123,
                 1000,
                 684,
-                Calibrated: true,
                 DateTimeOffset.Now),
             Monitors: [],
             Events: []);

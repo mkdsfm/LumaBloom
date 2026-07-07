@@ -88,7 +88,7 @@ internal static class BrightnessApplication
         stateStore.SetLifecycle(AppLifecycleState.Running, "Running.");
         var messageProcessor = new MessageProcessor(stateStore);
 
-        if (firstMessage is not null && ShouldProcessTelemetry(firstMessage, effectiveSettings.MeasurementKind))
+        if (firstMessage is not null)
         {
             messageProcessor.ProcessMessage(firstMessage, monitorSessions, effectiveSettings.MeasurementKind, cancellationToken);
         }
@@ -171,7 +171,7 @@ internal static class BrightnessApplication
                 }
 
                 stateStore.SetLifecycle(AppLifecycleState.Running, "Running.");
-                if (firstMessage is not null && ShouldProcessTelemetry(firstMessage, effectiveSettings.MeasurementKind))
+                if (firstMessage is not null)
                 {
                     messageProcessor.ProcessMessage(firstMessage, monitorSessions, effectiveSettings.MeasurementKind, cancellationToken);
                 }
@@ -187,13 +187,6 @@ internal static class BrightnessApplication
 
             var sensorMessage = readResult.Message!;
             stateStore.SetLatestSensor(sensorMessage);
-
-            if (!ShouldProcessTelemetry(sensorMessage, effectiveSettings.MeasurementKind))
-            {
-                stateStore.SetCalibrationStatus("Waiting for calibrated telemetry from device...");
-                continue;
-            }
-
             messageProcessor.ProcessMessage(sensorMessage, monitorSessions, effectiveSettings.MeasurementKind, cancellationToken);
         }
 
@@ -826,7 +819,7 @@ internal static class BrightnessApplication
             return false;
         }
 
-        if (!response!.Success || !response.Calibrated)
+        if (!response!.Success)
         {
             var errorMessage =
                 $"{calibrationLabel} failed ({calibrationSession.Monitor.Source}:{calibrationSession.Monitor.Name}): {response.Message}";
@@ -924,16 +917,6 @@ internal static class BrightnessApplication
         }
 
         return null;
-    }
-
-    private static bool ShouldProcessTelemetry(SensorMessage sensorMessage, MeasurementKind measurementKind)
-    {
-        if (measurementKind != MeasurementKind.Normalized1000)
-        {
-            return true;
-        }
-
-        return sensorMessage.Calibrated;
     }
 
     private static int GetCalibrationSample(SensorMessage sensorMessage)

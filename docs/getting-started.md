@@ -54,9 +54,8 @@ On startup, the app discovers the serial device and starts applying brightness f
 
 ## Expected Result
 
-- Before calibration, the LCD shows `--%` and telemetry reports `calibrated=false`.
-- After calibration, the LCD shows a percentage.
-- The app receives JSON lines with `deviceId`, `sensorId`, `ts`, `value`, `raw`, and `calibrated`.
+- The LCD shows the current ambient percentage.
+- The app receives JSON lines with `deviceId`, `sensorId`, `ts`, `value`, and `raw`.
 - Monitor brightness follows the configured brightness curve.
 
 ## Next Steps

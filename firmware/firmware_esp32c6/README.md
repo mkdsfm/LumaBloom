@@ -12,11 +12,11 @@
 
 Telemetry format:
 
-`{"deviceId":"esp32c6-01","sensorId":"light0","ts":123456,"value":742,"raw":1840,"calibrated":true}`
+`{"deviceId":"esp32c6-01","sensorId":"light0","ts":123456,"value":742,"raw":1840}`
 
 For this firmware, the `value` field contains a calibrated normalized reading in the `0..1000` range.
-Before startup calibration arrives from `pc-app`, the firmware publishes `value=0` and `calibrated=false`.
-The built-in LCD shows `--%` plus the current `ADC` line until calibration completes.
+Before startup calibration arrives from `pc-app`, the firmware uses its default normalization scale and keeps publishing live readings.
+The built-in LCD always shows the current ambient percentage plus the current `ADC` line.
 
 Calibration command from `pc-app`:
 
@@ -24,7 +24,7 @@ Calibration command from `pc-app`:
 
 Calibration response from the firmware:
 
-`{"type":"calibrationResult","success":true,"calibrated":true,"normalizedOffset":0.000000,"message":"calibration applied"}`
+`{"type":"calibrationResult","success":true,"normalizedOffset":0.000000,"message":"calibration applied"}`
 
 The current calibration flow keeps the dark endpoint anchored near `0%` and scales the live reading to the startup brightness reference, instead of shifting the whole range upward with a constant offset.
 
@@ -44,9 +44,8 @@ Current screen layout:
 
 Runtime behavior:
 
-- before calibration, the main value is shown as `--%`;
-- after startup, the screen shows a direct ambient-light percentage derived from the raw `KY-018` range instead of the PC calibration output;
-- the raw ADC line keeps updating independently of calibration state.
+- the screen shows a direct ambient-light percentage derived from the raw `KY-018` range;
+- the raw ADC line keeps updating independently of runtime calibration.
 
 ## Quick Flashing with a Prebuilt Binary
 
@@ -150,7 +149,7 @@ If the sensor does not provide valid readings:
 
 On the screen:
 
-- `--%` before startup calibration, then a numeric percentage after calibration
+- a numeric ambient-light percentage
 - `ADC ####`
 
 In the monitor:
@@ -174,7 +173,7 @@ Important:
 - `serial.deviceId` must match `APP_DEVICE_ID` in `main/app_config.h`;
 - the default is `esp32c6-01`;
 - `baudRate` must be `115200`.
-- `pc-app` must complete startup calibration before telemetry becomes usable for brightness control.
+- `pc-app` can use telemetry immediately and may optionally refine scaling through startup calibration.
 
 ## Project Settings
 

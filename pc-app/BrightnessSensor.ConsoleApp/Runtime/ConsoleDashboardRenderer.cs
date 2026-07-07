@@ -287,7 +287,6 @@ internal sealed class ConsoleDashboardRenderer
             table.AddRow("sensorId", Markup.Escape(sensor.SensorId));
             table.AddRow("value", Markup.Escape(sensor.Value.ToString()));
             table.AddRow("raw", Markup.Escape(sensor.Raw?.ToString() ?? "null"));
-            table.AddRow("calibrated", Markup.Escape(sensor.Calibrated.ToString()));
             table.AddRow("device ts", Markup.Escape(sensor.DeviceTimestamp.ToString()));
             table.AddRow("received", Markup.Escape(sensor.ReceivedAt.LocalDateTime.ToString("HH:mm:ss")));
         }

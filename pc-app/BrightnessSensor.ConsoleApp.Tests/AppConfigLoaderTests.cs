@@ -236,8 +236,7 @@ public sealed class AppConfigLoaderTests
             DeviceId = "esp32c6-01",
             SensorId = "light0",
             Value = 0,
-            Raw = 1450,
-            Calibrated = false
+            Raw = 1450
         };
 
         var profile = resolver.Resolve(config, message, out _);

@@ -10,9 +10,6 @@ public sealed class CalibrationResponse
     [JsonPropertyName("success")]
     public bool Success { get; init; }
 
-    [JsonPropertyName("calibrated")]
-    public bool Calibrated { get; init; }
-
     [JsonPropertyName("message")]
     public string Message { get; init; } = string.Empty;
 

@@ -63,7 +63,6 @@ static app_state_t s_app_state = {
         .raw_adc = 0,
         .normalized_value_1000 = 0,
         .value_for_pc = 0,
-        .calibrated = false,
         .valid = false,
     },
     .status_text = "INIT",
@@ -102,27 +101,23 @@ static void app_state_read(device_reading_t *reading, char *status_text, size_t 
 static void app_state_apply_calibration(device_reading_t *reading, char *status_text, size_t status_text_size)
 {
     if (xSemaphoreTake(s_app_state.mutex, portMAX_DELAY) == pdTRUE) {
-        reading->calibrated = device_calibration_apply(
+        device_calibration_apply(
             &s_app_state.calibration,
             reading->raw_adc,
             &reading->normalized_value_1000);
-        reading->value_for_pc = reading->calibrated ? reading->normalized_value_1000 : 0;
+        reading->value_for_pc = reading->normalized_value_1000;
 
         if (status_text != NULL && status_text_size > 0) {
-            const char *resolved_status = reading->calibrated ? "OK" : "UNCAL";
-            strncpy(status_text, resolved_status, status_text_size - 1);
+            strncpy(status_text, "OK", status_text_size - 1);
             status_text[status_text_size - 1] = '\0';
         }
         xSemaphoreGive(s_app_state.mutex);
     }
 }
 
-static void app_state_get_calibration_snapshot(bool *calibrated, float *normalized_offset)
+static void app_state_get_calibration_snapshot(float *normalized_offset)
 {
     if (xSemaphoreTake(s_app_state.mutex, portMAX_DELAY) == pdTRUE) {
-        if (calibrated != NULL) {
-            *calibrated = s_app_state.calibration.calibrated;
-        }
         if (normalized_offset != NULL) {
             *normalized_offset = device_calibration_get_offset(&s_app_state.calibration);
         }
@@ -172,10 +167,9 @@ static void sensor_task(void *arg)
             .raw_adc = 0,
             .normalized_value_1000 = 0,
             .value_for_pc = 0,
-            .calibrated = false,
             .valid = false,
         };
-        char status_text[16] = "UNCAL";
+        char status_text[16] = "OK";
 
         if (!sensor->initialized) {
             esp_err_t init_err = sensor_ky018_init(sensor);
@@ -208,11 +202,10 @@ static void process_serial_command_line(const char *line)
     calibration_command_t command = {0};
     char error_text[96];
     float normalized_offset = 0.0f;
-    bool calibrated = false;
 
     if (!serial_command_try_parse_calibration(line, &command, error_text, sizeof(error_text))) {
-        app_state_get_calibration_snapshot(&calibrated, &normalized_offset);
-        telemetry_serial_publish_calibration_result(false, calibrated, normalized_offset, error_text);
+        app_state_get_calibration_snapshot(&normalized_offset);
+        telemetry_serial_publish_calibration_result(false, normalized_offset, error_text);
         return;
     }
 
@@ -222,10 +215,8 @@ static void process_serial_command_line(const char *line)
         error_text,
         sizeof(error_text),
         &normalized_offset);
-    app_state_get_calibration_snapshot(&calibrated, NULL);
     telemetry_serial_publish_calibration_result(
         success,
-        calibrated,
         normalized_offset,
         success ? "calibration applied" : error_text);
 }
@@ -265,7 +256,6 @@ static void serial_command_task(void *arg)
                     buffer_length = 0;
                     telemetry_serial_publish_calibration_result(
                         false,
-                        false,
                         0.0f,
                         "command line too long");
                 }
@@ -286,8 +276,7 @@ static void display_task(void *arg)
         app_state_read(&reading, NULL, 0);
         ui_update_reading(
             raw_to_ambient_percent(reading.raw_adc),
-            reading.raw_adc,
-            true);
+            reading.raw_adc);
         ui_screen_render();
 
         vTaskDelay(pdMS_TO_TICKS(APP_DISPLAY_INTERVAL_MS));
@@ -328,8 +317,7 @@ void app_main(void)
     } else {
         ui_update_reading(
             raw_to_ambient_percent(s_app_state.latest_reading.raw_adc),
-            s_app_state.latest_reading.raw_adc,
-            true);
+            s_app_state.latest_reading.raw_adc);
         ui_screen_render();
     }
 

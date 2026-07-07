@@ -28,22 +28,16 @@ static const int ADC_SCALE = 2;
 typedef struct {
     int brightness_percent;
     int adc_raw;
-    bool calibrated;
 } ui_state_t;
 
 static ui_state_t s_ui_state = {
     .brightness_percent = 0,
     .adc_raw = 0,
-    .calibrated = false,
 };
 
 static const char *percentage_text(void)
 {
     static char buffer[8];
-
-    if (!s_ui_state.calibrated) {
-        return "--%";
-    }
 
     snprintf(buffer, sizeof(buffer), "%d%%", s_ui_state.brightness_percent);
     return buffer;
@@ -108,11 +102,10 @@ esp_err_t ui_screen_init(void)
     return display_lcd_init();
 }
 
-void ui_update_reading(int brightness_percent, int adc_raw, bool calibrated)
+void ui_update_reading(int brightness_percent, int adc_raw)
 {
     s_ui_state.brightness_percent = clamp_percent(brightness_percent);
     s_ui_state.adc_raw = adc_raw < 0 ? 0 : adc_raw;
-    s_ui_state.calibrated = calibrated;
 }
 
 void ui_screen_render(void)

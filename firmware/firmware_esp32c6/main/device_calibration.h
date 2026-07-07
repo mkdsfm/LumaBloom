@@ -9,7 +9,6 @@ typedef struct {
     float gamma;
     float normalized_scale;
     float normalized_offset;
-    bool calibrated;
 } device_calibration_t;
 
 void device_calibration_init(device_calibration_t *calibration, int adc_min, int adc_max, bool invert, float gamma);

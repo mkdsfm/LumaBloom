@@ -46,10 +46,9 @@ Do not use `GPIO0` for the KY-018 signal; it can interfere with normal board sta
 After calibration, firmware emits newline-delimited JSON:
 
 ```json
-{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"value":742,"raw":1840,"calibrated":true}
+{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"value":742,"raw":1840}
 ```
 
-Before calibration, the device publishes `value=0` and `calibrated=false`.
 
 ## Release Binary
 

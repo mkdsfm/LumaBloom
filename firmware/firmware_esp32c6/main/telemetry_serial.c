@@ -11,22 +11,20 @@ void telemetry_serial_publish(const char *device_id, const char *sensor_id, cons
     }
 
     printf(
-        "{\"deviceId\":\"%s\",\"sensorId\":\"%s\",\"ts\":%" PRIu64 ",\"value\":%d,\"raw\":%d,\"calibrated\":%s}\n",
+        "{\"deviceId\":\"%s\",\"sensorId\":\"%s\",\"ts\":%" PRIu64 ",\"value\":%d,\"raw\":%d}\n",
         device_id,
         sensor_id,
         reading->ts_ms,
         reading->value_for_pc,
-        reading->raw_adc,
-        reading->calibrated ? "true" : "false");
+        reading->raw_adc);
     fflush(stdout);
 }
 
-void telemetry_serial_publish_calibration_result(bool success, bool calibrated, float normalized_offset, const char *message)
+void telemetry_serial_publish_calibration_result(bool success, float normalized_offset, const char *message)
 {
     printf(
-        "{\"type\":\"calibrationResult\",\"success\":%s,\"calibrated\":%s,\"normalizedOffset\":%.6f,\"message\":\"%s\"}\n",
+        "{\"type\":\"calibrationResult\",\"success\":%s,\"normalizedOffset\":%.6f,\"message\":\"%s\"}\n",
         success ? "true" : "false",
-        calibrated ? "true" : "false",
         (double)normalized_offset,
         message != NULL ? message : "");
     fflush(stdout);

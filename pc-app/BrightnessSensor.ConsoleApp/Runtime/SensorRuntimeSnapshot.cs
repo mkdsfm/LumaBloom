@@ -6,5 +6,4 @@ internal sealed record SensorRuntimeSnapshot(
     long DeviceTimestamp,
     int Value,
     int? Raw,
-    bool Calibrated,
     DateTimeOffset ReceivedAt);

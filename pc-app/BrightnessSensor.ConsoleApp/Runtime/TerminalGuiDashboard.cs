@@ -1342,7 +1342,6 @@ internal sealed class TerminalGuiDashboard
               $"sensorId: {sensor.SensorId}{Environment.NewLine}" +
               $"value: {sensor.Value}{Environment.NewLine}" +
               $"raw: {sensor.Raw?.ToString() ?? "null"}{Environment.NewLine}" +
-              $"calibrated: {sensor.Calibrated}{Environment.NewLine}" +
               $"received: {sensor.ReceivedAt.LocalDateTime:HH:mm:ss}";
 
         var monitorLines = snapshot.Monitors.Count == 0
