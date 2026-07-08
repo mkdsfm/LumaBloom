@@ -56,7 +56,6 @@ void device_calibration_init(device_calibration_t *calibration, int adc_min, int
     calibration->gamma = gamma;
     calibration->normalized_scale = 1.0f;
     calibration->normalized_offset = 0.0f;
-    calibration->calibrated = false;
 }
 
 bool device_calibration_try_calibrate(
@@ -105,7 +104,6 @@ bool device_calibration_try_calibrate(
 
     calibration->normalized_scale = normalized > 0.0001f ? (expected_pre_gamma / normalized) : 0.0f;
     calibration->normalized_offset = 0.0f;
-    calibration->calibrated = true;
 
     if (error_text != NULL && error_text_size > 0) {
         error_text[0] = '\0';
@@ -115,7 +113,7 @@ bool device_calibration_try_calibrate(
 
 bool device_calibration_apply(const device_calibration_t *calibration, int raw_adc_value, int *normalized_value_1000)
 {
-    if (calibration == NULL || normalized_value_1000 == NULL || !calibration->calibrated) {
+    if (calibration == NULL || normalized_value_1000 == NULL) {
         return false;
     }
 

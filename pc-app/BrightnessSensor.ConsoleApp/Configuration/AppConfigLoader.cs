@@ -31,9 +31,6 @@ internal static class AppConfigLoader
 
         File.WriteAllText(path, """
                                 {
-                                  "deviceProfile": {
-                                    "autoDetect": true
-                                  },
                                   "processing": {
                                     "emaAlpha": 0.25,
                                     "hysteresisPercent": 1,
@@ -67,23 +64,6 @@ internal static class AppConfigLoader
 
     private static void Validate(AppConfig config)
     {
-        if (config.Serial.BaudRate is <= 0)
-        {
-            throw new InvalidOperationException("serial.baudRate must be greater than 0.");
-        }
-
-        if (config.Serial.DiscoveryTimeoutMs is <= 0)
-        {
-            throw new InvalidOperationException("serial.discoveryTimeoutMs must be greater than 0.");
-        }
-
-        if (!config.DeviceProfile.AutoDetect &&
-            string.IsNullOrWhiteSpace(config.DeviceProfile.ProfileId))
-        {
-            throw new InvalidOperationException(
-                "deviceProfile.profileId is required when deviceProfile.autoDetect is false.");
-        }
-
         if (config.Processing?.AdcMin.HasValue == true &&
             config.Processing.AdcMax.HasValue &&
             config.Processing.AdcMax.Value <= config.Processing.AdcMin.Value)
@@ -132,24 +112,6 @@ internal static class AppConfigLoader
         if (config.Brightness?.Curve is { Count: >= 2 })
         {
             ValidateBrightnessCurve(config.Brightness.Curve);
-        }
-
-        if (config.Calibration?.SampleCount is <= 0)
-        {
-            throw new InvalidOperationException("calibration.sampleCount must be greater than 0.");
-        }
-
-        if (config.Calibration?.MaxReadAttempts is <= 0)
-        {
-            throw new InvalidOperationException("calibration.maxReadAttempts must be greater than 0.");
-        }
-
-        if (config.Calibration?.SampleCount.HasValue == true &&
-            config.Calibration.MaxReadAttempts.HasValue &&
-            config.Calibration.MaxReadAttempts.Value < config.Calibration.SampleCount.Value)
-        {
-            throw new InvalidOperationException(
-                "calibration.maxReadAttempts must be greater than or equal to calibration.sampleCount.");
         }
 
         if (!IsSupportedUiLanguage(config.Ui.Language))

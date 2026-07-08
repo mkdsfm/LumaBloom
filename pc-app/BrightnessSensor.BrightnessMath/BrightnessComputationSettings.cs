@@ -1,7 +1,6 @@
 namespace BrightnessSensor.BrightnessMath;
 
 public sealed record BrightnessComputationSettings(
-    bool InputIsNormalized1000,
     int AdcMin,
     int AdcMax,
     bool Invert,

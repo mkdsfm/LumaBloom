@@ -13,12 +13,6 @@ public sealed class SensorMessage
     [JsonPropertyName("ts")]
     public long Timestamp { get; init; }
 
-    [JsonPropertyName("value")]
-    public int Value { get; init; }
-
     [JsonPropertyName("raw")]
     public int? Raw { get; init; }
-
-    [JsonPropertyName("calibrated")]
-    public bool Calibrated { get; init; }
 }

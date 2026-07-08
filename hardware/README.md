@@ -26,7 +26,7 @@ This section contains the physical-device materials for `brightness-sensor`: wir
 - Sensor: KY-018 analog light sensor.
 - Display: onboard ST7789 LCD.
 - Firmware: ESP-IDF project in `firmware/firmware_esp32c6/`.
-- Telemetry value: calibrated normalized reading in the `0..1000` range, with optional `raw`.
+- Telemetry value: raw ADC reading over USB; normalized percent stays local to the device LCD and app processing.
 
 ## Notes
 

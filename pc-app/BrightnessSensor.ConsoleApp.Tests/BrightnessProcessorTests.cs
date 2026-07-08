@@ -37,7 +37,6 @@ public sealed class BrightnessProcessorTests
     {
         var processor = new BrightnessProcessor(
             new BrightnessComputationSettings(
-                InputIsNormalized1000: true,
                 AdcMin: 0,
                 AdcMax: 1000,
                 Invert: false,
@@ -65,7 +64,6 @@ public sealed class BrightnessProcessorTests
     {
         return new BrightnessProcessor(
             new BrightnessComputationSettings(
-                InputIsNormalized1000: true,
                 AdcMin: 0,
                 AdcMax: 1000,
                 Invert: false,

@@ -10,5 +10,4 @@ internal sealed record ResolvedAppSettings(
     int BaudRate,
     int DiscoveryTimeoutMs,
     ProcessingSettings Processing,
-    BrightnessSettings Brightness,
-    CalibrationSettings Calibration);
+    BrightnessSettings Brightness);

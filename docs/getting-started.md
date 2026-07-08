@@ -39,7 +39,11 @@ Create `pc-app/appsettings.json` from the ESP32-C6 example:
 Copy-Item pc-app/appsettings.esp32c6.example.json pc-app/appsettings.json
 ```
 
-Optional: set `serial.deviceId` if you want the app to discover only one exact device.
+Useful config notes:
+
+- `processing.adcMin=200`, `processing.adcMax=3200`, and `processing.invert=true` match the current ESP32-C6 + KY-018 wiring
+- `brightness.curve` accepts the main response points as `{ "lightPercent", "brightnessPercent" }`
+- `ui.language` accepts `auto`, `en`, `ru`, or `es`
 
 ## 4. Run The App
 
@@ -50,13 +54,12 @@ dotnet restore
 dotnet run
 ```
 
-On startup, the app discovers the serial device and starts applying brightness from the active device profile and response curve. Some profiles may also run a calibration flow, but `esp32c6-analog-ky018` now uses the live raw sensor range directly and does not require startup calibration.
+On startup, the app probes available COM ports for the first valid telemetry stream, auto-detects the active device profile from `deviceId + sensorId`, and starts applying brightness from the resolved profile and response curve. The built-in `esp32c6-analog-ky018` flow uses the live raw sensor range directly and does not require startup calibration.
 
 ## Expected Result
 
-- Before calibration, the LCD shows `--%` and telemetry reports `calibrated=false`.
-- After calibration, the LCD shows a percentage.
-- The app receives JSON lines with `deviceId`, `sensorId`, `ts`, `value`, `raw`, and `calibrated`.
+- The LCD shows the current ambient percentage.
+- The app receives JSON lines with `deviceId`, `sensorId`, `ts`, and `raw`.
 - Monitor brightness follows the configured brightness curve.
 
 ## Next Steps
@@ -65,5 +68,5 @@ On startup, the app discovers the serial device and starts applying brightness f
 - In `Settings -> Response`, you can either edit the main `0/25/50/75/100` curve points directly or use the `Current light` action to say "for the light level right now, I want brightness X%".
 - The `Current light` action reads the live sensor value, converts it with the active `adcMin`, `adcMax`, and `invert` settings, rebuilds the whole response curve around that anchor, and saves it immediately.
 - The saved curve may contain an extra anchor point such as `16 -> 60` in addition to the usual five visible control points. This is expected and makes the chosen current-light target exact instead of approximate.
-- Review [`docs/protocol.md`](protocol.md) when changing telemetry or calibration.
+- Review [`docs/protocol.md`](protocol.md) when changing telemetry.
 - Review [`docs/device-profiles.md`](device-profiles.md) when changing runtime defaults.

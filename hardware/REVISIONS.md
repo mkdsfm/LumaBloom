@@ -8,7 +8,7 @@
 - Sensor: KY-018 analog light sensor.
 - Default signal pin: `GPIO4`.
 - Firmware track: ESP-IDF.
-- Telemetry semantics: calibrated normalized `0..1000` value plus optional raw ADC diagnostics.
+- Telemetry semantics: raw ADC value on the USB contract, with normalized percent kept local to the LCD/UI.
 - Important constraint: avoid `GPIO0` for the sensor signal because it can affect normal startup.
 
 ### LumaBloom ESP32-C6 Enclosure

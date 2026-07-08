@@ -9,39 +9,37 @@ namespace BrightnessSensor.ConsoleApp.Tests;
 public sealed class AppConfigLoaderTests
 {
     [Fact]
-    public void Load_RejectsLegacyPortOnlyConfigWithoutProfileFallback()
-    {
-        var exception = CaptureConfigError("""
-                                           {
-                                             "serial": {
-                                               "portName": "COM8",
-                                               "baudRate": 115200
-                                             },
-                                             "deviceProfile": {
-                                               "autoDetect": false
-                                             }
-                                           }
-                                           """);
-
-        Assert.Contains(
-            "deviceProfile.profileId is required when deviceProfile.autoDetect is false.",
-            exception.Message,
-            StringComparison.Ordinal);
-    }
-
-    [Fact]
-    public void Load_AllowsMissingSerialBaudRateAndDiscoveryTimeout()
+    public void Load_IgnoresLegacySerialAndDeviceProfileSections()
     {
         var config = LoadConfig("""
                                 {
+                                  "serial": {
+                                    "portName": "COM8",
+                                    "baudRate": 115200
+                                  },
                                   "deviceProfile": {
-                                    "autoDetect": true
+                                    "autoDetect": false,
+                                    "profileId": "esp32c6-analog-ky018"
                                   }
                                 }
                                 """);
 
-        Assert.Null(config.Serial.BaudRate);
-        Assert.Null(config.Serial.DiscoveryTimeoutMs);
+        Assert.Null(config.Processing);
+        Assert.Null(config.Brightness);
+    }
+
+    [Fact]
+    public void Load_AllowsMinimalConfig()
+    {
+        var config = LoadConfig("""
+                                {
+                                  "ui": {
+                                    "language": "auto"
+                                  }
+                                }
+                                """);
+
+        Assert.Equal("auto", config.Ui.Language);
     }
 
     [Fact]
@@ -54,7 +52,6 @@ public sealed class AppConfigLoaderTests
             AppConfigLoader.EnsureDefaultFile(tempPath);
             var config = AppConfigLoader.Load(tempPath);
 
-            Assert.True(config.DeviceProfile.AutoDetect);
             Assert.Equal("en", config.Ui.Language);
             Assert.Equal(10, config.Brightness!.MinPercent);
             Assert.Equal(100, config.Brightness.MaxPercent);
@@ -66,20 +63,6 @@ public sealed class AppConfigLoaderTests
                 File.Delete(tempPath);
             }
         }
-    }
-
-    [Fact]
-    public void Load_RejectsNonPositiveDiscoveryTimeout()
-    {
-        var exception = CaptureConfigError("""
-                                           {
-                                             "serial": {
-                                               "discoveryTimeoutMs": 0
-                                             }
-                                           }
-                                           """);
-
-        Assert.Contains("serial.discoveryTimeoutMs must be greater than 0.", exception.Message, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -115,23 +98,20 @@ public sealed class AppConfigLoaderTests
     {
         var config = LoadConfig("""
                                 {
-                                  "serial": {
-                                    "deviceId": "esp32c3-01"
-                                  }
                                 }
                                 """);
 
         var resolver = new DeviceProfileResolver();
         var message = new SensorMessage
         {
-            DeviceId = "esp32c3-01",
+            DeviceId = "esp32c6-01",
             SensorId = "light0",
-            Value = 1234
+            Raw = 1234
         };
 
-        var profile = resolver.Resolve(config, message, out _);
+        var profile = resolver.Resolve(message, out _);
 
-        Assert.Equal("esp32c3-analog-ky018", profile.ProfileId);
+        Assert.Equal("esp32c6-analog-ky018", profile.ProfileId);
     }
 
     [Fact]
@@ -139,7 +119,6 @@ public sealed class AppConfigLoaderTests
     {
         var config = LoadConfig("""
                                 {
-                                  "serial": {}
                                 }
                                 """);
 
@@ -148,10 +127,10 @@ public sealed class AppConfigLoaderTests
         {
             DeviceId = "mystery-board",
             SensorId = "light9",
-            Value = 1234
+            Raw = 1234
         };
 
-        var profile = resolver.Resolve(config, message, out var logMessage);
+        var profile = resolver.Resolve(message, out var logMessage);
 
         Assert.Equal(DeviceProfileCatalog.Generic.ProfileId, profile.ProfileId);
         Assert.Contains("using generic profile", logMessage, StringComparison.OrdinalIgnoreCase);
@@ -162,9 +141,6 @@ public sealed class AppConfigLoaderTests
     {
         var config = LoadConfig("""
                                 {
-                                  "serial": {
-                                    "deviceId": "esp32c3-01"
-                                  },
                                   "processing": {
                                     "emaAlpha": 0.1,
                                     "hysteresisPercent": 7,
@@ -172,31 +148,23 @@ public sealed class AppConfigLoaderTests
                                   },
                                   "brightness": {
                                     "minPercent": 15
-                                  },
-                                  "calibration": {
-                                    "enabled": false,
-                                    "sampleCount": 3,
-                                    "maxReadAttempts": 3
                                   }
                                 }
                                 """);
 
         var resolved = ResolvedSettingsFactory.Create(
             config,
-            DeviceProfileCatalog.All.Single(profile => profile.ProfileId == "esp32c3-analog-ky018"));
+            DeviceProfileCatalog.All.Single(profile => profile.ProfileId == "esp32c6-analog-ky018"));
 
-        Assert.Equal(300, resolved.Processing.AdcMin);
+        Assert.Equal(200, resolved.Processing.AdcMin);
         Assert.Equal(3200, resolved.Processing.AdcMax);
         Assert.Equal(0.1, resolved.Processing.EmaAlpha);
         Assert.Equal(7, resolved.Processing.HysteresisPercent);
         Assert.Equal(4, resolved.Processing.MaxBrightnessStepPercent);
         Assert.Equal(15, resolved.Brightness.MinPercent);
         Assert.Equal(100, resolved.Brightness.MaxPercent);
-        Assert.False(resolved.Calibration.Enabled);
-        Assert.Equal(3, resolved.Calibration.SampleCount);
-        Assert.Equal(3, resolved.Calibration.MaxReadAttempts);
-        Assert.Equal(SerialSettings.DefaultBaudRate, resolved.BaudRate);
-        Assert.Equal(SerialSettings.DefaultDiscoveryTimeoutMs, resolved.DiscoveryTimeoutMs);
+        Assert.Equal(115200, resolved.BaudRate);
+        Assert.Equal(2500, resolved.DiscoveryTimeoutMs);
     }
 
     [Fact]
@@ -224,9 +192,6 @@ public sealed class AppConfigLoaderTests
     {
         var config = LoadConfig("""
                                 {
-                                  "serial": {
-                                    "deviceId": "esp32c6-01"
-                                  }
                                 }
                                 """);
 
@@ -235,19 +200,16 @@ public sealed class AppConfigLoaderTests
         {
             DeviceId = "esp32c6-01",
             SensorId = "light0",
-            Value = 0,
-            Raw = 1450,
-            Calibrated = false
+            Raw = 1450
         };
 
-        var profile = resolver.Resolve(config, message, out _);
+        var profile = resolver.Resolve(message, out _);
         var resolved = ResolvedSettingsFactory.Create(config, profile);
 
         Assert.Equal(MeasurementKind.Adc, resolved.MeasurementKind);
         Assert.True(resolved.Processing.Invert);
         Assert.Equal(200, resolved.Processing.AdcMin);
         Assert.Equal(3200, resolved.Processing.AdcMax);
-        Assert.False(resolved.Calibration.Enabled);
     }
 
     [Fact]
@@ -255,9 +217,6 @@ public sealed class AppConfigLoaderTests
     {
         var tempPath = CreateTempConfig("""
                                         {
-                                          "serial": {
-                                            "deviceId": "esp32c6-01"
-                                          },
                                           "ui": {
                                             "language": "en"
                                           }
@@ -269,7 +228,6 @@ public sealed class AppConfigLoaderTests
             AppConfigWriter.UpdateUiLanguage(tempPath, "es");
             var config = AppConfigLoader.Load(tempPath);
 
-            Assert.Equal("esp32c6-01", config.Serial.DeviceId);
             Assert.Equal("es", config.Ui.Language);
         }
         finally
@@ -381,9 +339,6 @@ public sealed class AppConfigLoaderTests
     {
         var tempPath = CreateTempConfig("""
                                         {
-                                          "serial": {
-                                            "deviceId": "esp32c6-01"
-                                          },
                                           "brightness": {
                                             "minPercent": 10,
                                             "maxPercent": 100

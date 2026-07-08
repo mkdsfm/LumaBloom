@@ -17,15 +17,12 @@ internal static class BrightnessCurveAnchorHelper
             return false;
         }
 
-        if (settings.MeasurementKind == MeasurementKind.Normalized1000)
+        if (!latestSensor.Raw.HasValue)
         {
-            ambientPercent = (int)Math.Round(
-                Math.Clamp(latestSensor.Value, 0, 1000) / 10.0,
-                MidpointRounding.AwayFromZero);
-            return true;
+            return false;
         }
 
-        var measurementValue = latestSensor.Raw ?? latestSensor.Value;
+        var measurementValue = latestSensor.Raw.Value;
         var range = settings.Processing.AdcMax - settings.Processing.AdcMin;
         if (range <= 0)
         {

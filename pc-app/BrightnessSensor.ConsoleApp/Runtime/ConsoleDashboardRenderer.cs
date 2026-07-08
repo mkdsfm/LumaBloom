@@ -28,7 +28,7 @@ internal sealed class ConsoleDashboardRenderer
     {
         var percent = GetNormalizedSensorPercent(snapshot);
         var ambient = percent.HasValue ? $"{percent.Value}%" : "--%";
-        var adc = snapshot.LatestSensor?.Raw ?? snapshot.LatestSensor?.Value;
+        var adc = snapshot.LatestSensor?.Raw;
         var adcText = adc?.ToString() ?? "---";
         var lux = percent.HasValue ? $"{(int)Math.Round(percent.Value * 3.2, MidpointRounding.AwayFromZero)} lx" : "--- lx";
         var connected = snapshot.LatestSensor is not null;
@@ -91,7 +91,7 @@ internal sealed class ConsoleDashboardRenderer
     {
         var percent = GetNormalizedSensorPercent(snapshot);
         var ambient = percent.HasValue ? $"{percent.Value}%" : "--%";
-        var adc = snapshot.LatestSensor?.Raw ?? snapshot.LatestSensor?.Value;
+        var adc = snapshot.LatestSensor?.Raw;
         var adcText = adc?.ToString() ?? "---";
         var lux = percent.HasValue ? $"{(int)Math.Round(percent.Value * 3.2, MidpointRounding.AwayFromZero)} lx" : "--- lx";
         var connected = snapshot.LatestSensor is not null ? "connected" : "disconnected";
@@ -154,71 +154,18 @@ internal sealed class ConsoleDashboardRenderer
 
     private static IRenderable BuildCalibrationScreen(DashboardSnapshot snapshot, Localizer localizer)
     {
-        return new Rows(
-            BuildCalibrationBody(snapshot, localizer),
-            BuildCalibrationActions(snapshot, localizer));
-    }
-
-    private static IRenderable BuildCalibrationBody(DashboardSnapshot snapshot, Localizer localizer)
-    {
-        var lines = new List<string>
+        var lines = new[]
         {
-            snapshot.CalibrationWizardStep switch
-            {
-                CalibrationWizardStep.ManualTarget => localizer["calibration.manual"],
-                CalibrationWizardStep.Review => localizer["calibration.review"],
-                CalibrationWizardStep.Queued => localizer["calibration.queued"],
-                _ => localizer["calibration.choose"]
-            },
+            localizer["settings.curve.help"],
             string.Empty,
-            snapshot.CalibrationStatus
+            localizer["calibration.explain.3"],
+            localizer["calibration.explain.4"],
+            localizer["calibration.explain.5"],
+            localizer["calibration.explain.6"]
         };
-
-        if (snapshot.CalibrationWizardStep == CalibrationWizardStep.ManualTarget)
-        {
-            var input = string.IsNullOrWhiteSpace(snapshot.CalibrationManualInputBuffer)
-                ? localizer["value.none"]
-                : $"{snapshot.CalibrationManualInputBuffer}%";
-            lines.Add($"{localizer["calibration.input"]}: {input}");
-        }
-
-        if (snapshot.CalibrationWizardStep == CalibrationWizardStep.Review)
-        {
-            lines.Add(snapshot.CalibrationTargetMode == CalibrationTargetMode.ManualTarget
-                ? $"{localizer["calibration.manualValue"]}: {snapshot.CalibrationManualInputBuffer}%"
-                : localizer["calibration.current"]);
-        }
-
-        if (!string.IsNullOrWhiteSpace(snapshot.CalibrationInputError))
-        {
-            lines.Add(localizer[snapshot.CalibrationInputError]);
-        }
 
         return new Panel(new Markup(Markup.Escape(string.Join(Environment.NewLine, lines))))
             .Header(localizer["screen.calibration"])
-            .Border(BoxBorder.Rounded);
-    }
-
-    private static IRenderable BuildCalibrationActions(DashboardSnapshot snapshot, Localizer localizer)
-    {
-        var actions = snapshot.CalibrationWizardStep switch
-        {
-            CalibrationWizardStep.ChooseTarget => new[]
-            {
-                FormatCalibrationAction(snapshot, CalibrationAction.UseCurrentBrightness, localizer["action.useCurrent"]),
-                FormatCalibrationAction(snapshot, CalibrationAction.SetManualTarget, localizer["action.manualTarget"]),
-                FormatCalibrationAction(snapshot, CalibrationAction.Cancel, localizer["action.cancel"])
-            },
-            CalibrationWizardStep.Queued => [FormatCalibrationAction(snapshot, CalibrationAction.Cancel, localizer["action.cancel"])],
-            _ =>
-            [
-                FormatCalibrationAction(snapshot, CalibrationAction.Confirm, localizer["action.confirm"]),
-                FormatCalibrationAction(snapshot, CalibrationAction.Cancel, localizer["action.cancel"])
-            ]
-        };
-
-        return new Panel(new Markup(string.Join("  ", actions)))
-            .Header(localizer["status.actions"])
             .Border(BoxBorder.Rounded);
     }
 
@@ -285,9 +232,7 @@ internal sealed class ConsoleDashboardRenderer
         {
             table.AddRow("deviceId", Markup.Escape(sensor.DeviceId));
             table.AddRow("sensorId", Markup.Escape(sensor.SensorId));
-            table.AddRow("value", Markup.Escape(sensor.Value.ToString()));
             table.AddRow("raw", Markup.Escape(sensor.Raw?.ToString() ?? "null"));
-            table.AddRow("calibrated", Markup.Escape(sensor.Calibrated.ToString()));
             table.AddRow("device ts", Markup.Escape(sensor.DeviceTimestamp.ToString()));
             table.AddRow("received", Markup.Escape(sensor.ReceivedAt.LocalDateTime.ToString("HH:mm:ss")));
         }
@@ -379,11 +324,6 @@ internal sealed class ConsoleDashboardRenderer
         return FormatAction(snapshot.FocusedOverviewAction == action, label, destructive);
     }
 
-    private static string FormatCalibrationAction(DashboardSnapshot snapshot, CalibrationAction action, string label)
-    {
-        return FormatAction(snapshot.FocusedCalibrationAction == action, label, action == CalibrationAction.Cancel);
-    }
-
     private static string FormatAction(bool focused, string label, bool destructive)
     {
         var escaped = Markup.Escape(label);
@@ -408,14 +348,12 @@ internal sealed class ConsoleDashboardRenderer
             return null;
         }
 
-        if (string.Equals(snapshot.MeasurementKind, "Normalized1000", StringComparison.OrdinalIgnoreCase))
+        if (!snapshot.LatestSensor.Raw.HasValue)
         {
-            return (int)Math.Round(
-                Math.Clamp(snapshot.LatestSensor.Value, 0, 1000) / 10.0,
-                MidpointRounding.AwayFromZero);
+            return null;
         }
 
-        var rawValue = snapshot.LatestSensor.Raw ?? snapshot.LatestSensor.Value;
+        var rawValue = snapshot.LatestSensor.Raw.Value;
         var range = snapshot.ProcessingAdcMax.Value - snapshot.ProcessingAdcMin.Value;
         if (range <= 0)
         {

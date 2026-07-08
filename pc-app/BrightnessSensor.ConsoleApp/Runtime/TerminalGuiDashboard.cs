@@ -45,10 +45,6 @@ internal sealed class TerminalGuiDashboard
     private readonly Button _manualMinusButton;
     private readonly Button _manualPlusButton;
     private readonly Button _manualPlusFastButton;
-    private readonly Button _calibrationCurrentButton;
-    private readonly Button _calibrationManualButton;
-    private readonly Button _calibrationConfirmButton;
-    private readonly Button _calibrationCancelButton;
     private readonly Button[] _curvePointButtons;
     private readonly Button _curveAnchorButton;
     private readonly Button _settingsCalibrationButton;
@@ -77,7 +73,6 @@ internal sealed class TerminalGuiDashboard
     private ProcessingParameter? _activeProcessingModal;
     private int? _activeCurveLightPercent;
     private bool _activeCurveAnchorModal;
-    private bool _activeCalibrationTargetModal;
     private bool _isUpdatingInvertRadio;
 
     private static readonly Scheme BaseScheme = CreateScheme(Color.Gray, Color.Black, Color.Black, Color.Green);
@@ -124,10 +119,6 @@ internal sealed class TerminalGuiDashboard
         _manualMinusButton = CreateButton("-1", () => _controller.ActivateOverviewAction(OverviewAction.ManualDecrease));
         _manualPlusButton = CreateButton("+1", () => _controller.ActivateOverviewAction(OverviewAction.ManualIncrease));
         _manualPlusFastButton = CreateButton("+10", () => _controller.ActivateOverviewAction(OverviewAction.ManualIncreaseFast));
-        _calibrationCurrentButton = CreateButton("Use current", () => _controller.ActivateCalibrationAction(CalibrationAction.UseCurrentBrightness));
-        _calibrationManualButton = CreateButton("Manual target", ShowCalibrationTargetModal);
-        _calibrationConfirmButton = CreateButton("Confirm", () => _controller.ActivateCalibrationAction(CalibrationAction.Confirm));
-        _calibrationCancelButton = CreateButton("Cancel", () => _controller.ActivateCalibrationAction(CalibrationAction.Cancel));
         _curvePointButtons =
         [
             CreateButton("0%", () => ShowCurvePointModal(0)),
@@ -274,10 +265,6 @@ internal sealed class TerminalGuiDashboard
             _manualMinusButton,
             _manualPlusButton,
             _manualPlusFastButton,
-            _calibrationCurrentButton,
-            _calibrationManualButton,
-            _calibrationConfirmButton,
-            _calibrationCancelButton,
             _curvePointButtons[0],
             _curvePointButtons[1],
             _curvePointButtons[2],
@@ -334,14 +321,6 @@ internal sealed class TerminalGuiDashboard
         _curveBrightnessRow.Width = 18;
         _curveBrightnessRow.Height = 1;
         _curveBrightnessRow.SchemeName = BaseSchemeName;
-        _calibrationCurrentButton.X = 1;
-        _calibrationCurrentButton.Y = Pos.AnchorEnd(3);
-        _calibrationManualButton.X = Pos.Right(_calibrationCurrentButton) + 1;
-        _calibrationManualButton.Y = Pos.AnchorEnd(3);
-        _calibrationConfirmButton.X = Pos.Right(_calibrationManualButton) + 1;
-        _calibrationConfirmButton.Y = Pos.AnchorEnd(3);
-        _calibrationCancelButton.X = Pos.AnchorEnd(12);
-        _calibrationCancelButton.Y = Pos.AnchorEnd(3);
         for (var i = 0; i < _curvePointButtons.Length; i++)
         {
             _curvePointButtons[i].X = 20 + (i * 9);
@@ -541,7 +520,7 @@ internal sealed class TerminalGuiDashboard
             $"{localizer["overview.manualTarget"]}: {snapshot.ManualBrightnessPercent}%{Environment.NewLine}" +
             $"{localizer["overview.lastApplied"]}: {applied ?? localizer["value.none"]}{Environment.NewLine}" +
             $"{localizer["status.monitors"]}: {snapshot.Monitors.Count(monitor => monitor.IsEnabled)}/{snapshot.Monitors.Count} {localizer["overview.active"]}";
-        _calibrationText.Text = BuildCalibrationText(snapshot, localizer);
+        _calibrationText.Text = BuildCurveText(snapshot, localizer);
         _generalText.Text = BuildGeneralText(snapshot, localizer);
         _autostartText.Text = BuildAutostartText(snapshot, localizer);
         _responseText.Text = BuildResponseText(snapshot, localizer);
@@ -574,10 +553,6 @@ internal sealed class TerminalGuiDashboard
             : localizer["settings.autostart.enable"];
         _autoButton.Text = localizer["mode.auto"];
         _manualButton.Text = localizer["mode.manual"];
-        _calibrationCurrentButton.Text = localizer["action.useCurrent"];
-        _calibrationManualButton.Text = localizer["action.manualTarget"];
-        _calibrationConfirmButton.Text = localizer["action.confirm"];
-        _calibrationCancelButton.Text = localizer["action.cancel"];
         _curveAnchorButton.Text = localizer["action.anchorCurrentLight"];
         _modalConfirmButton.Text = localizer["action.confirm"];
         _modalTestButton.Text = localizer["action.test"];
@@ -757,29 +732,10 @@ internal sealed class TerminalGuiDashboard
         Refresh();
     }
 
-    private void ShowCalibrationTargetModal()
-    {
-        var snapshot = _stateStore.GetSnapshot();
-        var localizer = new Localizer(snapshot.Language);
-        _activeCalibrationTargetModal = true;
-        _activeProcessingModal = null;
-        _modalFrame.Title = localizer["calibration.manualValue"];
-        _modalDescription.Text = localizer["modal.manualTargetDescription"];
-        _modalInput.Text = snapshot.CalibrationManualInputBuffer.Length > 0
-            ? snapshot.CalibrationManualInputBuffer
-            : "50";
-        SetModalInputMode(true);
-        _modalError.Text = string.Empty;
-        _modalTestButton.Visible = true;
-        _modalFrame.Visible = true;
-        _modalInput.SetFocus();
-    }
-
     private void ShowProcessingModal(ProcessingParameter parameter)
     {
         var snapshot = _stateStore.GetSnapshot();
         var localizer = new Localizer(snapshot.Language);
-        _activeCalibrationTargetModal = false;
         _activeProcessingModal = parameter;
         _modalFrame.Title = GetProcessingLabel(parameter);
         _modalDescription.Text = GetProcessingModalDescription(parameter, localizer);
@@ -811,7 +767,6 @@ internal sealed class TerminalGuiDashboard
     {
         var snapshot = _stateStore.GetSnapshot();
         var localizer = new Localizer(snapshot.Language);
-        _activeCalibrationTargetModal = false;
         _activeCurveAnchorModal = false;
         _activeProcessingModal = null;
         _activeCurveLightPercent = lightPercent;
@@ -829,7 +784,6 @@ internal sealed class TerminalGuiDashboard
     {
         var snapshot = _stateStore.GetSnapshot();
         var localizer = new Localizer(snapshot.Language);
-        _activeCalibrationTargetModal = false;
         _activeCurveAnchorModal = true;
         _activeProcessingModal = null;
         _activeCurveLightPercent = null;
@@ -851,7 +805,7 @@ internal sealed class TerminalGuiDashboard
         var value = _modalInput.Text?.ToString() ?? string.Empty;
         if (!TryParseInt(value, out var brightness) || brightness is < 0 or > 100)
         {
-            _modalError.Text = localizer["calibration.invalid"];
+            _modalError.Text = localizer["validation.step"];
             return;
         }
 
@@ -862,27 +816,13 @@ internal sealed class TerminalGuiDashboard
     private void ConfirmModal()
     {
         var value = _modalInput.Text?.ToString() ?? string.Empty;
-        if (_activeCalibrationTargetModal)
-        {
-            if (!TryParseInt(value, out var parsed) || parsed is < 0 or > 100)
-            {
-                _modalError.Text = new Localizer(_stateStore.GetSnapshot().Language)["calibration.invalid"];
-                return;
-            }
-
-            _stateStore.SelectCalibrationManualTarget(parsed);
-            CloseModal();
-            Refresh();
-            return;
-        }
-
         if (!_activeProcessingModal.HasValue)
         {
             if (_activeCurveAnchorModal)
             {
                 if (!TryParseInt(value, out var brightness) || brightness is < 0 or > 100)
                 {
-                    _modalError.Text = new Localizer(_stateStore.GetSnapshot().Language)["calibration.invalid"];
+                    _modalError.Text = new Localizer(_stateStore.GetSnapshot().Language)["validation.step"];
                     return;
                 }
 
@@ -902,7 +842,7 @@ internal sealed class TerminalGuiDashboard
             {
                 if (!TryParseInt(value, out var brightness) || brightness is < 0 or > 100)
                 {
-                    _modalError.Text = new Localizer(_stateStore.GetSnapshot().Language)["calibration.invalid"];
+                    _modalError.Text = new Localizer(_stateStore.GetSnapshot().Language)["validation.step"];
                     return;
                 }
 
@@ -941,7 +881,6 @@ internal sealed class TerminalGuiDashboard
     {
         _modalFrame.Visible = false;
         _modalError.Text = string.Empty;
-        _activeCalibrationTargetModal = false;
         _activeCurveAnchorModal = false;
         _activeProcessingModal = null;
         _activeCurveLightPercent = null;
@@ -1003,15 +942,12 @@ internal sealed class TerminalGuiDashboard
             return false;
         }
 
-        if (string.Equals(snapshot.MeasurementKind, "Normalized1000", StringComparison.OrdinalIgnoreCase))
+        if (!snapshot.LatestSensor.Raw.HasValue)
         {
-            ambientPercent = (int)Math.Round(
-                Math.Clamp(snapshot.LatestSensor.Value, 0, 1000) / 10.0,
-                MidpointRounding.AwayFromZero);
-            return true;
+            return false;
         }
 
-        var rawValue = snapshot.LatestSensor.Raw ?? snapshot.LatestSensor.Value;
+        var rawValue = snapshot.LatestSensor.Raw.Value;
         var range = snapshot.ProcessingAdcMax.Value - snapshot.ProcessingAdcMin.Value;
         if (range <= 0)
         {
@@ -1240,36 +1176,14 @@ internal sealed class TerminalGuiDashboard
         SchemeManager.AddScheme(ModalSchemeName, ModalScheme);
     }
 
-    private static string BuildCalibrationText(DashboardSnapshot snapshot, Localizer localizer)
+    private static string BuildCurveText(DashboardSnapshot snapshot, Localizer localizer)
     {
-        var lines = new List<string>
-        {
-            localizer["calibration.explain.1"],
-            localizer["calibration.explain.2"],
-            string.Empty,
-            localizer["calibration.explain.3"],
-            localizer["calibration.explain.4"],
-            localizer["calibration.explain.5"],
-            localizer["calibration.explain.6"],
-            string.Empty,
-            $"{localizer["status.calibration"]}: {snapshot.CalibrationStatus}"
-        };
-
-        if (snapshot.CalibrationWizardStep == CalibrationWizardStep.Review)
-        {
-            lines.Add(string.Empty);
-            lines.Add(snapshot.CalibrationTargetMode == CalibrationTargetMode.ManualTarget
-                ? $"{localizer["calibration.review"]}: {localizer["calibration.manualValue"]} {snapshot.CalibrationManualInputBuffer}%."
-                : $"{localizer["calibration.review"]}: {localizer["calibration.current"]}.");
-        }
-
-        if (snapshot.CalibrationWizardStep == CalibrationWizardStep.Queued)
-        {
-            lines.Add(string.Empty);
-            lines.Add(localizer["calibration.queued"]);
-        }
-
-        return string.Join(Environment.NewLine, lines);
+        return localizer["settings.curve.help"] + Environment.NewLine +
+               Environment.NewLine +
+               localizer["calibration.explain.3"] + Environment.NewLine +
+               localizer["calibration.explain.4"] + Environment.NewLine +
+               localizer["calibration.explain.5"] + Environment.NewLine +
+               localizer["calibration.explain.6"];
     }
 
     private static string BuildGeneralText(DashboardSnapshot snapshot, Localizer localizer)
@@ -1340,9 +1254,7 @@ internal sealed class TerminalGuiDashboard
             ? "Telemetry: waiting"
             : $"deviceId: {sensor.DeviceId}{Environment.NewLine}" +
               $"sensorId: {sensor.SensorId}{Environment.NewLine}" +
-              $"value: {sensor.Value}{Environment.NewLine}" +
               $"raw: {sensor.Raw?.ToString() ?? "null"}{Environment.NewLine}" +
-              $"calibrated: {sensor.Calibrated}{Environment.NewLine}" +
               $"received: {sensor.ReceivedAt.LocalDateTime:HH:mm:ss}";
 
         var monitorLines = snapshot.Monitors.Count == 0

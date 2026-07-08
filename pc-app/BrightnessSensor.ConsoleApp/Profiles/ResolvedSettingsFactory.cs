@@ -22,27 +22,17 @@ internal static class ResolvedSettingsFactory
                 ? config.Brightness!.Curve!
                 : profile.Brightness.Curve);
 
-        var calibration = new CalibrationSettings(
-            Enabled: config.Calibration?.Enabled ?? profile.Calibration.Enabled,
-            SampleCount: config.Calibration?.SampleCount ?? profile.Calibration.SampleCount,
-            MaxReadAttempts: config.Calibration?.MaxReadAttempts ?? profile.Calibration.MaxReadAttempts);
-
-        var discoveryDeviceId = !string.IsNullOrWhiteSpace(config.Serial.DeviceId)
-            ? config.Serial.DeviceId
-            : profile.IsGeneric
-                ? null
-                : profile.DeviceId;
+        var discoveryDeviceId = profile.IsGeneric ? null : profile.DeviceId;
 
         var resolved = new ResolvedAppSettings(
             ProfileId: profile.ProfileId,
             MeasurementKind: profile.MeasurementKind,
             IsGenericProfile: profile.IsGeneric,
             DiscoveryDeviceId: discoveryDeviceId,
-            BaudRate: config.Serial.BaudRate ?? profile.BaudRate,
-            DiscoveryTimeoutMs: config.Serial.DiscoveryTimeoutMs ?? profile.DiscoveryTimeoutMs,
+            BaudRate: profile.BaudRate,
+            DiscoveryTimeoutMs: profile.DiscoveryTimeoutMs,
             Processing: processing,
-            Brightness: brightness,
-            Calibration: calibration);
+            Brightness: brightness);
 
         Validate(resolved);
         return resolved;
@@ -93,21 +83,6 @@ internal static class ResolvedSettingsFactory
 
         ValidateBrightnessCurve(settings.Brightness.Curve);
 
-        if (settings.Calibration.SampleCount <= 0)
-        {
-            throw new InvalidOperationException("calibration.sampleCount must be greater than 0.");
-        }
-
-        if (settings.Calibration.MaxReadAttempts <= 0)
-        {
-            throw new InvalidOperationException("calibration.maxReadAttempts must be greater than 0.");
-        }
-
-        if (settings.Calibration.MaxReadAttempts < settings.Calibration.SampleCount)
-        {
-            throw new InvalidOperationException(
-                "calibration.maxReadAttempts must be greater than or equal to calibration.sampleCount.");
-        }
     }
 
     private static void ValidateBrightnessCurve(IReadOnlyList<BrightnessCurvePoint> curve)
