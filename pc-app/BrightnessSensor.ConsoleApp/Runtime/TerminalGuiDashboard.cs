@@ -1003,15 +1003,12 @@ internal sealed class TerminalGuiDashboard
             return false;
         }
 
-        if (string.Equals(snapshot.MeasurementKind, "Normalized1000", StringComparison.OrdinalIgnoreCase))
+        if (!snapshot.LatestSensor.Raw.HasValue)
         {
-            ambientPercent = (int)Math.Round(
-                Math.Clamp(snapshot.LatestSensor.Value, 0, 1000) / 10.0,
-                MidpointRounding.AwayFromZero);
-            return true;
+            return false;
         }
 
-        var rawValue = snapshot.LatestSensor.Raw ?? snapshot.LatestSensor.Value;
+        var rawValue = snapshot.LatestSensor.Raw.Value;
         var range = snapshot.ProcessingAdcMax.Value - snapshot.ProcessingAdcMin.Value;
         if (range <= 0)
         {
@@ -1340,7 +1337,6 @@ internal sealed class TerminalGuiDashboard
             ? "Telemetry: waiting"
             : $"deviceId: {sensor.DeviceId}{Environment.NewLine}" +
               $"sensorId: {sensor.SensorId}{Environment.NewLine}" +
-              $"value: {sensor.Value}{Environment.NewLine}" +
               $"raw: {sensor.Raw?.ToString() ?? "null"}{Environment.NewLine}" +
               $"received: {sensor.ReceivedAt.LocalDateTime:HH:mm:ss}";
 

@@ -28,7 +28,7 @@ internal sealed class ConsoleDashboardRenderer
     {
         var percent = GetNormalizedSensorPercent(snapshot);
         var ambient = percent.HasValue ? $"{percent.Value}%" : "--%";
-        var adc = snapshot.LatestSensor?.Raw ?? snapshot.LatestSensor?.Value;
+        var adc = snapshot.LatestSensor?.Raw;
         var adcText = adc?.ToString() ?? "---";
         var lux = percent.HasValue ? $"{(int)Math.Round(percent.Value * 3.2, MidpointRounding.AwayFromZero)} lx" : "--- lx";
         var connected = snapshot.LatestSensor is not null;
@@ -91,7 +91,7 @@ internal sealed class ConsoleDashboardRenderer
     {
         var percent = GetNormalizedSensorPercent(snapshot);
         var ambient = percent.HasValue ? $"{percent.Value}%" : "--%";
-        var adc = snapshot.LatestSensor?.Raw ?? snapshot.LatestSensor?.Value;
+        var adc = snapshot.LatestSensor?.Raw;
         var adcText = adc?.ToString() ?? "---";
         var lux = percent.HasValue ? $"{(int)Math.Round(percent.Value * 3.2, MidpointRounding.AwayFromZero)} lx" : "--- lx";
         var connected = snapshot.LatestSensor is not null ? "connected" : "disconnected";
@@ -285,7 +285,6 @@ internal sealed class ConsoleDashboardRenderer
         {
             table.AddRow("deviceId", Markup.Escape(sensor.DeviceId));
             table.AddRow("sensorId", Markup.Escape(sensor.SensorId));
-            table.AddRow("value", Markup.Escape(sensor.Value.ToString()));
             table.AddRow("raw", Markup.Escape(sensor.Raw?.ToString() ?? "null"));
             table.AddRow("device ts", Markup.Escape(sensor.DeviceTimestamp.ToString()));
             table.AddRow("received", Markup.Escape(sensor.ReceivedAt.LocalDateTime.ToString("HH:mm:ss")));
@@ -407,14 +406,12 @@ internal sealed class ConsoleDashboardRenderer
             return null;
         }
 
-        if (string.Equals(snapshot.MeasurementKind, "Normalized1000", StringComparison.OrdinalIgnoreCase))
+        if (!snapshot.LatestSensor.Raw.HasValue)
         {
-            return (int)Math.Round(
-                Math.Clamp(snapshot.LatestSensor.Value, 0, 1000) / 10.0,
-                MidpointRounding.AwayFromZero);
+            return null;
         }
 
-        var rawValue = snapshot.LatestSensor.Raw ?? snapshot.LatestSensor.Value;
+        var rawValue = snapshot.LatestSensor.Raw.Value;
         var range = snapshot.ProcessingAdcMax.Value - snapshot.ProcessingAdcMin.Value;
         if (range <= 0)
         {

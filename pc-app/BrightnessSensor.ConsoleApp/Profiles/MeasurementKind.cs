@@ -3,6 +3,5 @@
 internal enum MeasurementKind
 {
     Adc,
-    Lux,
-    Normalized1000
+    Lux
 }

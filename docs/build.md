@@ -25,7 +25,7 @@ From `pc-app/`:
 dotnet run
 ```
 
-The app opens a live terminal dashboard, discovers the ESP32-C6 serial device, calibrates it, and applies monitor brightness through Windows APIs.
+The app opens a live terminal dashboard, discovers the ESP32-C6 serial device, reads raw telemetry, and applies monitor brightness through Windows APIs.
 
 ## Portable Zip
 

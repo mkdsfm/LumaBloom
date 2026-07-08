@@ -60,9 +60,9 @@ Default KY-018 wiring for the ESP32-C6 build:
 After enclosure assembly:
 
 1. Connect the device over USB.
-2. Start the Windows app from `pc-app/` so it can send the startup calibration command.
-3. Confirm that before calibration the LCD shows `--%`.
-4. Confirm that after calibration the LCD shows a percentage and telemetry includes `value`, `raw`.
+2. Start the Windows app from `pc-app/` so it can read live telemetry.
+3. Confirm that the LCD shows a percentage and the diagnostics line updates with the live ADC reading.
+4. Confirm that telemetry includes `raw`.
 
 ## Signal Quality
 

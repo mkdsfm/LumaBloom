@@ -62,7 +62,6 @@ static app_state_t s_app_state = {
         .ts_ms = 0,
         .raw_adc = 0,
         .normalized_value_1000 = 0,
-        .value_for_pc = 0,
         .valid = false,
     },
     .status_text = "INIT",
@@ -105,7 +104,6 @@ static void app_state_apply_calibration(device_reading_t *reading, char *status_
             &s_app_state.calibration,
             reading->raw_adc,
             &reading->normalized_value_1000);
-        reading->value_for_pc = reading->normalized_value_1000;
 
         if (status_text != NULL && status_text_size > 0) {
             strncpy(status_text, "OK", status_text_size - 1);
@@ -166,7 +164,6 @@ static void sensor_task(void *arg)
             .ts_ms = now_ms(),
             .raw_adc = 0,
             .normalized_value_1000 = 0,
-            .value_for_pc = 0,
             .valid = false,
         };
         char status_text[16] = "OK";

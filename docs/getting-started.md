@@ -55,7 +55,7 @@ On startup, the app discovers the serial device and starts applying brightness f
 ## Expected Result
 
 - The LCD shows the current ambient percentage.
-- The app receives JSON lines with `deviceId`, `sensorId`, `ts`, `value`, and `raw`.
+- The app receives JSON lines with `deviceId`, `sensorId`, `ts`, and `raw`.
 - Monitor brightness follows the configured brightness curve.
 
 ## Next Steps

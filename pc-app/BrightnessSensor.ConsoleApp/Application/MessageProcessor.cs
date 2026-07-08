@@ -10,12 +10,7 @@ internal sealed class MessageProcessor(RuntimeStateStore stateStore)
 
     private static int GetMeasurementValue(SensorMessage sensorMessage, MeasurementKind measurementKind)
     {
-        if (measurementKind == MeasurementKind.Normalized1000)
-        {
-            return sensorMessage.Value;
-        }
-
-        return sensorMessage.Raw ?? sensorMessage.Value;
+        return sensorMessage.Raw ?? 0;
     }
 
     public void ProcessMessage(
@@ -25,6 +20,14 @@ internal sealed class MessageProcessor(RuntimeStateStore stateStore)
         CancellationToken cancellationToken)
     {
         _stateStore.SetLatestSensor(sensorMessage);
+
+        if (sensorMessage.Raw is null)
+        {
+            _stateStore.AddEvent(
+                $"Ignoring telemetry without raw measurement from {sensorMessage.DeviceId}/{sensorMessage.SensorId}.",
+                RuntimeEventSeverity.Warning);
+            return;
+        }
 
         if (monitorSessions.Count == 0)
         {
@@ -81,12 +84,11 @@ internal sealed class MessageProcessor(RuntimeStateStore stateStore)
                     evaluationResult.TargetBrightness,
                     evaluationResult.Normalized,
                     evaluationResult.Filtered);
-                var sourceLabel = measurementKind == MeasurementKind.Normalized1000 ? "norm1000" : "raw";
                 var requestedLabel = evaluationResult.RequestedBrightness == evaluationResult.TargetBrightness
                     ? string.Empty
                     : $" requested={evaluationResult.RequestedBrightness}%";
                 _stateStore.AddEvent(
-                    $"[{sourceLabel}] {session.Monitor.Source}:{session.Monitor.Name} value={measurementValue} norm={evaluationResult.Normalized:F3} filt={evaluationResult.Filtered:F3}{requestedLabel} -> brightness={evaluationResult.TargetBrightness}%",
+                    $"[raw] {session.Monitor.Source}:{session.Monitor.Name} measurement={measurementValue} norm={evaluationResult.Normalized:F3} filt={evaluationResult.Filtered:F3}{requestedLabel} -> brightness={evaluationResult.TargetBrightness}%",
                     RuntimeEventSeverity.Info);
             }, cancellationToken);
 

@@ -215,7 +215,7 @@ internal sealed class ConsoleDashboardHost(RuntimeStateStore stateStore)
     {
         var sensor = snapshot.LatestSensor is null
             ? "sensor=none"
-            : $"sensor={snapshot.LatestSensor.DeviceId}/{snapshot.LatestSensor.SensorId} value={snapshot.LatestSensor.Value} raw={snapshot.LatestSensor.Raw?.ToString() ?? "null"}";
+            : $"sensor={snapshot.LatestSensor.DeviceId}/{snapshot.LatestSensor.SensorId} raw={snapshot.LatestSensor.Raw?.ToString() ?? "null"}";
         var connection = snapshot.PortName is null
             ? "port=unresolved"
             : $"port={snapshot.PortName}@{snapshot.BaudRate}";

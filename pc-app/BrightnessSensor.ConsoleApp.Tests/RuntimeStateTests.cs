@@ -51,17 +51,39 @@ public sealed class RuntimeStateTests
             DeviceId = "esp32c6-01",
             SensorId = "light0",
             Timestamp = 123,
-            Value = 800,
             Raw = 1900
         };
 
-        processor.ProcessMessage(message, [session], MeasurementKind.Normalized1000, CancellationToken.None);
+        processor.ProcessMessage(message, [session], MeasurementKind.Adc, CancellationToken.None);
         var snapshot = state.GetSnapshot();
 
         Assert.Equal(0, monitor.SetBrightnessCalls);
         Assert.NotNull(snapshot.LatestSensor);
-        Assert.Equal(800, snapshot.LatestSensor!.Value);
+        Assert.Equal(1900, snapshot.LatestSensor!.Raw);
         Assert.Null(snapshot.Monitors.Single().LastAppliedBrightness);
+    }
+
+    [Fact]
+    public void AdcTelemetry_WithoutRaw_IsIgnoredForBrightnessProcessing()
+    {
+        var state = new RuntimeStateStore();
+        var monitor = new FakeMonitorBrightness();
+        state.SetMonitors([monitor]);
+
+        var processor = new MessageProcessor(state);
+        var session = new MonitorSession(monitor, CreateProcessor());
+        var message = new SensorMessage
+        {
+            DeviceId = "esp32c6-01",
+            SensorId = "light0",
+            Timestamp = 123,
+            Raw = null
+        };
+
+        processor.ProcessMessage(message, [session], MeasurementKind.Adc, CancellationToken.None);
+
+        Assert.Equal(0, monitor.SetBrightnessCalls);
+        Assert.Null(state.GetSnapshot().Monitors.Single().LastAppliedBrightness);
     }
 
     [Fact]
@@ -183,14 +205,13 @@ public sealed class RuntimeStateTests
             DeviceId = "esp32c6-01",
             SensorId = "light0",
             Timestamp = 123,
-            Value = 800,
             Raw = 1900
         };
 
         processor.ProcessMessage(
             message,
             [new MonitorSession(firstMonitor, CreateProcessor()), new MonitorSession(secondMonitor, CreateProcessor())],
-            MeasurementKind.Normalized1000,
+            MeasurementKind.Adc,
             CancellationToken.None);
 
         Assert.Equal(42, firstMonitor.LastSetBrightness);
@@ -214,18 +235,17 @@ public sealed class RuntimeStateTests
             DeviceId = "esp32c6-01",
             SensorId = "light0",
             Timestamp = 123,
-            Value = 1000,
             Raw = 1900
         };
 
         processor.ProcessMessage(
             message,
             [new MonitorSession(monitor, CreateProcessor())],
-            MeasurementKind.Normalized1000,
+            MeasurementKind.Adc,
             CancellationToken.None);
 
         Assert.Equal(BrightnessControlMode.Auto, state.GetSnapshot().BrightnessControlMode);
-        Assert.Equal(100, monitor.LastSetBrightness);
+        Assert.Equal(96, monitor.LastSetBrightness);
     }
 
     [Fact]
@@ -240,24 +260,23 @@ public sealed class RuntimeStateTests
             DeviceId = "esp32c6-01",
             SensorId = "light0",
             Timestamp = 123,
-            Value = 1000,
             Raw = 1900
         };
 
-        processor.ProcessMessage(message, [session], MeasurementKind.Normalized1000, CancellationToken.None);
-        Assert.Equal(100, monitor.LastSetBrightness);
+        processor.ProcessMessage(message, [session], MeasurementKind.Adc, CancellationToken.None);
+        Assert.Equal(96, monitor.LastSetBrightness);
 
         state.SetBrightnessControlMode(BrightnessControlMode.Manual);
         state.SetManualBrightnessPercent(42);
-        processor.ProcessMessage(message, [session], MeasurementKind.Normalized1000, CancellationToken.None);
+        processor.ProcessMessage(message, [session], MeasurementKind.Adc, CancellationToken.None);
         Assert.Equal(42, monitor.LastSetBrightness);
 
         state.SetBrightnessControlMode(BrightnessControlMode.Auto);
-        processor.ProcessMessage(message, [session], MeasurementKind.Normalized1000, CancellationToken.None);
+        processor.ProcessMessage(message, [session], MeasurementKind.Adc, CancellationToken.None);
 
         Assert.Equal(3, monitor.SetBrightnessCalls);
-        Assert.Equal(100, monitor.LastSetBrightness);
-        Assert.Equal(100, state.GetSnapshot().Monitors.Single().LastAppliedBrightness);
+        Assert.Equal(96, monitor.LastSetBrightness);
+        Assert.Equal(96, state.GetSnapshot().Monitors.Single().LastAppliedBrightness);
     }
 
     [Fact]
@@ -562,13 +581,12 @@ public sealed class RuntimeStateTests
             ConnectionSummary: "Resolved [COM] port.",
             ProfileId: "esp32c6-analog-ky018",
             ProfileSummary: "Effective settings: adc=[0..1000], calibration={enabled=True}",
-            MeasurementKind: "Normalized1000",
+            MeasurementKind: "Adc",
             IsGenericProfile: false,
             LatestSensor: new SensorRuntimeSnapshot(
                 "esp32c6-01",
                 "light0",
                 123,
-                1000,
                 456,
                 DateTimeOffset.Now),
             Monitors:
@@ -617,14 +635,13 @@ public sealed class RuntimeStateTests
             ConnectionSummary: "Resolved COM6.",
             ProfileId: "esp32c6-analog-ky018",
             ProfileSummary: "Effective settings: adc=[0..1000]",
-            MeasurementKind: "Normalized1000",
+            MeasurementKind: "Adc",
             IsGenericProfile: false,
             LatestSensor: new SensorRuntimeSnapshot(
                 "esp32c6-01",
                 "light0",
                 123,
                 670,
-                684,
                 DateTimeOffset.Now),
             Monitors: [],
             Events: []);
@@ -633,12 +650,12 @@ public sealed class RuntimeStateTests
     }
 
     [Theory]
-    [InlineData(0)]
+    [InlineData(3200)]
+    [InlineData(2600)]
+    [InlineData(1800)]
+    [InlineData(900)]
     [InlineData(200)]
-    [InlineData(500)]
-    [InlineData(800)]
-    [InlineData(1000)]
-    public void Renderer_Overview_RendersAllSunStates(int normalizedValue)
+    public void Renderer_Overview_RendersAllSunStates(int rawValue)
     {
         var snapshot = new DashboardSnapshot(
             RuntimeScreen.Overview,
@@ -664,14 +681,13 @@ public sealed class RuntimeStateTests
             ConnectionSummary: "Resolved COM6.",
             ProfileId: "esp32c6-analog-ky018",
             ProfileSummary: "Effective settings: adc=[0..1000]",
-            MeasurementKind: "Normalized1000",
+            MeasurementKind: "Adc",
             IsGenericProfile: false,
             LatestSensor: new SensorRuntimeSnapshot(
                 "esp32c6-01",
                 "light0",
                 123,
-                normalizedValue,
-                684,
+                rawValue,
                 DateTimeOffset.Now),
             Monitors: [],
             Events: []);
@@ -706,14 +722,13 @@ public sealed class RuntimeStateTests
             ConnectionSummary: "Resolved COM6.",
             ProfileId: "esp32c6-analog-ky018",
             ProfileSummary: "Effective settings: adc=[0..1000]",
-            MeasurementKind: "Normalized1000",
+            MeasurementKind: "Adc",
             IsGenericProfile: false,
             LatestSensor: new SensorRuntimeSnapshot(
                 "esp32c6-01",
                 "light0",
                 123,
                 1000,
-                684,
                 DateTimeOffset.Now),
             Monitors: [],
             Events: []);
@@ -763,9 +778,8 @@ public sealed class RuntimeStateTests
     {
         return new BrightnessProcessor(
             new BrightnessComputationSettings(
-                InputIsNormalized1000: true,
                 AdcMin: 0,
-                AdcMax: 1000,
+                AdcMax: 2000,
                 Invert: false,
                 EmaAlpha: 1.0,
                 HysteresisPercent: 1,

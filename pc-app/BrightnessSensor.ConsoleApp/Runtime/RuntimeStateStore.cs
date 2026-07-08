@@ -893,7 +893,6 @@ internal sealed class RuntimeStateStore
                 sensorMessage.DeviceId,
                 sensorMessage.SensorId,
                 sensorMessage.Timestamp,
-                sensorMessage.Value,
                 sensorMessage.Raw,
                 DateTimeOffset.Now);
             IncrementVersion();

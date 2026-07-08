@@ -12,13 +12,13 @@
 
 Telemetry format:
 
-`{"deviceId":"esp32c6-01","sensorId":"light0","ts":123456,"value":742,"raw":1840}`
+`{"deviceId":"esp32c6-01","sensorId":"light0","ts":123456,"raw":1840}`
 
-For this firmware, the `value` field contains a calibrated normalized reading in the `0..1000` range.
-Before startup calibration arrives from `pc-app`, the firmware uses its default normalization scale and keeps publishing live readings.
+For this firmware, `raw` is the only measurement field sent over USB.
 The built-in LCD always shows the current ambient percentage plus the current `ADC` line.
+That normalized percentage is derived locally from the configured raw range and is not mirrored into telemetry.
 
-Calibration command from `pc-app`:
+Optional calibration command compatibility:
 
 `{"type":"calibrate","screenBrightnessPercent":65,"sensorAverageRaw":1840}`
 
@@ -26,7 +26,7 @@ Calibration response from the firmware:
 
 `{"type":"calibrationResult","success":true,"normalizedOffset":0.000000,"message":"calibration applied"}`
 
-The current calibration flow keeps the dark endpoint anchored near `0%` and scales the live reading to the startup brightness reference, instead of shifting the whole range upward with a constant offset.
+This compatibility command remains available for manual or legacy flows, but the built-in `esp32c6-analog-ky018` Windows profile now works directly from `raw` telemetry and does not require startup calibration.
 
 ## LCD UI
 
@@ -45,7 +45,7 @@ Current screen layout:
 Runtime behavior:
 
 - the screen shows a direct ambient-light percentage derived from the raw `KY-018` range;
-- the raw ADC line keeps updating independently of runtime calibration.
+- the raw ADC line keeps updating independently of any compatibility calibration command.
 
 ## Quick Flashing with a Prebuilt Binary
 
@@ -173,7 +173,7 @@ Important:
 - `serial.deviceId` must match `APP_DEVICE_ID` in `main/app_config.h`;
 - the default is `esp32c6-01`;
 - `baudRate` must be `115200`.
-- `pc-app` can use telemetry immediately and may optionally refine scaling through startup calibration.
+- `pc-app` can use telemetry immediately from the raw sensor field without startup calibration.
 
 ## Project Settings
 

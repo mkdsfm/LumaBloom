@@ -6,12 +6,12 @@ Smart ambient-light sensor for Windows displays, wrapped in a printable flower-s
 
 [Watch the demo video](https://youtu.be/8JuLW-chpVk?si=8Hq7ECl7L5f6ZxNs)
 
-LumaBloom reads room light from a KY-018 sensor, calibrates the reading on an ESP32-C6, streams JSON telemetry over USB, and lets the Windows companion app adjust monitor brightness automatically.
+LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON telemetry over USB, and lets the Windows companion app adjust monitor brightness automatically.
 
 ## Highlights
 
 - ESP32-C6 firmware for Waveshare `ESP32-C6-LCD-1.47`.
-- Runtime calibration from the Windows app, with normalized `0..1000` telemetry.
+- Raw `ADC` telemetry from the ESP32-C6, with normalization kept local to firmware UI and the Windows app.
 - Live Windows terminal dashboard for status, calibration, manual brightness, settings, events, and diagnostics.
 - Printable enclosure with `.3mf` plates, STEP sources, STL exports, photos, and demo media.
 - User-tunable brightness curve, including anchoring the curve to the current room light, plus smoothing, hysteresis, gamma, language, and autostart settings.
@@ -35,20 +35,21 @@ LumaBloom reads room light from a KY-018 sensor, calibrates the reading on an ES
 | [`hardware/README.md`](hardware/README.md) | Hardware index, assembly, wiring, BOM, and enclosure assets |
 | [`docs/protocol.md`](docs/protocol.md) | USB JSONL telemetry and calibration command contract |
 | [`docs/device-profiles.md`](docs/device-profiles.md) | Built-in profile resolution and runtime defaults |
+| [`docs/usb-brightness-spec-ru.md`](docs/usb-brightness-spec-ru.md) | Русскоязычная нормативная спецификация USB-телеметрии и алгоритма яркости |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution workflow and validation expectations |
 
 ## How It Works
 
 1. The ESP32-C6 reads the KY-018 sensor and shows status on the onboard LCD.
 2. The Windows app discovers the device over a COM port.
-3. The app samples raw light data and sends a `calibrate` command with the current monitor brightness.
-4. The device starts streaming calibrated normalized readings.
-5. The app maps ambient light to monitor brightness using the configured curve and smoothing settings.
+3. The device streams raw light telemetry over USB.
+4. The app maps ambient light to monitor brightness using the active profile, response curve, and smoothing settings.
+5. The LCD shows a local normalized percentage derived from the configured raw range.
 
 Telemetry example:
 
 ```json
-{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"value":742,"raw":1840}
+{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"raw":1840}
 ```
 
 ## Current Target

@@ -11,11 +11,10 @@ void telemetry_serial_publish(const char *device_id, const char *sensor_id, cons
     }
 
     printf(
-        "{\"deviceId\":\"%s\",\"sensorId\":\"%s\",\"ts\":%" PRIu64 ",\"value\":%d,\"raw\":%d}\n",
+        "{\"deviceId\":\"%s\",\"sensorId\":\"%s\",\"ts\":%" PRIu64 ",\"raw\":%d}\n",
         device_id,
         sensor_id,
         reading->ts_ms,
-        reading->value_for_pc,
         reading->raw_adc);
     fflush(stdout);
 }

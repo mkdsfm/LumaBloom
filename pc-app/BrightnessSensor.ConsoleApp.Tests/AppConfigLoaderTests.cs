@@ -126,7 +126,7 @@ public sealed class AppConfigLoaderTests
         {
             DeviceId = "esp32c3-01",
             SensorId = "light0",
-            Value = 1234
+            Raw = 1234
         };
 
         var profile = resolver.Resolve(config, message, out _);
@@ -148,7 +148,7 @@ public sealed class AppConfigLoaderTests
         {
             DeviceId = "mystery-board",
             SensorId = "light9",
-            Value = 1234
+            Raw = 1234
         };
 
         var profile = resolver.Resolve(config, message, out var logMessage);
@@ -235,7 +235,6 @@ public sealed class AppConfigLoaderTests
         {
             DeviceId = "esp32c6-01",
             SensorId = "light0",
-            Value = 0,
             Raw = 1450
         };
 
