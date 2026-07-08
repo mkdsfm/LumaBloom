@@ -35,7 +35,6 @@ LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON
 | [`hardware/README.md`](hardware/README.md) | Hardware index, assembly, wiring, BOM, and enclosure assets |
 | [`docs/protocol.md`](docs/protocol.md) | USB JSONL telemetry contract |
 | [`docs/device-profiles.md`](docs/device-profiles.md) | Single-device runtime defaults and settings model |
-| [`docs/usb-brightness-spec-ru.md`](docs/usb-brightness-spec-ru.md) | Русскоязычная нормативная спецификация USB-телеметрии и алгоритма яркости |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution workflow and validation expectations |
 
 ## How It Works
