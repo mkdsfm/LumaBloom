@@ -60,12 +60,15 @@ internal static class BrightnessApplication
                 new BrightnessProcessor(CreateBrightnessSettings(effectiveSettings))))
             .ToList();
 
+        var messageProcessor = new MessageProcessor(stateStore);
+
         if (!TryConnectSensor(
                 configPath,
                 serialBaudRate,
                 discoveryTimeoutMs,
                 monitorSessions,
                 stateStore,
+                messageProcessor,
                 cancellationToken,
                 ref config,
                 ref effectiveSettings,
@@ -76,7 +79,6 @@ internal static class BrightnessApplication
         }
 
         stateStore.SetLifecycle(AppLifecycleState.Running, "Running.");
-        var messageProcessor = new MessageProcessor(stateStore);
 
         if (firstMessage is not null)
         {
@@ -91,6 +93,7 @@ internal static class BrightnessApplication
                 ref effectiveSettings,
                 monitorSessions,
                 stateStore);
+            messageProcessor.ApplyPendingManualBrightness(monitorSessions, cancellationToken);
 
             var readResult = sensorReader.TryReadMessage();
             if (readResult.Status == SensorReadStatus.TimeoutOrEmpty)
@@ -172,6 +175,7 @@ internal static class BrightnessApplication
         int discoveryTimeoutMs,
         IReadOnlyList<MonitorSession> monitorSessions,
         RuntimeStateStore stateStore,
+        MessageProcessor messageProcessor,
         CancellationToken cancellationToken,
         ref AppConfig config,
         ref ResolvedAppSettings effectiveSettings,
@@ -192,6 +196,7 @@ internal static class BrightnessApplication
                 ref effectiveSettings,
                 monitorSessions,
                 stateStore);
+            messageProcessor.ApplyPendingManualBrightness(monitorSessions, cancellationToken);
 
             stateStore.SetLifecycle(AppLifecycleState.Waiting, "Waiting for sensor telemetry...");
             stateStore.ClearLatestSensor();

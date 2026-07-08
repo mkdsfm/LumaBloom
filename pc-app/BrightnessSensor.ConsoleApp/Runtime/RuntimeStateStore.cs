@@ -650,6 +650,10 @@ internal sealed class RuntimeStateStore
             {
                 _forceNextAutoBrightnessApply = true;
             }
+            else if (previousMode != BrightnessControlMode.Manual && mode == BrightnessControlMode.Manual)
+            {
+                _lastManualAppliedBrightnessPercent = null;
+            }
 
             _statusMessage = mode == BrightnessControlMode.Auto
                 ? "Running."
