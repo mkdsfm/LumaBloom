@@ -30,20 +30,13 @@ internal static class BrightnessApplication
         stateStore.SetAutostartEnabled(WindowsAutostartManager.IsEnabled());
 
         var profileResolver = new DeviceProfileResolver();
-        var forcedProfile = profileResolver.TryResolveByProfileId(config.DeviceProfile.ProfileId);
-        var fallbackProfile = forcedProfile ?? DeviceProfileCatalog.Generic;
-        var resolvedProfile = fallbackProfile;
+        var resolvedProfile = DeviceProfileCatalog.Generic;
         var effectiveSettings = ResolvedSettingsFactory.Create(config, resolvedProfile);
         stateStore.SetProfile(effectiveSettings, $"Waiting for sensor profile. Effective settings: {Describe(effectiveSettings)}");
         stateStore.AddEvent($"Loaded settings: {Describe(effectiveSettings)}", RuntimeEventSeverity.Info);
 
-        var serialBaudRate = config.Serial.BaudRate ?? fallbackProfile.BaudRate;
-        var discoveryTimeoutMs = config.Serial.DiscoveryTimeoutMs ?? fallbackProfile.DiscoveryTimeoutMs;
-        var discoveryDeviceId = !string.IsNullOrWhiteSpace(config.Serial.DeviceId)
-            ? config.Serial.DeviceId
-            : forcedProfile?.IsGeneric == false
-                ? forcedProfile.DeviceId
-                : null;
+        var serialBaudRate = resolvedProfile.BaudRate;
+        var discoveryTimeoutMs = resolvedProfile.DiscoveryTimeoutMs;
 
         var monitors = MonitorDiscovery.DiscoverMonitors();
         stateStore.SetMonitors(monitors);
@@ -70,7 +63,6 @@ internal static class BrightnessApplication
         if (!TryConnectSensor(
                 configPath,
                 profileResolver,
-                discoveryDeviceId,
                 serialBaudRate,
                 discoveryTimeoutMs,
                 monitorSessions,
@@ -127,7 +119,6 @@ internal static class BrightnessApplication
                 if (!TryConnectSensor(
                         configPath,
                         profileResolver,
-                        discoveryDeviceId,
                         serialBaudRate,
                         discoveryTimeoutMs,
                         monitorSessions,
@@ -183,7 +174,6 @@ internal static class BrightnessApplication
     private static bool TryConnectSensor(
         string configPath,
         DeviceProfileResolver profileResolver,
-        string? discoveryDeviceId,
         int serialBaudRate,
         int discoveryTimeoutMs,
         IReadOnlyList<MonitorSession> monitorSessions,
@@ -215,12 +205,10 @@ internal static class BrightnessApplication
             stateStore.ClearLatestSensor();
 
             var discovery = new SerialPortDiscovery(
-                discoveryDeviceId,
+                deviceId: null,
                 serialBaudRate,
                 discoveryProbeTimeoutMs);
-            var discoveryResult = string.IsNullOrWhiteSpace(discoveryDeviceId)
-                ? discovery.ResolveFirstTelemetry()
-                : discovery.ResolveByDeviceId();
+            var discoveryResult = discovery.ResolveFirstTelemetry();
             if (discoveryResult.Status != SerialPortDiscoveryStatus.Success || string.IsNullOrWhiteSpace(discoveryResult.PortName))
             {
                 var warning = discoveryResult.Error ?? "Sensor is not connected yet.";
@@ -255,9 +243,7 @@ internal static class BrightnessApplication
             stateStore.SetConnection(
                 portName,
                 serialBaudRate,
-                string.IsNullOrWhiteSpace(discoveryDeviceId)
-                    ? "Resolved port via telemetry probe."
-                    : $"Resolved port for deviceId={discoveryDeviceId}.");
+                "Resolved port via telemetry probe.");
             stateStore.AddEvent($"Resolved COM port {portName} @ {serialBaudRate}.", RuntimeEventSeverity.Success);
 
             stateStore.SetLifecycle(AppLifecycleState.Waiting, "Waiting for first valid telemetry...");
@@ -271,7 +257,7 @@ internal static class BrightnessApplication
             }
 
             stateStore.SetLatestSensor(firstMessage);
-            resolvedProfile = profileResolver.Resolve(config, firstMessage, out var profileLog);
+            resolvedProfile = profileResolver.Resolve(firstMessage, out var profileLog);
             effectiveSettings = ResolvedSettingsFactory.Create(config, resolvedProfile);
 
             foreach (var session in monitorSessions)

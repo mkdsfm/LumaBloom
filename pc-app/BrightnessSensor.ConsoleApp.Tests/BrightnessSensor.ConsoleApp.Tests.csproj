@@ -29,10 +29,8 @@
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\BrightnessOverrides.cs" Link="ConsoleApp.Configuration\BrightnessOverrides.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\BrightnessCurvePoint.cs" Link="ConsoleApp.Configuration\BrightnessCurvePoint.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\BrightnessSettings.cs" Link="ConsoleApp.Configuration\BrightnessSettings.cs" />
-    <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\DeviceProfileSelectionSettings.cs" Link="ConsoleApp.Configuration\DeviceProfileSelectionSettings.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\ProcessingOverrides.cs" Link="ConsoleApp.Configuration\ProcessingOverrides.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\ProcessingSettings.cs" Link="ConsoleApp.Configuration\ProcessingSettings.cs" />
-    <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\SerialSettings.cs" Link="ConsoleApp.Configuration\SerialSettings.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\UiSettings.cs" Link="ConsoleApp.Configuration\UiSettings.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\DeviceProfile.cs" Link="ConsoleApp.Profiles\DeviceProfile.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\DeviceProfileCatalog.cs" Link="ConsoleApp.Profiles\DeviceProfileCatalog.cs" />

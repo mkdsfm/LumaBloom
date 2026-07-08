@@ -6,18 +6,6 @@ namespace BrightnessSensor.ConsoleApp.Configuration;
 internal sealed class AppConfig
 {
     /// <summary>
-    /// COM port connection parameters used to read sensor telemetry.
-    /// </summary>
-    [JsonPropertyName("serial")]
-    public SerialSettings Serial { get; init; } = new();
-
-    /// <summary>
-    /// Hardware profile selection behavior.
-    /// </summary>
-    [JsonPropertyName("deviceProfile")]
-    public DeviceProfileSelectionSettings DeviceProfile { get; init; } = new();
-
-    /// <summary>
     /// Optional signal processing overrides applied on top of a resolved hardware profile.
     /// </summary>
     [JsonPropertyName("processing")]

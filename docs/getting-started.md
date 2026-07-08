@@ -39,8 +39,6 @@ Create `pc-app/appsettings.json` from the ESP32-C6 example:
 Copy-Item pc-app/appsettings.esp32c6.example.json pc-app/appsettings.json
 ```
 
-Optional: set `serial.deviceId` if you want the app to discover only one exact device.
-
 Useful config notes:
 
 - `processing.adcMin=200`, `processing.adcMax=3200`, and `processing.invert=true` match the current ESP32-C6 + KY-018 wiring
@@ -56,7 +54,7 @@ dotnet restore
 dotnet run
 ```
 
-On startup, the app discovers the serial device and starts applying brightness from the active device profile and response curve. The built-in `esp32c6-analog-ky018` flow uses the live raw sensor range directly and does not require startup calibration.
+On startup, the app probes available COM ports for the first valid telemetry stream, auto-detects the active device profile from `deviceId + sensorId`, and starts applying brightness from the resolved profile and response curve. The built-in `esp32c6-analog-ky018` flow uses the live raw sensor range directly and does not require startup calibration.
 
 ## Expected Result
 

@@ -22,19 +22,15 @@ internal static class ResolvedSettingsFactory
                 ? config.Brightness!.Curve!
                 : profile.Brightness.Curve);
 
-        var discoveryDeviceId = !string.IsNullOrWhiteSpace(config.Serial.DeviceId)
-            ? config.Serial.DeviceId
-            : profile.IsGeneric
-                ? null
-                : profile.DeviceId;
+        var discoveryDeviceId = profile.IsGeneric ? null : profile.DeviceId;
 
         var resolved = new ResolvedAppSettings(
             ProfileId: profile.ProfileId,
             MeasurementKind: profile.MeasurementKind,
             IsGenericProfile: profile.IsGeneric,
             DiscoveryDeviceId: discoveryDeviceId,
-            BaudRate: config.Serial.BaudRate ?? profile.BaudRate,
-            DiscoveryTimeoutMs: config.Serial.DiscoveryTimeoutMs ?? profile.DiscoveryTimeoutMs,
+            BaudRate: profile.BaudRate,
+            DiscoveryTimeoutMs: profile.DiscoveryTimeoutMs,
             Processing: processing,
             Brightness: brightness);
 

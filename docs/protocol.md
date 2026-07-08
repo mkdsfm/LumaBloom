@@ -13,7 +13,7 @@ The firmware uses USB Serial as a bidirectional JSONL channel.
 
 ## Telemetry Fields
 
-- `deviceId` (`string`) - device identifier; used by the PC application to select the hardware profile and to autodiscover the COM port when `serial.deviceId` is set in the config
+- `deviceId` (`string`) - device identifier; used by the PC application to select the hardware profile after the first valid telemetry message is received
 - `sensorId` (`string`) - sensor identifier
 - `ts` (`number`) - milliseconds since device startup
 - `raw` (`number`) - raw ADC reading used by `pc-app` for brightness processing, diagnostics, and curve anchoring

@@ -21,9 +21,6 @@ You can keep `appsettings.json` minimal:
 
 ```json
 {
-  "deviceProfile": {
-    "autoDetect": true
-  },
   "brightness": {
     "minPercent": 10,
     "maxPercent": 100
@@ -37,22 +34,9 @@ For a full debugging-oriented example with every optional field populated, see [
 
 Top-level sections:
 
-- `serial` - optional COM discovery and serial-read overrides
-- `deviceProfile` - profile auto-detect or forced profile selection
 - `processing` - optional raw-signal processing overrides
 - `brightness` - optional output brightness bounds and response curve
 - `ui` - runtime UI preferences
-
-### `serial`
-
-- `serial.deviceId` (`string`, optional): restrict discovery to telemetry from one device id, for example `esp32c6-01`
-- `serial.baudRate` (`number`, optional): must be `> 0`; default is the resolved profile baud rate, currently `115200`
-- `serial.discoveryTimeoutMs` (`number`, optional): must be `> 0`; default is the resolved profile timeout, currently `2500`
-
-### `deviceProfile`
-
-- `deviceProfile.autoDetect` (`bool`): defaults to `true`
-- `deviceProfile.profileId` (`string`, optional): required when `autoDetect=false`
 
 ### `processing`
 
@@ -82,11 +66,8 @@ Curve validation:
 
 Optional overrides:
 
-- `serial.deviceId` to narrow COM port discovery to one device
-- `serial.baudRate` and `serial.discoveryTimeoutMs` only when you need to override built-in defaults
-- `deviceProfile.profileId` to force a profile for debugging
-- `deviceProfile.autoDetect=false` together with `deviceProfile.profileId`
 - partial `processing` and `brightness` overrides
+- `ui.language` to pin the UI language instead of following the OS
 
 For `esp32c6-analog-ky018` specifically:
 

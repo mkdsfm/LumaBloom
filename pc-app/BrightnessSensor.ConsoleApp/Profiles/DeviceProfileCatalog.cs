@@ -21,8 +21,8 @@ internal static class DeviceProfileCatalog
             MinPercent: 10,
             MaxPercent: 100,
             Curve: CreateDefaultCurve(10, 100)),
-        BaudRate: SerialSettings.DefaultBaudRate,
-        DiscoveryTimeoutMs: SerialSettings.DefaultDiscoveryTimeoutMs,
+        BaudRate: 115200,
+        DiscoveryTimeoutMs: 2500,
         IsGeneric: true);
 
     public static readonly IReadOnlyList<DeviceProfile> All =
@@ -44,8 +44,8 @@ internal static class DeviceProfileCatalog
                 MinPercent: 10,
                 MaxPercent: 100,
                 Curve: CreateDefaultCurve(10, 100)),
-            BaudRate: SerialSettings.DefaultBaudRate,
-            DiscoveryTimeoutMs: SerialSettings.DefaultDiscoveryTimeoutMs)
+            BaudRate: 115200,
+            DiscoveryTimeoutMs: 2500)
     ];
 
     private static IReadOnlyList<BrightnessCurvePoint> CreateDefaultCurve(int minPercent, int maxPercent)
