@@ -167,7 +167,7 @@ internal sealed class TerminalGuiDashboard
         _title.X = 1;
         _title.Y = 0;
         _title.SchemeName = TitleSchemeName;
-        _version.Text = "v1.3.0";
+        _version.Text = "v1.4.0";
         _version.X = Pos.Right(_title) + 1;
         _version.Y = 0;
         _version.SchemeName = AccentSchemeName;
