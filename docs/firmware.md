@@ -46,7 +46,7 @@ Do not use `GPIO0` for the KY-018 signal; it can interfere with normal board sta
 Firmware emits newline-delimited JSON with raw sensor telemetry:
 
 ```json
-{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"raw":1840}
+{"id":"lumabloom","ts":1234567,"raw":1840}
 ```
 
 

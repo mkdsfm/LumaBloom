@@ -4,16 +4,15 @@
 #include <inttypes.h>
 #include <stdio.h>
 
-void telemetry_serial_publish(const char *device_id, const char *sensor_id, const device_reading_t *reading)
+void telemetry_serial_publish(const char *protocol_id, const device_reading_t *reading)
 {
-    if (device_id == NULL || sensor_id == NULL || reading == NULL || !reading->valid) {
+    if (protocol_id == NULL || reading == NULL || !reading->valid) {
         return;
     }
 
     printf(
-        "{\"deviceId\":\"%s\",\"sensorId\":\"%s\",\"ts\":%" PRIu64 ",\"raw\":%d}\n",
-        device_id,
-        sensor_id,
+        "{\"id\":\"%s\",\"ts\":%" PRIu64 ",\"raw\":%d}\n",
+        protocol_id,
         reading->ts_ms,
         reading->raw_adc);
     fflush(stdout);

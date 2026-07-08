@@ -70,7 +70,7 @@ internal sealed class ConsoleDashboardRenderer
             JoinDashboardLine(BuildStatusCardLine(8, mode, status, green), $"[grey]{new string('-', 86)}[/]"),
             JoinDashboardLine(new string(' ', leftWidth), $"  [{purple}]Sensor Info[/]                              [grey]|[/]   [{purple}]System Info[/]"),
             JoinDashboardLine(new string(' ', leftWidth), $"  [grey]Type:[/]       [white]{Markup.Escape(snapshot.MeasurementKind ?? "Unknown"),-18}[/] [grey]|[/]   [grey]Uptime:[/]    [{blue}]{uptime}[/]"),
-            JoinDashboardLine(new string(' ', leftWidth), $"  [grey]Address:[/]    [white]{Markup.Escape(snapshot.LatestSensor?.SensorId ?? "n/a"),-18}[/] [grey]|[/]   [grey]Mode:[/]      [{green}]{Markup.Escape(mode)}[/]"),
+            JoinDashboardLine(new string(' ', leftWidth), $"  [grey]Protocol:[/]   [white]{Markup.Escape(snapshot.LatestSensor?.Id ?? snapshot.ProtocolId ?? "n/a"),-18}[/] [grey]|[/]   [grey]Mode:[/]      [{green}]{Markup.Escape(mode)}[/]"),
             JoinDashboardLine(new string(' ', leftWidth), $"  [grey]Last read:[/]  [white]{lastRead,-18}[/] [grey]|[/]   [grey]Free Mem:[/]  [{blue}]n/a[/]"),
             JoinDashboardLine(new string(' ', leftWidth), string.Empty),
             JoinDashboardLine(PadMarkupRight($"   [{purple}]LumaBloom[/]", 13, leftWidth), $"      [grey]{Markup.Escape(localizer["nav.hint"])}[/]"),
@@ -230,8 +230,7 @@ internal sealed class ConsoleDashboardRenderer
         }
         else
         {
-            table.AddRow("deviceId", Markup.Escape(sensor.DeviceId));
-            table.AddRow("sensorId", Markup.Escape(sensor.SensorId));
+            table.AddRow("id", Markup.Escape(sensor.Id));
             table.AddRow("raw", Markup.Escape(sensor.Raw?.ToString() ?? "null"));
             table.AddRow("device ts", Markup.Escape(sensor.DeviceTimestamp.ToString()));
             table.AddRow("received", Markup.Escape(sensor.ReceivedAt.LocalDateTime.ToString("HH:mm:ss")));
@@ -249,10 +248,9 @@ internal sealed class ConsoleDashboardRenderer
         table.AddColumn("Value");
         table.AddRow("port", Markup.Escape(snapshot.PortName ?? "null"));
         table.AddRow("baud", Markup.Escape(snapshot.BaudRate?.ToString() ?? "null"));
-        table.AddRow("profileId", Markup.Escape(snapshot.ProfileId ?? "null"));
-        table.AddRow("summary", Markup.Escape(snapshot.ProfileSummary ?? "null"));
+        table.AddRow("protocolId", Markup.Escape(snapshot.ProtocolId ?? "null"));
+        table.AddRow("summary", Markup.Escape(snapshot.SettingsSummary ?? "null"));
         table.AddRow("measurement", Markup.Escape(snapshot.MeasurementKind ?? "unknown"));
-        table.AddRow("generic", Markup.Escape(snapshot.IsGenericProfile?.ToString() ?? "n/a"));
 
         return new Panel(table)
             .Header(localizer["diagnostics.profile"])

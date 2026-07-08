@@ -183,7 +183,7 @@ static void sensor_task(void *arg)
             reading.ts_ms = now_ms();
             app_state_apply_calibration(&reading, status_text, sizeof(status_text));
             app_state_write(&reading, status_text);
-            telemetry_serial_publish(APP_DEVICE_ID, APP_SENSOR_ID, &reading);
+            telemetry_serial_publish(APP_PROTOCOL_ID, &reading);
         } else {
             ESP_LOGE(TAG, "sensor_ky018_read failed: %s", esp_err_to_name(err));
             sensor->initialized = false;
@@ -283,8 +283,8 @@ static void display_task(void *arg)
 void app_main(void)
 {
     ESP_LOGI(TAG, "Starting brightness sensor firmware for ESP32-C6");
-    ESP_LOGI(TAG, "DeviceId=%s SensorId=%s ReadIntervalMs=%d",
-             APP_DEVICE_ID, APP_SENSOR_ID, APP_READ_INTERVAL_MS);
+    ESP_LOGI(TAG, "ProtocolId=%s ReadIntervalMs=%d",
+             APP_PROTOCOL_ID, APP_READ_INTERVAL_MS);
 
     s_app_state.mutex = xSemaphoreCreateMutex();
     if (s_app_state.mutex == NULL) {

@@ -24,7 +24,7 @@ internal sealed class MessageProcessor(RuntimeStateStore stateStore)
         if (sensorMessage.Raw is null)
         {
             _stateStore.AddEvent(
-                $"Ignoring telemetry without raw measurement from {sensorMessage.DeviceId}/{sensorMessage.SensorId}.",
+                $"Ignoring telemetry without raw measurement from protocol '{sensorMessage.Id}'.",
                 RuntimeEventSeverity.Warning);
             return;
         }

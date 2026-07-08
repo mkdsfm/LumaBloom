@@ -54,12 +54,12 @@ dotnet restore
 dotnet run
 ```
 
-On startup, the app probes available COM ports for the first valid telemetry stream, auto-detects the active device profile from `deviceId + sensorId`, and starts applying brightness from the resolved profile and response curve. The built-in `esp32c6-analog-ky018` flow uses the live raw sensor range directly and does not require startup calibration.
+On startup, the app probes available COM ports for the first valid LumaBloom telemetry stream, accepts the first port that emits `{"id":"lumabloom","ts":...,"raw":...}`, and starts applying brightness from the resolved app settings and response curve.
 
 ## Expected Result
 
 - The LCD shows the current ambient percentage.
-- The app receives JSON lines with `deviceId`, `sensorId`, `ts`, and `raw`.
+- The app receives JSON lines with `id`, `ts`, and `raw`.
 - Monitor brightness follows the configured brightness curve.
 
 ## Next Steps
@@ -69,4 +69,4 @@ On startup, the app probes available COM ports for the first valid telemetry str
 - The `Current light` action reads the live sensor value, converts it with the active `adcMin`, `adcMax`, and `invert` settings, rebuilds the whole response curve around that anchor, and saves it immediately.
 - The saved curve may contain an extra anchor point such as `16 -> 60` in addition to the usual five visible control points. This is expected and makes the chosen current-light target exact instead of approximate.
 - Review [`docs/protocol.md`](protocol.md) when changing telemetry.
-- Review [`docs/device-profiles.md`](device-profiles.md) when changing runtime defaults.
+- Review [`docs/device-profiles.md`](device-profiles.md) when changing runtime defaults or the single-device settings model.

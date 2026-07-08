@@ -1,8 +1,7 @@
 namespace BrightnessSensor.ConsoleApp.Runtime;
 
 internal sealed record SensorRuntimeSnapshot(
-    string DeviceId,
-    string SensorId,
+    string Id,
     long DeviceTimestamp,
     int? Raw,
     DateTimeOffset ReceivedAt);

@@ -4,11 +4,8 @@ namespace BrightnessSensor.DeviceReading.Models;
 
 public sealed class SensorMessage
 {
-    [JsonPropertyName("deviceId")]
-    public string DeviceId { get; init; } = string.Empty;
-
-    [JsonPropertyName("sensorId")]
-    public string SensorId { get; init; } = string.Empty;
+    [JsonPropertyName("id")]
+    public string Id { get; init; } = string.Empty;
 
     [JsonPropertyName("ts")]
     public long Timestamp { get; init; }

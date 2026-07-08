@@ -3,10 +3,8 @@
 namespace BrightnessSensor.ConsoleApp.Profiles;
 
 internal sealed record ResolvedAppSettings(
-    string ProfileId,
+    string ProtocolId,
     MeasurementKind MeasurementKind,
-    bool IsGenericProfile,
-    string? DiscoveryDeviceId,
     int BaudRate,
     int DiscoveryTimeoutMs,
     ProcessingSettings Processing,

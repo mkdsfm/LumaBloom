@@ -29,12 +29,10 @@
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\BrightnessOverrides.cs" Link="ConsoleApp.Configuration\BrightnessOverrides.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\BrightnessCurvePoint.cs" Link="ConsoleApp.Configuration\BrightnessCurvePoint.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\BrightnessSettings.cs" Link="ConsoleApp.Configuration\BrightnessSettings.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\ConnectionOverrides.cs" Link="ConsoleApp.Configuration\ConnectionOverrides.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\ProcessingOverrides.cs" Link="ConsoleApp.Configuration\ProcessingOverrides.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\ProcessingSettings.cs" Link="ConsoleApp.Configuration\ProcessingSettings.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Configuration\UiSettings.cs" Link="ConsoleApp.Configuration\UiSettings.cs" />
-    <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\DeviceProfile.cs" Link="ConsoleApp.Profiles\DeviceProfile.cs" />
-    <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\DeviceProfileCatalog.cs" Link="ConsoleApp.Profiles\DeviceProfileCatalog.cs" />
-    <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\DeviceProfileResolver.cs" Link="ConsoleApp.Profiles\DeviceProfileResolver.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\MeasurementKind.cs" Link="ConsoleApp.Profiles\MeasurementKind.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\ResolvedAppSettings.cs" Link="ConsoleApp.Profiles\ResolvedAppSettings.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Profiles\ResolvedSettingsFactory.cs" Link="ConsoleApp.Profiles\ResolvedSettingsFactory.cs" />
@@ -74,6 +72,7 @@
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\UiInputIntent.cs" Link="ConsoleApp.Runtime\UiInputIntent.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\UiLanguage.cs" Link="ConsoleApp.Runtime\UiLanguage.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\UiMouseClick.cs" Link="ConsoleApp.Runtime\UiMouseClick.cs" />
+    <Compile Include="..\BrightnessSensor.DeviceReading\Models\LumaBloomTelemetry.cs" Link="DeviceReading\Models\LumaBloomTelemetry.cs" />
     <Compile Include="..\BrightnessSensor.DeviceReading\Models\SensorMessage.cs" Link="DeviceReading\Models\SensorMessage.cs" />
     <Compile Include="..\BrightnessSensor.WindowsBrightness\IMonitorBrightness.cs" Link="WindowsBrightness\IMonitorBrightness.cs" />
   </ItemGroup>

@@ -9,38 +9,17 @@ The firmware uses USB Serial as a bidirectional JSONL channel.
 
 ## Telemetry Format
 
-`{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"raw":1840}`
+`{"id":"lumabloom","ts":1234567,"raw":1840}`
 
 ## Telemetry Fields
 
-- `deviceId` (`string`) - device identifier; used by the PC application to select the hardware profile after the first valid telemetry message is received
-- `sensorId` (`string`) - sensor identifier
+- `id` (`string`) - protocol identifier; must be `lumabloom` for `pc-app` to treat the COM port as a compatible device
 - `ts` (`number`) - milliseconds since device startup
 - `raw` (`number`) - raw ADC reading used by `pc-app` for brightness processing, diagnostics, and curve anchoring
 ## `raw` Semantics
 
 - For `firmware/firmware_esp32c6/`, `raw` is the only telemetry measurement field on the USB wire contract.
 - The on-device LCD still derives a normalized ambient percent from the configured raw range, but that normalized display value is local to firmware UI and is not transmitted to `pc-app`.
-
-## Optional Calibration Command Compatibility
-
-`{"type":"calibrate","screenBrightnessPercent":65,"sensorAverageRaw":1840}`
-
-Fields:
-
-- `type` must be `calibrate`
-- `screenBrightnessPercent` is the current monitor brightness in `0..100`
-- `sensorAverageRaw` is the averaged raw ADC sample supplied by an external tool or legacy flow
-
-## Calibration Response From ESP32-C6
-
-`{"type":"calibrationResult","success":true,"normalizedOffset":0.000000,"message":"calibration applied"}`
-
-Fields:
-
-- `success` indicates whether the command was accepted
-- `normalizedOffset` is a compatibility diagnostics field from the firmware calibration state; the current `pc-app` raw-only flow does not use it
-- `message` is a short status string for logs or diagnostics
 
 ## Message Separator
 

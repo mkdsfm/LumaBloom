@@ -58,10 +58,9 @@ internal sealed class RuntimeStateStore
     private string? _portName;
     private int? _baudRate;
     private string? _connectionSummary;
-    private string? _profileId;
-    private string? _profileSummary;
+    private string? _protocolId;
+    private string? _settingsSummary;
     private string? _measurementKind;
-    private bool? _isGenericProfile;
     private ProcessingSettings? _processingSettings;
     private IReadOnlyList<BrightnessCurvePoint> _brightnessCurve = [];
     private readonly Queue<LanguageUpdateRequest> _languageUpdateRequests = [];
@@ -860,27 +859,28 @@ internal sealed class RuntimeStateStore
         }
     }
 
-    public void SetProfile(ResolvedAppSettings settings, string profileSummary)
+    public void SetDeviceSettings(ResolvedAppSettings settings, string settingsSummary)
     {
         lock (_gate)
         {
-            _profileId = settings.ProfileId;
-            _profileSummary = profileSummary;
+            _protocolId = settings.ProtocolId;
+            _settingsSummary = settingsSummary;
             _measurementKind = settings.MeasurementKind.ToString();
-            _isGenericProfile = settings.IsGenericProfile;
             _processingSettings = settings.Processing;
             _brightnessCurve = settings.Brightness.Curve;
             IncrementVersion();
         }
     }
 
-    public void SetEffectiveSettings(ResolvedAppSettings settings, string profileSummary)
+    public void SetEffectiveSettings(ResolvedAppSettings settings, string settingsSummary)
     {
         lock (_gate)
         {
+            _protocolId = settings.ProtocolId;
+            _measurementKind = settings.MeasurementKind.ToString();
             _processingSettings = settings.Processing;
             _brightnessCurve = settings.Brightness.Curve;
-            _profileSummary = profileSummary;
+            _settingsSummary = settingsSummary;
             IncrementVersion();
         }
     }
@@ -890,8 +890,7 @@ internal sealed class RuntimeStateStore
         lock (_gate)
         {
             _latestSensor = new SensorRuntimeSnapshot(
-                sensorMessage.DeviceId,
-                sensorMessage.SensorId,
+                sensorMessage.Id,
                 sensorMessage.Timestamp,
                 sensorMessage.Raw,
                 DateTimeOffset.Now);
@@ -1039,10 +1038,9 @@ internal sealed class RuntimeStateStore
                 _portName,
                 _baudRate,
                 _connectionSummary,
-                _profileId,
-                _profileSummary,
+                _protocolId,
+                _settingsSummary,
                 _measurementKind,
-                _isGenericProfile,
                 _latestSensor,
                 monitors,
                 [.. _events],
