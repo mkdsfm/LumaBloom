@@ -134,24 +134,6 @@ internal static class AppConfigLoader
             ValidateBrightnessCurve(config.Brightness.Curve);
         }
 
-        if (config.Calibration?.SampleCount is <= 0)
-        {
-            throw new InvalidOperationException("calibration.sampleCount must be greater than 0.");
-        }
-
-        if (config.Calibration?.MaxReadAttempts is <= 0)
-        {
-            throw new InvalidOperationException("calibration.maxReadAttempts must be greater than 0.");
-        }
-
-        if (config.Calibration?.SampleCount.HasValue == true &&
-            config.Calibration.MaxReadAttempts.HasValue &&
-            config.Calibration.MaxReadAttempts.Value < config.Calibration.SampleCount.Value)
-        {
-            throw new InvalidOperationException(
-                "calibration.maxReadAttempts must be greater than or equal to calibration.sampleCount.");
-        }
-
         if (!IsSupportedUiLanguage(config.Ui.Language))
         {
             throw new InvalidOperationException("ui.language must be one of: auto, en, ru, es.");

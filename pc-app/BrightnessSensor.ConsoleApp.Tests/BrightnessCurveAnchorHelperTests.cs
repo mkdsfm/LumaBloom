@@ -111,7 +111,6 @@ public sealed class BrightnessCurveAnchorHelperTests
             115200,
             3000,
             new ProcessingSettings(adcMin, adcMax, invert, 0.2, 1, 2, 1.0),
-            new BrightnessSettings(10, 100, CreateCurve((0, 10), (25, 28), (50, 55), (75, 78), (100, 100))),
-            new CalibrationSettings(false, 5, 20));
+            new BrightnessSettings(10, 100, CreateCurve((0, 10), (25, 28), (50, 55), (75, 78), (100, 100))));
     }
 }

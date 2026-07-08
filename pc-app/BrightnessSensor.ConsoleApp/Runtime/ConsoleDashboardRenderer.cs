@@ -154,71 +154,18 @@ internal sealed class ConsoleDashboardRenderer
 
     private static IRenderable BuildCalibrationScreen(DashboardSnapshot snapshot, Localizer localizer)
     {
-        return new Rows(
-            BuildCalibrationBody(snapshot, localizer),
-            BuildCalibrationActions(snapshot, localizer));
-    }
-
-    private static IRenderable BuildCalibrationBody(DashboardSnapshot snapshot, Localizer localizer)
-    {
-        var lines = new List<string>
+        var lines = new[]
         {
-            snapshot.CalibrationWizardStep switch
-            {
-                CalibrationWizardStep.ManualTarget => localizer["calibration.manual"],
-                CalibrationWizardStep.Review => localizer["calibration.review"],
-                CalibrationWizardStep.Queued => localizer["calibration.queued"],
-                _ => localizer["calibration.choose"]
-            },
+            localizer["settings.curve.help"],
             string.Empty,
-            snapshot.CalibrationStatus
+            localizer["calibration.explain.3"],
+            localizer["calibration.explain.4"],
+            localizer["calibration.explain.5"],
+            localizer["calibration.explain.6"]
         };
-
-        if (snapshot.CalibrationWizardStep == CalibrationWizardStep.ManualTarget)
-        {
-            var input = string.IsNullOrWhiteSpace(snapshot.CalibrationManualInputBuffer)
-                ? localizer["value.none"]
-                : $"{snapshot.CalibrationManualInputBuffer}%";
-            lines.Add($"{localizer["calibration.input"]}: {input}");
-        }
-
-        if (snapshot.CalibrationWizardStep == CalibrationWizardStep.Review)
-        {
-            lines.Add(snapshot.CalibrationTargetMode == CalibrationTargetMode.ManualTarget
-                ? $"{localizer["calibration.manualValue"]}: {snapshot.CalibrationManualInputBuffer}%"
-                : localizer["calibration.current"]);
-        }
-
-        if (!string.IsNullOrWhiteSpace(snapshot.CalibrationInputError))
-        {
-            lines.Add(localizer[snapshot.CalibrationInputError]);
-        }
 
         return new Panel(new Markup(Markup.Escape(string.Join(Environment.NewLine, lines))))
             .Header(localizer["screen.calibration"])
-            .Border(BoxBorder.Rounded);
-    }
-
-    private static IRenderable BuildCalibrationActions(DashboardSnapshot snapshot, Localizer localizer)
-    {
-        var actions = snapshot.CalibrationWizardStep switch
-        {
-            CalibrationWizardStep.ChooseTarget => new[]
-            {
-                FormatCalibrationAction(snapshot, CalibrationAction.UseCurrentBrightness, localizer["action.useCurrent"]),
-                FormatCalibrationAction(snapshot, CalibrationAction.SetManualTarget, localizer["action.manualTarget"]),
-                FormatCalibrationAction(snapshot, CalibrationAction.Cancel, localizer["action.cancel"])
-            },
-            CalibrationWizardStep.Queued => [FormatCalibrationAction(snapshot, CalibrationAction.Cancel, localizer["action.cancel"])],
-            _ =>
-            [
-                FormatCalibrationAction(snapshot, CalibrationAction.Confirm, localizer["action.confirm"]),
-                FormatCalibrationAction(snapshot, CalibrationAction.Cancel, localizer["action.cancel"])
-            ]
-        };
-
-        return new Panel(new Markup(string.Join("  ", actions)))
-            .Header(localizer["status.actions"])
             .Border(BoxBorder.Rounded);
     }
 
@@ -375,11 +322,6 @@ internal sealed class ConsoleDashboardRenderer
         bool destructive = false)
     {
         return FormatAction(snapshot.FocusedOverviewAction == action, label, destructive);
-    }
-
-    private static string FormatCalibrationAction(DashboardSnapshot snapshot, CalibrationAction action, string label)
-    {
-        return FormatAction(snapshot.FocusedCalibrationAction == action, label, action == CalibrationAction.Cancel);
     }
 
     private static string FormatAction(bool focused, string label, bool destructive)

@@ -280,51 +280,6 @@ public sealed class RuntimeStateTests
     }
 
     [Fact]
-    public void RecalibrationRequest_TransitionsPendingState()
-    {
-        var state = new RuntimeStateStore();
-
-        Assert.True(state.TryRequestRecalibration(42));
-
-        var pendingSnapshot = state.GetSnapshot();
-        Assert.True(pendingSnapshot.RecalibrationPending);
-        Assert.Equal(42, pendingSnapshot.PendingCalibrationBrightnessPercent);
-
-        Assert.True(state.TryConsumeRecalibrationRequest(out var targetBrightnessPercent));
-        Assert.Equal(42, targetBrightnessPercent);
-
-        var consumedSnapshot = state.GetSnapshot();
-        Assert.False(consumedSnapshot.RecalibrationPending);
-        Assert.Null(consumedSnapshot.PendingCalibrationBrightnessPercent);
-    }
-
-    [Fact]
-    public void CalibrationInput_AllowsCustomBrightnessAndCommit()
-    {
-        var state = new RuntimeStateStore();
-        state.BeginCalibrationInput();
-
-        Assert.True(state.TryAppendCalibrationInputDigit('6'));
-        Assert.True(state.TryAppendCalibrationInputDigit('5'));
-        Assert.True(state.TryCommitCalibrationInput(out var targetBrightnessPercent));
-
-        Assert.Equal(65, targetBrightnessPercent);
-        Assert.False(state.GetSnapshot().IsCalibrationInputActive);
-    }
-
-    [Fact]
-    public void CalibrationInput_BlankCommitUsesCurrentBrightness()
-    {
-        var state = new RuntimeStateStore();
-        state.BeginCalibrationInput();
-
-        Assert.True(state.TryCommitCalibrationInput(out var targetBrightnessPercent));
-
-        Assert.Null(targetBrightnessPercent);
-        Assert.False(state.GetSnapshot().IsCalibrationInputActive);
-    }
-
-    [Fact]
     public void UiState_SwitchesScreensAndKeepsFocus()
     {
         var state = new RuntimeStateStore();
@@ -349,44 +304,6 @@ public sealed class RuntimeStateTests
         var snapshot = state.GetSnapshot();
 
         Assert.Equal(OverviewAction.ManualDecreaseFast, snapshot.FocusedOverviewAction);
-    }
-
-    [Fact]
-    public void CalibrationWizard_ManualTarget_ReachesReview()
-    {
-        var state = new RuntimeStateStore();
-
-        state.BeginCalibrationWizard();
-        state.SelectCalibrationManualTarget();
-        Assert.True(state.TryAppendCalibrationManualDigit('6'));
-        Assert.True(state.TryAppendCalibrationManualDigit('5'));
-        Assert.True(state.TryReviewManualCalibrationTarget());
-
-        var snapshot = state.GetSnapshot();
-
-        Assert.Equal(RuntimeScreen.Calibration, snapshot.ActiveScreen);
-        Assert.Equal(CalibrationWizardStep.Review, snapshot.CalibrationWizardStep);
-        Assert.Equal(CalibrationTargetMode.ManualTarget, snapshot.CalibrationTargetMode);
-        Assert.True(state.TryGetReviewedCalibrationTarget(out var targetBrightnessPercent));
-        Assert.Equal(65, targetBrightnessPercent);
-    }
-
-    [Fact]
-    public void CalibrationWizard_RejectsManualTargetAbove100()
-    {
-        var state = new RuntimeStateStore();
-
-        state.BeginCalibrationWizard();
-        state.SelectCalibrationManualTarget();
-
-        Assert.True(state.TryAppendCalibrationManualDigit('1'));
-        Assert.True(state.TryAppendCalibrationManualDigit('0'));
-        Assert.False(state.TryAppendCalibrationManualDigit('1'));
-
-        var snapshot = state.GetSnapshot();
-
-        Assert.Equal("10", snapshot.CalibrationManualInputBuffer);
-        Assert.Equal("calibration.invalid", snapshot.CalibrationInputError);
     }
 
     [Fact]
@@ -507,54 +424,6 @@ public sealed class RuntimeStateTests
     }
 
     [Fact]
-    public void Interaction_MouseClick_OverviewDoesNotOpenCalibrationWizard()
-    {
-        var state = new RuntimeStateStore();
-        var controller = new RuntimeInteractionController(state, _ => { });
-
-        controller.HandleMouseClick(new UiMouseClick(80, 8));
-
-        var snapshot = state.GetSnapshot();
-        Assert.Equal(RuntimeScreen.Overview, snapshot.ActiveScreen);
-        Assert.Equal(CalibrationWizardStep.ChooseTarget, snapshot.CalibrationWizardStep);
-        Assert.Equal(BrightnessControlMode.Manual, snapshot.BrightnessControlMode);
-    }
-
-    [Fact]
-    public void Interaction_MouseClick_CalibrationCurrentBrightnessQueuesRequest()
-    {
-        var state = new RuntimeStateStore();
-        var controller = new RuntimeInteractionController(state, _ => { });
-
-        state.BeginCalibrationWizard();
-        controller.HandleMouseClick(new UiMouseClick(10, 8));
-        controller.HandleMouseClick(new UiMouseClick(10, 8));
-
-        var snapshot = state.GetSnapshot();
-        Assert.True(snapshot.RecalibrationPending);
-        Assert.Equal(CalibrationWizardStep.Queued, snapshot.CalibrationWizardStep);
-        Assert.Null(snapshot.PendingCalibrationBrightnessPercent);
-    }
-
-    [Fact]
-    public void Interaction_Keyboard_CalibrationManualTargetQueuesRequest()
-    {
-        var state = new RuntimeStateStore();
-        var controller = new RuntimeInteractionController(state, _ => { });
-
-        state.BeginCalibrationWizard();
-        controller.ActivateCalibrationAction(CalibrationAction.SetManualTarget);
-        controller.ApplyIntent(UiInputIntent.AppendDigit('4'));
-        controller.ApplyIntent(UiInputIntent.AppendDigit('2'));
-        controller.ActivateCalibrationAction(CalibrationAction.Confirm);
-        controller.ActivateCalibrationAction(CalibrationAction.Confirm);
-
-        var snapshot = state.GetSnapshot();
-        Assert.True(snapshot.RecalibrationPending);
-        Assert.Equal(42, snapshot.PendingCalibrationBrightnessPercent);
-    }
-
-    [Fact]
     public void Renderer_Diagnostics_EscapesProfileSummaryMarkupCharacters()
     {
         var snapshot = new DashboardSnapshot(
@@ -580,7 +449,7 @@ public sealed class RuntimeStateTests
             BaudRate: 115200,
             ConnectionSummary: "Resolved [COM] port.",
             ProfileId: "esp32c6-analog-ky018",
-            ProfileSummary: "Effective settings: adc=[0..1000], calibration={enabled=True}",
+            ProfileSummary: "Effective settings: adc=[0..1000]",
             MeasurementKind: "Adc",
             IsGenericProfile: false,
             LatestSensor: new SensorRuntimeSnapshot(

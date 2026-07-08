@@ -30,12 +30,6 @@ internal sealed class AppConfig
     public BrightnessOverrides? Brightness { get; init; }
 
     /// <summary>
-    /// Optional startup calibration overrides.
-    /// </summary>
-    [JsonPropertyName("calibration")]
-    public CalibrationOverrides? Calibration { get; init; }
-
-    /// <summary>
     /// Runtime terminal UI preferences.
     /// </summary>
     [JsonPropertyName("ui")]

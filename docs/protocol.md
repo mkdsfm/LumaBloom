@@ -30,7 +30,7 @@ Fields:
 
 - `type` must be `calibrate`
 - `screenBrightnessPercent` is the current monitor brightness in `0..100`
-- `sensorAverageRaw` is the averaged raw ADC sample collected by `pc-app` when a compatible calibration flow is used
+- `sensorAverageRaw` is the averaged raw ADC sample supplied by an external tool or legacy flow
 
 ## Calibration Response From ESP32-C6
 
@@ -39,7 +39,7 @@ Fields:
 Fields:
 
 - `success` indicates whether the command was accepted
-- `normalizedOffset` is a compatibility diagnostics field from the firmware calibration state; current `esp32c6-analog-ky018` app behavior does not require it for normal brightness control
+- `normalizedOffset` is a compatibility diagnostics field from the firmware calibration state; the current `pc-app` raw-only flow does not use it
 - `message` is a short status string for logs or diagnostics
 
 ## Message Separator

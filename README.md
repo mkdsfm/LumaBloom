@@ -12,7 +12,7 @@ LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON
 
 - ESP32-C6 firmware for Waveshare `ESP32-C6-LCD-1.47`.
 - Raw `ADC` telemetry from the ESP32-C6, with normalization kept local to firmware UI and the Windows app.
-- Live Windows terminal dashboard for status, calibration, manual brightness, settings, events, and diagnostics.
+- Live Windows terminal dashboard for status, manual brightness, settings, events, and diagnostics.
 - Printable enclosure with `.3mf` plates, STEP sources, STL exports, photos, and demo media.
 - User-tunable brightness curve, including anchoring the curve to the current room light, plus smoothing, hysteresis, gamma, language, and autostart settings.
 
@@ -33,7 +33,7 @@ LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON
 | [`docs/firmware.md`](docs/firmware.md) | ESP32-C6 firmware build, flash, monitor, and release binary notes |
 | [`docs/build.md`](docs/build.md) | PC app restore, build, test, run, and publish commands |
 | [`hardware/README.md`](hardware/README.md) | Hardware index, assembly, wiring, BOM, and enclosure assets |
-| [`docs/protocol.md`](docs/protocol.md) | USB JSONL telemetry and calibration command contract |
+| [`docs/protocol.md`](docs/protocol.md) | USB JSONL telemetry contract |
 | [`docs/device-profiles.md`](docs/device-profiles.md) | Built-in profile resolution and runtime defaults |
 | [`docs/usb-brightness-spec-ru.md`](docs/usb-brightness-spec-ru.md) | Русскоязычная нормативная спецификация USB-телеметрии и алгоритма яркости |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution workflow and validation expectations |

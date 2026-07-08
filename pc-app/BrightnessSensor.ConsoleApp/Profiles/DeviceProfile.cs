@@ -8,7 +8,6 @@ internal sealed record DeviceProfile(
     string SensorId,
     MeasurementKind MeasurementKind,
     ProcessingSettings Processing,
-    CalibrationSettings Calibration,
     BrightnessSettings Brightness,
     int BaudRate = 115200,
     int DiscoveryTimeoutMs = 2500,

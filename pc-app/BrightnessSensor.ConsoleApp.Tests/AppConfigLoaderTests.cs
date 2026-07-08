@@ -116,7 +116,7 @@ public sealed class AppConfigLoaderTests
         var config = LoadConfig("""
                                 {
                                   "serial": {
-                                    "deviceId": "esp32c3-01"
+                                    "deviceId": "esp32c6-01"
                                   }
                                 }
                                 """);
@@ -124,14 +124,14 @@ public sealed class AppConfigLoaderTests
         var resolver = new DeviceProfileResolver();
         var message = new SensorMessage
         {
-            DeviceId = "esp32c3-01",
+            DeviceId = "esp32c6-01",
             SensorId = "light0",
             Raw = 1234
         };
 
         var profile = resolver.Resolve(config, message, out _);
 
-        Assert.Equal("esp32c3-analog-ky018", profile.ProfileId);
+        Assert.Equal("esp32c6-analog-ky018", profile.ProfileId);
     }
 
     [Fact]
@@ -163,7 +163,7 @@ public sealed class AppConfigLoaderTests
         var config = LoadConfig("""
                                 {
                                   "serial": {
-                                    "deviceId": "esp32c3-01"
+                                    "deviceId": "esp32c6-01"
                                   },
                                   "processing": {
                                     "emaAlpha": 0.1,
@@ -172,29 +172,21 @@ public sealed class AppConfigLoaderTests
                                   },
                                   "brightness": {
                                     "minPercent": 15
-                                  },
-                                  "calibration": {
-                                    "enabled": false,
-                                    "sampleCount": 3,
-                                    "maxReadAttempts": 3
                                   }
                                 }
                                 """);
 
         var resolved = ResolvedSettingsFactory.Create(
             config,
-            DeviceProfileCatalog.All.Single(profile => profile.ProfileId == "esp32c3-analog-ky018"));
+            DeviceProfileCatalog.All.Single(profile => profile.ProfileId == "esp32c6-analog-ky018"));
 
-        Assert.Equal(300, resolved.Processing.AdcMin);
+        Assert.Equal(200, resolved.Processing.AdcMin);
         Assert.Equal(3200, resolved.Processing.AdcMax);
         Assert.Equal(0.1, resolved.Processing.EmaAlpha);
         Assert.Equal(7, resolved.Processing.HysteresisPercent);
         Assert.Equal(4, resolved.Processing.MaxBrightnessStepPercent);
         Assert.Equal(15, resolved.Brightness.MinPercent);
         Assert.Equal(100, resolved.Brightness.MaxPercent);
-        Assert.False(resolved.Calibration.Enabled);
-        Assert.Equal(3, resolved.Calibration.SampleCount);
-        Assert.Equal(3, resolved.Calibration.MaxReadAttempts);
         Assert.Equal(SerialSettings.DefaultBaudRate, resolved.BaudRate);
         Assert.Equal(SerialSettings.DefaultDiscoveryTimeoutMs, resolved.DiscoveryTimeoutMs);
     }
@@ -245,7 +237,6 @@ public sealed class AppConfigLoaderTests
         Assert.True(resolved.Processing.Invert);
         Assert.Equal(200, resolved.Processing.AdcMin);
         Assert.Equal(3200, resolved.Processing.AdcMax);
-        Assert.False(resolved.Calibration.Enabled);
     }
 
     [Fact]

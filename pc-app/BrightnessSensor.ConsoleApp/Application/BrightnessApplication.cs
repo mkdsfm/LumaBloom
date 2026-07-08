@@ -103,34 +103,6 @@ internal static class BrightnessApplication
                 monitorSessions,
                 stateStore);
 
-            if (stateStore.TryConsumeRecalibrationRequest(out var requestedBrightnessPercent))
-            {
-                stateStore.SetCalibrationStatus(requestedBrightnessPercent.HasValue
-                    ? $"Manual recalibration in progress for target brightness {requestedBrightnessPercent}%..."
-                    : "Manual recalibration in progress using current monitor brightness...");
-                var recalibrationSucceeded = TryCalibration(
-                    sensorReader,
-                    monitorSessions,
-                    effectiveSettings,
-                    initialMessage: null,
-                    stateStore,
-                    cancellationToken,
-                    isStartup: false,
-                    requestedBrightnessPercent: requestedBrightnessPercent);
-
-                if (recalibrationSucceeded)
-                {
-                    stateStore.AddEvent("Manual recalibration completed.", RuntimeEventSeverity.Success);
-                }
-                else
-                {
-                    stateStore.AddEvent("Manual recalibration failed; continuing runtime.", RuntimeEventSeverity.Error);
-                    stateStore.SetLifecycle(AppLifecycleState.Running, stateStore.IsPaused
-                        ? "Paused: telemetry continues, brightness writes are suspended."
-                        : "Running.");
-                }
-            }
-
             var readResult = sensorReader.TryReadMessage();
             if (readResult.Status == SensorReadStatus.TimeoutOrEmpty)
             {
@@ -310,28 +282,6 @@ internal static class BrightnessApplication
             stateStore.SetProfile(effectiveSettings, $"{profileLog} Effective settings: {Describe(effectiveSettings)}");
             stateStore.AddEvent(profileLog, RuntimeEventSeverity.Info);
             stateStore.AddEvent($"Effective settings: {Describe(effectiveSettings)}", RuntimeEventSeverity.Info);
-
-            stateStore.SetLifecycle(AppLifecycleState.Starting, "Running startup calibration...");
-            if (!TryCalibration(
-                    candidateReader,
-                    monitorSessions,
-                    effectiveSettings,
-                    firstMessage,
-                    stateStore,
-                    cancellationToken,
-                    isStartup: true,
-                    requestedBrightnessPercent: null))
-            {
-                candidateReader.Dispose();
-                if (cancellationToken.IsCancellationRequested)
-                {
-                    return false;
-                }
-
-                stateStore.AddEvent("Startup calibration failed; waiting for sensor again.", RuntimeEventSeverity.Warning);
-                SleepBeforeReconnect(cancellationToken);
-                continue;
-            }
 
             sensorReader = candidateReader;
             return true;
@@ -561,176 +511,6 @@ internal static class BrightnessApplication
         }
     }
 
-    private static bool TryCalibration(
-        SerialSensorReader sensorReader,
-        IReadOnlyList<MonitorSession> monitorSessions,
-        ResolvedAppSettings settings,
-        SensorMessage? initialMessage,
-        RuntimeStateStore stateStore,
-        CancellationToken cancellationToken,
-        bool isStartup,
-        int? requestedBrightnessPercent)
-    {
-        cancellationToken.ThrowIfCancellationRequested();
-
-        var calibrationLabel = isStartup
-            ? "Startup calibration"
-            : requestedBrightnessPercent.HasValue
-                ? $"Manual recalibration to {requestedBrightnessPercent}%"
-                : "Manual recalibration";
-        var calibrationSettings = settings.Calibration;
-
-        if (!calibrationSettings.Enabled)
-        {
-            stateStore.SetCalibrationStatus($"{calibrationLabel} disabled.");
-            stateStore.AddEvent($"{calibrationLabel} disabled.", RuntimeEventSeverity.Warning);
-            return true;
-        }
-
-        if (monitorSessions.Count == 0)
-        {
-            var noMonitorsMessage = $"{calibrationLabel} skipped: no monitors available.";
-            stateStore.SetCalibrationStatus(noMonitorsMessage);
-            stateStore.AddEvent(noMonitorsMessage, RuntimeEventSeverity.Warning);
-            return true;
-        }
-
-        stateStore.SetCalibrationStatus($"{calibrationLabel}: collecting samples...");
-        stateStore.AddEvent($"{calibrationLabel}: collecting samples...", RuntimeEventSeverity.Info);
-
-        var samples = new List<int>(calibrationSettings.SampleCount);
-        if (initialMessage is not null)
-        {
-            stateStore.SetLatestSensor(initialMessage);
-            samples.Add(GetCalibrationSample(initialMessage));
-        }
-
-        var attempts = 0;
-        while (attempts < calibrationSettings.MaxReadAttempts &&
-            samples.Count < calibrationSettings.SampleCount &&
-            !cancellationToken.IsCancellationRequested)
-        {
-            attempts++;
-
-            var readResult = sensorReader.TryReadMessage();
-            switch (readResult.Status)
-            {
-                case SensorReadStatus.TimeoutOrEmpty or SensorReadStatus.InvalidPayload:
-                    continue;
-                case SensorReadStatus.Error:
-                {
-                    var message = $"{calibrationLabel} skipped: COM read error ({readResult.Error}).";
-                    stateStore.SetCalibrationStatus(message);
-                    stateStore.AddEvent(message, RuntimeEventSeverity.Error);
-                    return !isStartup;
-                }
-                default:
-                    stateStore.SetLatestSensor(readResult.Message!);
-                    samples.Add(GetCalibrationSample(readResult.Message!));
-                    stateStore.SetCalibrationStatus($"{calibrationLabel}: collected {samples.Count}/{calibrationSettings.SampleCount} samples...");
-                    break;
-            }
-        }
-
-        if (samples.Count == 0)
-        {
-            var message = $"{calibrationLabel} skipped: no valid sensor data received.";
-            stateStore.SetCalibrationStatus(message);
-            stateStore.AddEvent(message, RuntimeEventSeverity.Warning);
-            return !isStartup;
-        }
-
-        if (samples.Count < calibrationSettings.SampleCount)
-        {
-            var message = $"{calibrationLabel} skipped: not enough samples ({samples.Count}/{calibrationSettings.SampleCount}).";
-            stateStore.SetCalibrationStatus(message);
-            stateStore.AddEvent(message, RuntimeEventSeverity.Warning);
-            return !isStartup;
-        }
-
-        var averageSample = (int)Math.Round(samples.Average(), MidpointRounding.AwayFromZero);
-        var anyCalibrationSucceeded = false;
-        foreach (var session in monitorSessions)
-        {
-            cancellationToken.ThrowIfCancellationRequested();
-
-            if (!session.IsEnabled)
-            {
-                continue;
-            }
-
-            if (!TryResolveCalibrationBrightness(
-                    session.Monitor,
-                    requestedBrightnessPercent,
-                    stateStore,
-                    calibrationLabel,
-                    out var currentBrightness,
-                    out var brightnessError))
-            {
-                var message = $"{calibrationLabel} skipped ({session.Monitor.Source}:{session.Monitor.Name}): cannot read current brightness ({brightnessError}).";
-                stateStore.RecordMonitorStatus(session.Monitor.Source, session.Monitor.Name, "Current brightness unavailable");
-                stateStore.AddEvent(message, RuntimeEventSeverity.Warning);
-                continue;
-            }
-
-            if (!session.Processor.TryCalibrate(averageSample, currentBrightness, out var error))
-            {
-                var message = $"{calibrationLabel} skipped ({session.Monitor.Source}:{session.Monitor.Name}): {error}";
-                stateStore.RecordMonitorStatus(session.Monitor.Source, session.Monitor.Name, "Local calibration failed");
-                stateStore.AddEvent(message, RuntimeEventSeverity.Warning);
-                continue;
-            }
-
-            stateStore.MarkMonitorCalibration(
-                session.Monitor.Source,
-                session.Monitor.Name,
-                currentBrightness,
-                averageSample,
-                samples.Count);
-            stateStore.AddEvent(
-                $"{calibrationLabel} ({session.Monitor.Source}:{session.Monitor.Name}): screen={currentBrightness}% sensorAvg={averageSample} ({samples.Count} samples)",
-                RuntimeEventSeverity.Success);
-            anyCalibrationSucceeded = true;
-        }
-
-        if (anyCalibrationSucceeded || monitorSessions.All(session => !session.IsEnabled))
-        {
-            stateStore.SetCalibrationStatus($"{calibrationLabel} complete.");
-        }
-        else
-        {
-            stateStore.SetCalibrationStatus($"{calibrationLabel} did not calibrate any enabled monitors.");
-        }
-
-        return anyCalibrationSucceeded || monitorSessions.All(session => !session.IsEnabled);
-    }
-
-    private static bool TryResolveCalibrationBrightness(
-        IMonitorBrightness monitor,
-        int? requestedBrightnessPercent,
-        RuntimeStateStore stateStore,
-        string calibrationLabel,
-        out int brightnessPercent,
-        out string? error)
-    {
-        if (requestedBrightnessPercent.HasValue)
-        {
-            brightnessPercent = requestedBrightnessPercent.Value;
-            if (!monitor.TrySetBrightness(brightnessPercent, out error))
-            {
-                return false;
-            }
-
-            stateStore.AddEvent(
-                $"{calibrationLabel} ({monitor.Source}:{monitor.Name}): set monitor brightness to requested {brightnessPercent}% before calibration.",
-                RuntimeEventSeverity.Info);
-            error = null;
-            return true;
-        }
-
-        return monitor.TryGetBrightness(out brightnessPercent, out error);
-    }
-
     private static BrightnessComputationSettings CreateBrightnessSettings(ResolvedAppSettings settings)
     {
         return new BrightnessComputationSettings(
@@ -789,7 +569,7 @@ internal static class BrightnessApplication
 
     private static string Describe(ResolvedAppSettings settings)
     {
-        return $"profileId={settings.ProfileId}, measurement={settings.MeasurementKind}, generic={settings.IsGenericProfile}, adc=[{settings.Processing.AdcMin}..{settings.Processing.AdcMax}], invert={settings.Processing.Invert}, emaAlpha={FormatNumber(settings.Processing.EmaAlpha)}, hysteresisPercent={settings.Processing.HysteresisPercent}, maxBrightnessStepPercent={settings.Processing.MaxBrightnessStepPercent}, gamma={FormatNullableNumber(settings.Processing.Gamma)}, brightness=[{settings.Brightness.MinPercent}..{settings.Brightness.MaxPercent}], curve={FormatCurve(settings.Brightness.Curve)}, calibration={{enabled={settings.Calibration.Enabled}, sampleCount={settings.Calibration.SampleCount}, maxReadAttempts={settings.Calibration.MaxReadAttempts}}}";
+        return $"profileId={settings.ProfileId}, measurement={settings.MeasurementKind}, generic={settings.IsGenericProfile}, adc=[{settings.Processing.AdcMin}..{settings.Processing.AdcMax}], invert={settings.Processing.Invert}, emaAlpha={FormatNumber(settings.Processing.EmaAlpha)}, hysteresisPercent={settings.Processing.HysteresisPercent}, maxBrightnessStepPercent={settings.Processing.MaxBrightnessStepPercent}, gamma={FormatNullableNumber(settings.Processing.Gamma)}, brightness=[{settings.Brightness.MinPercent}..{settings.Brightness.MaxPercent}], curve={FormatCurve(settings.Brightness.Curve)}";
     }
 
     private static string FormatNumber(double value)
