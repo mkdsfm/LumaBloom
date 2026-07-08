@@ -23,7 +23,7 @@ LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON
 | [`firmware/firmware_esp32c6/`](firmware/firmware_esp32c6/) | ESP-IDF firmware for the device |
 | [`pc-app/`](pc-app/) | Windows-only .NET companion app |
 | [`hardware/`](hardware/) | Wiring, BOM, assembly, printable enclosure, and hardware revisions |
-| [`docs/`](docs/) | Protocol, profiles, setup, firmware, and build docs |
+| [`docs/`](docs/) | Protocol, settings, setup, firmware, and build docs |
 
 ## Documentation
 
@@ -34,7 +34,7 @@ LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON
 | [`docs/build.md`](docs/build.md) | PC app restore, build, test, run, and publish commands |
 | [`hardware/README.md`](hardware/README.md) | Hardware index, assembly, wiring, BOM, and enclosure assets |
 | [`docs/protocol.md`](docs/protocol.md) | USB JSONL telemetry contract |
-| [`docs/device-profiles.md`](docs/device-profiles.md) | Built-in profile resolution and runtime defaults |
+| [`docs/device-profiles.md`](docs/device-profiles.md) | Single-device runtime defaults and settings model |
 | [`docs/usb-brightness-spec-ru.md`](docs/usb-brightness-spec-ru.md) | Русскоязычная нормативная спецификация USB-телеметрии и алгоритма яркости |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution workflow and validation expectations |
 
@@ -43,13 +43,13 @@ LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON
 1. The ESP32-C6 reads the KY-018 sensor and shows status on the onboard LCD.
 2. The Windows app discovers the device over a COM port.
 3. The device streams raw light telemetry over USB.
-4. The app maps ambient light to monitor brightness using the active profile, response curve, and smoothing settings.
+4. The app maps ambient light to monitor brightness using the active settings, response curve, and smoothing settings.
 5. The LCD shows a local normalized percentage derived from the configured raw range.
 
 Telemetry example:
 
 ```json
-{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"raw":1840}
+{"id":"lumabloom","ts":1234567,"raw":1840}
 ```
 
 ## Current Target

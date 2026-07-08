@@ -29,14 +29,14 @@ internal static class BrightnessApplication
         stateStore.AddEvent("Application started.", RuntimeEventSeverity.Info);
         stateStore.SetAutostartEnabled(WindowsAutostartManager.IsEnabled());
 
-        var profileResolver = new DeviceProfileResolver();
-        var resolvedProfile = DeviceProfileCatalog.Generic;
-        var effectiveSettings = ResolvedSettingsFactory.Create(config, resolvedProfile);
-        stateStore.SetProfile(effectiveSettings, $"Waiting for sensor profile. Effective settings: {Describe(effectiveSettings)}");
+        var effectiveSettings = ResolvedSettingsFactory.Create(config);
+        stateStore.SetDeviceSettings(
+            effectiveSettings,
+            $"Waiting for LumaBloom telemetry. Effective settings: {Describe(effectiveSettings)}");
         stateStore.AddEvent($"Loaded settings: {Describe(effectiveSettings)}", RuntimeEventSeverity.Info);
 
-        var serialBaudRate = resolvedProfile.BaudRate;
-        var discoveryTimeoutMs = resolvedProfile.DiscoveryTimeoutMs;
+        var serialBaudRate = effectiveSettings.BaudRate;
+        var discoveryTimeoutMs = effectiveSettings.DiscoveryTimeoutMs;
 
         var monitors = MonitorDiscovery.DiscoverMonitors();
         stateStore.SetMonitors(monitors);
@@ -62,14 +62,12 @@ internal static class BrightnessApplication
 
         if (!TryConnectSensor(
                 configPath,
-                profileResolver,
                 serialBaudRate,
                 discoveryTimeoutMs,
                 monitorSessions,
                 stateStore,
                 cancellationToken,
                 ref config,
-                ref resolvedProfile,
                 ref effectiveSettings,
                 out var sensorReader,
                 out var firstMessage))
@@ -89,7 +87,6 @@ internal static class BrightnessApplication
         {
             ProcessSettingsRequests(
                 configPath,
-                resolvedProfile,
                 ref config,
                 ref effectiveSettings,
                 monitorSessions,
@@ -118,14 +115,12 @@ internal static class BrightnessApplication
 
                 if (!TryConnectSensor(
                         configPath,
-                        profileResolver,
                         serialBaudRate,
                         discoveryTimeoutMs,
                         monitorSessions,
                         stateStore,
                         cancellationToken,
                         ref config,
-                        ref resolvedProfile,
                         ref effectiveSettings,
                         out sensorReader,
                         out firstMessage))
@@ -173,14 +168,12 @@ internal static class BrightnessApplication
 
     private static bool TryConnectSensor(
         string configPath,
-        DeviceProfileResolver profileResolver,
         int serialBaudRate,
         int discoveryTimeoutMs,
         IReadOnlyList<MonitorSession> monitorSessions,
         RuntimeStateStore stateStore,
         CancellationToken cancellationToken,
         ref AppConfig config,
-        ref DeviceProfile resolvedProfile,
         ref ResolvedAppSettings effectiveSettings,
         out SerialSensorReader sensorReader,
         out SensorMessage? firstMessage)
@@ -195,7 +188,6 @@ internal static class BrightnessApplication
         {
             ProcessSettingsRequests(
                 configPath,
-                resolvedProfile,
                 ref config,
                 ref effectiveSettings,
                 monitorSessions,
@@ -205,7 +197,6 @@ internal static class BrightnessApplication
             stateStore.ClearLatestSensor();
 
             var discovery = new SerialPortDiscovery(
-                deviceId: null,
                 serialBaudRate,
                 discoveryProbeTimeoutMs);
             var discoveryResult = discovery.ResolveFirstTelemetry();
@@ -257,16 +248,18 @@ internal static class BrightnessApplication
             }
 
             stateStore.SetLatestSensor(firstMessage);
-            resolvedProfile = profileResolver.Resolve(firstMessage, out var profileLog);
-            effectiveSettings = ResolvedSettingsFactory.Create(config, resolvedProfile);
 
             foreach (var session in monitorSessions)
             {
                 session.ReplaceProcessor(new BrightnessProcessor(CreateBrightnessSettings(effectiveSettings)));
             }
 
-            stateStore.SetProfile(effectiveSettings, $"{profileLog} Effective settings: {Describe(effectiveSettings)}");
-            stateStore.AddEvent(profileLog, RuntimeEventSeverity.Info);
+            stateStore.SetDeviceSettings(
+                effectiveSettings,
+                $"Connected to LumaBloom protocol '{effectiveSettings.ProtocolId}'. Effective settings: {Describe(effectiveSettings)}");
+            stateStore.AddEvent(
+                $"Validated LumaBloom telemetry on {portName} using protocol '{effectiveSettings.ProtocolId}'.",
+                RuntimeEventSeverity.Success);
             stateStore.AddEvent($"Effective settings: {Describe(effectiveSettings)}", RuntimeEventSeverity.Info);
 
             sensorReader = candidateReader;
@@ -289,7 +282,6 @@ internal static class BrightnessApplication
 
     private static void ProcessSettingsRequests(
         string configPath,
-        DeviceProfile resolvedProfile,
         ref AppConfig config,
         ref ResolvedAppSettings effectiveSettings,
         IReadOnlyList<MonitorSession> monitorSessions,
@@ -335,7 +327,7 @@ internal static class BrightnessApplication
             {
                 AppConfigWriter.UpdateProcessing(configPath, processingRequest.Parameter, processingRequest.Value);
                 var updatedConfig = AppConfigLoader.Load(configPath);
-                var updatedSettings = ResolvedSettingsFactory.Create(updatedConfig, resolvedProfile);
+                var updatedSettings = ResolvedSettingsFactory.Create(updatedConfig);
 
                 foreach (var session in monitorSessions)
                 {
@@ -366,7 +358,7 @@ internal static class BrightnessApplication
                     curveRequest.LightPercent,
                     curveRequest.BrightnessPercent);
                 var updatedConfig = AppConfigLoader.Load(configPath);
-                var updatedSettings = ResolvedSettingsFactory.Create(updatedConfig, resolvedProfile);
+                var updatedSettings = ResolvedSettingsFactory.Create(updatedConfig);
 
                 foreach (var session in monitorSessions)
                 {
@@ -407,7 +399,7 @@ internal static class BrightnessApplication
                     anchorRequest.DesiredBrightnessPercent);
                 AppConfigWriter.UpdateBrightnessCurve(configPath, rebuiltCurve);
                 var updatedConfig = AppConfigLoader.Load(configPath);
-                var updatedSettings = ResolvedSettingsFactory.Create(updatedConfig, resolvedProfile);
+                var updatedSettings = ResolvedSettingsFactory.Create(updatedConfig);
 
                 foreach (var session in monitorSessions)
                 {
@@ -555,7 +547,7 @@ internal static class BrightnessApplication
 
     private static string Describe(ResolvedAppSettings settings)
     {
-        return $"profileId={settings.ProfileId}, measurement={settings.MeasurementKind}, generic={settings.IsGenericProfile}, adc=[{settings.Processing.AdcMin}..{settings.Processing.AdcMax}], invert={settings.Processing.Invert}, emaAlpha={FormatNumber(settings.Processing.EmaAlpha)}, hysteresisPercent={settings.Processing.HysteresisPercent}, maxBrightnessStepPercent={settings.Processing.MaxBrightnessStepPercent}, gamma={FormatNullableNumber(settings.Processing.Gamma)}, brightness=[{settings.Brightness.MinPercent}..{settings.Brightness.MaxPercent}], curve={FormatCurve(settings.Brightness.Curve)}";
+        return $"protocolId={settings.ProtocolId}, measurement={settings.MeasurementKind}, baudRate={settings.BaudRate}, discoveryTimeoutMs={settings.DiscoveryTimeoutMs}, adc=[{settings.Processing.AdcMin}..{settings.Processing.AdcMax}], invert={settings.Processing.Invert}, emaAlpha={FormatNumber(settings.Processing.EmaAlpha)}, hysteresisPercent={settings.Processing.HysteresisPercent}, maxBrightnessStepPercent={settings.Processing.MaxBrightnessStepPercent}, gamma={FormatNullableNumber(settings.Processing.Gamma)}, brightness=[{settings.Brightness.MinPercent}..{settings.Brightness.MaxPercent}], curve={FormatCurve(settings.Brightness.Curve)}";
     }
 
     private static string FormatNumber(double value)

@@ -6,33 +6,33 @@ namespace BrightnessSensor.DeviceReading.Tests;
 public sealed class SerialPortDiscoveryTests
 {
     [Fact]
-    public void Constructor_AllowsEmptyDeviceId()
+    public void Constructor_UsesDefaults_WhenNoParametersAreProvided()
     {
-        var discovery = new SerialPortDiscovery(string.Empty);
+        var discovery = new SerialPortDiscovery();
         Assert.NotNull(discovery);
     }
 
     [Fact]
     public void Constructor_Throws_WhenBaudRateIsNotPositive()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SerialPortDiscovery("esp32c6-01", 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SerialPortDiscovery(0));
     }
 
     [Fact]
     public void Constructor_Throws_WhenDiscoveryTimeoutIsNotPositive()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SerialPortDiscovery("esp32c6-01", discoveryTimeoutMs: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SerialPortDiscovery(discoveryTimeoutMs: 0));
     }
 
     [Fact]
     public void Constructor_Throws_WhenReadTimeoutIsNotPositive()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new SerialPortDiscovery("esp32c6-01", readTimeoutMs: 0));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new SerialPortDiscovery(readTimeoutMs: 0));
     }
 
     [Fact]
     public void Constructor_Throws_WhenNewLineIsEmpty()
     {
-        Assert.Throws<ArgumentException>(() => new SerialPortDiscovery("esp32c6-01", newLine: string.Empty));
+        Assert.Throws<ArgumentException>(() => new SerialPortDiscovery(newLine: string.Empty));
     }
 }

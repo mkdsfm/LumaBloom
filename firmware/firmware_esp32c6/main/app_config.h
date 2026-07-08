@@ -4,8 +4,7 @@
 #include "driver/spi_common.h"
 #include "esp_adc/adc_oneshot.h"
 
-#define APP_DEVICE_ID "esp32c6-01"
-#define APP_SENSOR_ID "light0"
+#define APP_PROTOCOL_ID "lumabloom"
 
 #define APP_READ_INTERVAL_MS 200
 #define APP_DISPLAY_INTERVAL_MS 200

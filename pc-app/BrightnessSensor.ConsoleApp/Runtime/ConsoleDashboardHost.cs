@@ -215,10 +215,10 @@ internal sealed class ConsoleDashboardHost(RuntimeStateStore stateStore)
     {
         var sensor = snapshot.LatestSensor is null
             ? "sensor=none"
-            : $"sensor={snapshot.LatestSensor.DeviceId}/{snapshot.LatestSensor.SensorId} raw={snapshot.LatestSensor.Raw?.ToString() ?? "null"}";
+            : $"sensor={snapshot.LatestSensor.Id} raw={snapshot.LatestSensor.Raw?.ToString() ?? "null"}";
         var connection = snapshot.PortName is null
-            ? "port=unresolved"
-            : $"port={snapshot.PortName}@{snapshot.BaudRate}";
+            ? "com=unresolved baud=n/a"
+            : $"com={snapshot.PortName} baud={snapshot.BaudRate?.ToString() ?? "n/a"}";
 
         Console.WriteLine(
             $"[{DateTimeOffset.Now:HH:mm:ss}] {snapshot.LifecycleState}: {snapshot.StatusMessage} | {connection} | calibration={snapshot.CalibrationStatus} | {sensor}");

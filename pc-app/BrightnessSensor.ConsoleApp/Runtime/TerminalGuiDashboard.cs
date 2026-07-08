@@ -1252,8 +1252,7 @@ internal sealed class TerminalGuiDashboard
         var sensor = snapshot.LatestSensor;
         var sensorLines = sensor is null
             ? "Telemetry: waiting"
-            : $"deviceId: {sensor.DeviceId}{Environment.NewLine}" +
-              $"sensorId: {sensor.SensorId}{Environment.NewLine}" +
+            : $"id: {sensor.Id}{Environment.NewLine}" +
               $"raw: {sensor.Raw?.ToString() ?? "null"}{Environment.NewLine}" +
               $"received: {sensor.ReceivedAt.LocalDateTime:HH:mm:ss}";
 
@@ -1264,7 +1263,7 @@ internal sealed class TerminalGuiDashboard
 
         return $"{sensorLines}{Environment.NewLine}{Environment.NewLine}" +
                $"Port: {snapshot.PortName ?? "n/a"} @ {snapshot.BaudRate?.ToString() ?? "n/a"}{Environment.NewLine}" +
-               $"Profile: {snapshot.ProfileId ?? "n/a"}{Environment.NewLine}" +
+               $"Protocol: {snapshot.ProtocolId ?? "n/a"}{Environment.NewLine}" +
                $"Measurement: {snapshot.MeasurementKind ?? "unknown"}{Environment.NewLine}{Environment.NewLine}" +
                monitorLines;
     }

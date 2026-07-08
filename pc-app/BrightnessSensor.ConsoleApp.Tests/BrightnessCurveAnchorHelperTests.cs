@@ -88,7 +88,7 @@ public sealed class BrightnessCurveAnchorHelperTests
     public void TryGetAmbientPercent_UsesRawAdcSettings()
     {
         var settings = CreateSettings(MeasurementKind.Adc, 200, 3200, invert: true);
-        var sensor = new SensorRuntimeSnapshot("esp32c6-01", "light0", 1, 2600, DateTimeOffset.Now);
+        var sensor = new SensorRuntimeSnapshot("lumabloom", 1, 2600, DateTimeOffset.Now);
 
         var success = BrightnessCurveAnchorHelper.TryGetAmbientPercent(sensor, settings, out var ambientPercent);
 
@@ -104,10 +104,8 @@ public sealed class BrightnessCurveAnchorHelperTests
     private static ResolvedAppSettings CreateSettings(MeasurementKind kind, int adcMin, int adcMax, bool invert)
     {
         return new ResolvedAppSettings(
-            "test",
+            "lumabloom",
             kind,
-            false,
-            null,
             115200,
             3000,
             new ProcessingSettings(adcMin, adcMax, invert, 0.2, 1, 2, 1.0),

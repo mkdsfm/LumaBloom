@@ -48,8 +48,7 @@ public sealed class RuntimeStateTests
         var session = new MonitorSession(monitor, CreateProcessor());
         var message = new SensorMessage
         {
-            DeviceId = "esp32c6-01",
-            SensorId = "light0",
+            Id = "lumabloom",
             Timestamp = 123,
             Raw = 1900
         };
@@ -74,8 +73,7 @@ public sealed class RuntimeStateTests
         var session = new MonitorSession(monitor, CreateProcessor());
         var message = new SensorMessage
         {
-            DeviceId = "esp32c6-01",
-            SensorId = "light0",
+            Id = "lumabloom",
             Timestamp = 123,
             Raw = null
         };
@@ -202,8 +200,7 @@ public sealed class RuntimeStateTests
         var processor = new MessageProcessor(state);
         var message = new SensorMessage
         {
-            DeviceId = "esp32c6-01",
-            SensorId = "light0",
+            Id = "lumabloom",
             Timestamp = 123,
             Raw = 1900
         };
@@ -232,8 +229,7 @@ public sealed class RuntimeStateTests
         var processor = new MessageProcessor(state);
         var message = new SensorMessage
         {
-            DeviceId = "esp32c6-01",
-            SensorId = "light0",
+            Id = "lumabloom",
             Timestamp = 123,
             Raw = 1900
         };
@@ -257,8 +253,7 @@ public sealed class RuntimeStateTests
         var processor = new MessageProcessor(state);
         var message = new SensorMessage
         {
-            DeviceId = "esp32c6-01",
-            SensorId = "light0",
+            Id = "lumabloom",
             Timestamp = 123,
             Raw = 1900
         };
@@ -424,7 +419,7 @@ public sealed class RuntimeStateTests
     }
 
     [Fact]
-    public void Renderer_Diagnostics_EscapesProfileSummaryMarkupCharacters()
+    public void Renderer_Diagnostics_EscapesSettingsSummaryMarkupCharacters()
     {
         var snapshot = new DashboardSnapshot(
             RuntimeScreen.Diagnostics,
@@ -448,13 +443,11 @@ public sealed class RuntimeStateTests
             PortName: "COM6",
             BaudRate: 115200,
             ConnectionSummary: "Resolved [COM] port.",
-            ProfileId: "esp32c6-analog-ky018",
-            ProfileSummary: "Effective settings: adc=[0..1000]",
+            ProtocolId: "lumabloom",
+            SettingsSummary: "Effective settings: adc=[0..1000]",
             MeasurementKind: "Adc",
-            IsGenericProfile: false,
             LatestSensor: new SensorRuntimeSnapshot(
-                "esp32c6-01",
-                "light0",
+                "lumabloom",
                 123,
                 456,
                 DateTimeOffset.Now),
@@ -502,13 +495,11 @@ public sealed class RuntimeStateTests
             PortName: "COM6",
             BaudRate: 115200,
             ConnectionSummary: "Resolved COM6.",
-            ProfileId: "esp32c6-analog-ky018",
-            ProfileSummary: "Effective settings: adc=[0..1000]",
+            ProtocolId: "lumabloom",
+            SettingsSummary: "Effective settings: adc=[0..1000]",
             MeasurementKind: "Adc",
-            IsGenericProfile: false,
             LatestSensor: new SensorRuntimeSnapshot(
-                "esp32c6-01",
-                "light0",
+                "lumabloom",
                 123,
                 670,
                 DateTimeOffset.Now),
@@ -548,13 +539,11 @@ public sealed class RuntimeStateTests
             PortName: "COM6",
             BaudRate: 115200,
             ConnectionSummary: "Resolved COM6.",
-            ProfileId: "esp32c6-analog-ky018",
-            ProfileSummary: "Effective settings: adc=[0..1000]",
+            ProtocolId: "lumabloom",
+            SettingsSummary: "Effective settings: adc=[0..1000]",
             MeasurementKind: "Adc",
-            IsGenericProfile: false,
             LatestSensor: new SensorRuntimeSnapshot(
-                "esp32c6-01",
-                "light0",
+                "lumabloom",
                 123,
                 rawValue,
                 DateTimeOffset.Now),
@@ -589,13 +578,11 @@ public sealed class RuntimeStateTests
             PortName: "COM6",
             BaudRate: 115200,
             ConnectionSummary: "Resolved COM6.",
-            ProfileId: "esp32c6-analog-ky018",
-            ProfileSummary: "Effective settings: adc=[0..1000]",
+            ProtocolId: "lumabloom",
+            SettingsSummary: "Effective settings: adc=[0..1000]",
             MeasurementKind: "Adc",
-            IsGenericProfile: false,
             LatestSensor: new SensorRuntimeSnapshot(
-                "esp32c6-01",
-                "light0",
+                "lumabloom",
                 123,
                 1000,
                 DateTimeOffset.Now),

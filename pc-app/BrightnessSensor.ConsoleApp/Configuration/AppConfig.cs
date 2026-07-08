@@ -6,7 +6,13 @@ namespace BrightnessSensor.ConsoleApp.Configuration;
 internal sealed class AppConfig
 {
     /// <summary>
-    /// Optional signal processing overrides applied on top of a resolved hardware profile.
+    /// Optional serial transport overrides for the LumaBloom protocol connection.
+    /// </summary>
+    [JsonPropertyName("connection")]
+    public ConnectionOverrides? Connection { get; init; }
+
+    /// <summary>
+    /// Optional signal processing overrides applied on top of the built-in defaults.
     /// </summary>
     [JsonPropertyName("processing")]
     public ProcessingOverrides? Processing { get; init; }

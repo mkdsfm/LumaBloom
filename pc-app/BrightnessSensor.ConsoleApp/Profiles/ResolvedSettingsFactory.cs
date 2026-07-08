@@ -1,36 +1,41 @@
-﻿using BrightnessSensor.ConsoleApp.Configuration;
+using BrightnessSensor.ConsoleApp.Configuration;
+using BrightnessSensor.DeviceReading.Models;
 
 namespace BrightnessSensor.ConsoleApp.Profiles;
 
 internal static class ResolvedSettingsFactory
 {
-    public static ResolvedAppSettings Create(AppConfig config, DeviceProfile profile)
+    private const int DefaultBaudRate = 115200;
+    private const int DefaultDiscoveryTimeoutMs = 2500;
+    private const int DefaultMinBrightnessPercent = 10;
+    private const int DefaultMaxBrightnessPercent = 100;
+
+    public static ResolvedAppSettings Create(AppConfig config)
     {
+        var minBrightnessPercent = config.Brightness?.MinPercent ?? DefaultMinBrightnessPercent;
+        var maxBrightnessPercent = config.Brightness?.MaxPercent ?? DefaultMaxBrightnessPercent;
+
         var processing = new ProcessingSettings(
-            AdcMin: config.Processing?.AdcMin ?? profile.Processing.AdcMin,
-            AdcMax: config.Processing?.AdcMax ?? profile.Processing.AdcMax,
-            Invert: config.Processing?.Invert ?? profile.Processing.Invert,
-            EmaAlpha: config.Processing?.EmaAlpha ?? profile.Processing.EmaAlpha,
-            HysteresisPercent: config.Processing?.HysteresisPercent ?? profile.Processing.HysteresisPercent,
-            MaxBrightnessStepPercent: config.Processing?.MaxBrightnessStepPercent ?? profile.Processing.MaxBrightnessStepPercent,
-            Gamma: config.Processing?.Gamma ?? profile.Processing.Gamma);
+            AdcMin: config.Processing?.AdcMin ?? 200,
+            AdcMax: config.Processing?.AdcMax ?? 3200,
+            Invert: config.Processing?.Invert ?? true,
+            EmaAlpha: config.Processing?.EmaAlpha ?? 0.2,
+            HysteresisPercent: config.Processing?.HysteresisPercent ?? 1,
+            MaxBrightnessStepPercent: config.Processing?.MaxBrightnessStepPercent ?? 2,
+            Gamma: config.Processing?.Gamma ?? 1.0);
 
         var brightness = new BrightnessSettings(
-            MinPercent: config.Brightness?.MinPercent ?? profile.Brightness.MinPercent,
-            MaxPercent: config.Brightness?.MaxPercent ?? profile.Brightness.MaxPercent,
+            MinPercent: minBrightnessPercent,
+            MaxPercent: maxBrightnessPercent,
             Curve: HasUsableCurve(config.Brightness?.Curve)
                 ? config.Brightness!.Curve!
-                : profile.Brightness.Curve);
-
-        var discoveryDeviceId = profile.IsGeneric ? null : profile.DeviceId;
+                : CreateDefaultCurve(minBrightnessPercent, maxBrightnessPercent));
 
         var resolved = new ResolvedAppSettings(
-            ProfileId: profile.ProfileId,
-            MeasurementKind: profile.MeasurementKind,
-            IsGenericProfile: profile.IsGeneric,
-            DiscoveryDeviceId: discoveryDeviceId,
-            BaudRate: profile.BaudRate,
-            DiscoveryTimeoutMs: profile.DiscoveryTimeoutMs,
+            ProtocolId: LumaBloomTelemetry.ProtocolId,
+            MeasurementKind: MeasurementKind.Adc,
+            BaudRate: config.Connection?.BaudRate ?? DefaultBaudRate,
+            DiscoveryTimeoutMs: config.Connection?.DiscoveryTimeoutMs ?? DefaultDiscoveryTimeoutMs,
             Processing: processing,
             Brightness: brightness);
 
@@ -82,7 +87,6 @@ internal static class ResolvedSettingsFactory
         }
 
         ValidateBrightnessCurve(settings.Brightness.Curve);
-
     }
 
     private static void ValidateBrightnessCurve(IReadOnlyList<BrightnessCurvePoint> curve)
@@ -115,5 +119,22 @@ internal static class ResolvedSettingsFactory
     private static bool HasUsableCurve(IReadOnlyList<BrightnessCurvePoint>? curve)
     {
         return curve is { Count: >= 2 };
+    }
+
+    private static IReadOnlyList<BrightnessCurvePoint> CreateDefaultCurve(int minPercent, int maxPercent)
+    {
+        return
+        [
+            new BrightnessCurvePoint(0, minPercent),
+            new BrightnessCurvePoint(25, Interpolate(minPercent, maxPercent, 0.25)),
+            new BrightnessCurvePoint(50, Interpolate(minPercent, maxPercent, 0.50)),
+            new BrightnessCurvePoint(75, Interpolate(minPercent, maxPercent, 0.75)),
+            new BrightnessCurvePoint(100, maxPercent)
+        ];
+    }
+
+    private static int Interpolate(int minPercent, int maxPercent, double ratio)
+    {
+        return (int)Math.Round(minPercent + ((maxPercent - minPercent) * ratio), MidpointRounding.AwayFromZero);
     }
 }

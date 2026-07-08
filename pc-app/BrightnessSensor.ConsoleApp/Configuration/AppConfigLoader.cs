@@ -31,6 +31,10 @@ internal static class AppConfigLoader
 
         File.WriteAllText(path, """
                                 {
+                                  "connection": {
+                                    "baudRate": 115200,
+                                    "discoveryTimeoutMs": 2500
+                                  },
                                   "processing": {
                                     "emaAlpha": 0.25,
                                     "hysteresisPercent": 1,
@@ -64,6 +68,16 @@ internal static class AppConfigLoader
 
     private static void Validate(AppConfig config)
     {
+        if (config.Connection?.BaudRate <= 0)
+        {
+            throw new InvalidOperationException("connection.baudRate must be greater than zero.");
+        }
+
+        if (config.Connection?.DiscoveryTimeoutMs <= 0)
+        {
+            throw new InvalidOperationException("connection.discoveryTimeoutMs must be greater than zero.");
+        }
+
         if (config.Processing?.AdcMin.HasValue == true &&
             config.Processing.AdcMax.HasValue &&
             config.Processing.AdcMax.Value <= config.Processing.AdcMin.Value)
