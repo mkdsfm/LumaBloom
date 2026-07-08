@@ -98,6 +98,29 @@ internal sealed class MessageProcessor(RuntimeStateStore stateStore)
         Task.WaitAll([.. monitorTasks], cancellationToken);
     }
 
+    public void ApplyPendingManualBrightness(
+        IReadOnlyList<MonitorSession> monitorSessions,
+        CancellationToken cancellationToken)
+    {
+        if (monitorSessions.Count == 0)
+        {
+            return;
+        }
+
+        if (_stateStore.IsPaused || _stateStore.BrightnessControlMode != BrightnessControlMode.Manual)
+        {
+            return;
+        }
+
+        var snapshot = _stateStore.GetSnapshot();
+        if (snapshot.LastManualAppliedBrightnessPercent == snapshot.ManualBrightnessPercent)
+        {
+            return;
+        }
+
+        ApplyManualBrightness(monitorSessions, cancellationToken);
+    }
+
     private void ApplyManualBrightness(
         IReadOnlyList<MonitorSession> monitorSessions,
         CancellationToken cancellationToken)
