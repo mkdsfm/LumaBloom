@@ -217,6 +217,47 @@ public sealed class RuntimeStateTests
     }
 
     [Fact]
+    public void PendingManualBrightness_AppliesWithoutSensorTelemetry()
+    {
+        var state = new RuntimeStateStore();
+        var monitor = new FakeMonitorBrightness();
+        state.SetMonitors([monitor]);
+        state.SetBrightnessControlMode(BrightnessControlMode.Manual);
+        state.SetManualBrightnessPercent(42);
+
+        var processor = new MessageProcessor(state);
+
+        processor.ApplyPendingManualBrightness(
+            [new MonitorSession(monitor, CreateProcessor())],
+            CancellationToken.None);
+
+        Assert.Equal(1, monitor.SetBrightnessCalls);
+        Assert.Equal(42, monitor.LastSetBrightness);
+        Assert.Equal(42, state.GetSnapshot().LastManualAppliedBrightnessPercent);
+    }
+
+    [Fact]
+    public void ReEnteringManualMode_ReappliesTargetEvenWhenValueDidNotChange()
+    {
+        var state = new RuntimeStateStore();
+        var monitor = new FakeMonitorBrightness();
+        var session = new MonitorSession(monitor, CreateProcessor());
+        var processor = new MessageProcessor(state);
+
+        state.SetMonitors([monitor]);
+        state.SetBrightnessControlMode(BrightnessControlMode.Manual);
+        state.SetManualBrightnessPercent(42);
+        processor.ApplyPendingManualBrightness([session], CancellationToken.None);
+
+        state.SetBrightnessControlMode(BrightnessControlMode.Auto);
+        state.SetBrightnessControlMode(BrightnessControlMode.Manual);
+        processor.ApplyPendingManualBrightness([session], CancellationToken.None);
+
+        Assert.Equal(2, monitor.SetBrightnessCalls);
+        Assert.Equal(42, monitor.LastSetBrightness);
+    }
+
+    [Fact]
     public void SwitchingManualBackToAuto_UsesSensorDrivenProcessorAgain()
     {
         var state = new RuntimeStateStore();
