@@ -27,6 +27,8 @@ dotnet run
 
 The app opens a live terminal dashboard, discovers the ESP32-C6 serial device, reads raw telemetry, and applies monitor brightness through Windows APIs.
 
+For detailed notes on how sensor values are read over `USB` and how monitor brightness is applied through `DDC/CI`, see [`sensor-transports-and-monitor-ddc.md`](sensor-transports-and-monitor-ddc.md).
+
 ## Portable Zip
 
 From the repository root:

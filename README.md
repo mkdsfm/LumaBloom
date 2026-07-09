@@ -34,6 +34,7 @@ LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON
 | [`docs/build.md`](docs/build.md) | PC app restore, build, test, run, and publish commands |
 | [`hardware/README.md`](hardware/README.md) | Hardware index, assembly, wiring, BOM, and enclosure assets |
 | [`docs/protocol.md`](docs/protocol.md) | USB JSONL telemetry contract |
+| [`docs/sensor-transports-and-monitor-ddc.md`](docs/sensor-transports-and-monitor-ddc.md) | Sensor transport and monitor DDC/CI brightness control docs, with English and Russian variants |
 | [`docs/device-profiles.md`](docs/device-profiles.md) | Single-device runtime defaults and settings model |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | Contribution workflow and validation expectations |
 
