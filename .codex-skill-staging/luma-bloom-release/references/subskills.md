@@ -9,7 +9,7 @@ Use for:
 
 Expected output for LumaBloom releases:
 
-- `luma_bloom_esp32c6_<to-tag>_merged.bin`
+- `firmware/firmware_esp32c6/build/release/`
 
 ## `pc-app-portable-release`
 
@@ -17,6 +17,8 @@ Use for:
 
 - Windows portable `win-x64` publish
 - packaging the publish folder into the versioned release zip
+- bundling `Tools/esptool.exe` for the in-app Update flow
+- bundling the ESP32-C6 firmware release folder in `Firmware/` when available
 
 Expected output for LumaBloom releases:
 

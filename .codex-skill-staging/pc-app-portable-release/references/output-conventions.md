@@ -12,5 +12,9 @@
   self-contained single-file
 - Standalone executable:
   `pc-app/artifacts/single-file/win-x64/BrightnessSensor.ConsoleApp.exe`
+- Bundled flashing tool:
+  `pc-app/artifacts/single-file/win-x64/Tools/esptool.exe`
+- Optional bundled firmware release folder contents:
+  `pc-app/artifacts/single-file/win-x64/Firmware/<release-files>`
 - Main project:
   `pc-app/BrightnessSensor.ConsoleApp/BrightnessSensor.ConsoleApp.csproj`

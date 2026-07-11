@@ -35,6 +35,7 @@ internal sealed class Localizer(UiLanguage language)
         ["screen.calibration"] = "Settings",
         ["screen.events"] = "Events",
         ["screen.diagnostics"] = "Diagnostics",
+        ["screen.update"] = "Update",
         ["settings.calibration"] = "Calibration",
         ["settings.general"] = "General",
         ["settings.response"] = "Response",
@@ -71,6 +72,25 @@ internal sealed class Localizer(UiLanguage language)
         ["mode.auto"] = "Auto",
         ["mode.manual"] = "Manual",
         ["nav.hint"] = "Left/Right: tabs   Up/Down: focus   Enter: activate   Esc: back   Mouse: select",
+        ["update.title"] = "Update Center",
+        ["update.appSection"] = "PC application",
+        ["update.firmwareSection"] = "Device firmware",
+        ["update.currentVersion"] = "Current version",
+        ["update.latestVersion"] = "Latest release",
+        ["update.package"] = "Package",
+        ["update.status"] = "Status",
+        ["update.check"] = "Check releases",
+        ["update.applyApp"] = "Update app",
+        ["update.flashFirmware"] = "Flash firmware",
+        ["update.includePrerelease"] = "Include prerelease versions",
+        ["update.releaseChannel"] = "Release channel",
+        ["update.channelStable"] = "Stable package selected",
+        ["update.channelPrerelease"] = "Prerelease package selected",
+        ["update.bundledVersion"] = "Bundled firmware",
+        ["update.bundledFile"] = "Bundled file",
+        ["update.port"] = "Connected port",
+        ["update.note"] = "Note",
+        ["update.firmwareNote"] = "This protocol does not expose firmware version yet. Flashing will reinstall the version bundled with this app.",
         ["status.lifecycle"] = "Lifecycle",
         ["status.connection"] = "Connection",
         ["status.profile"] = "Protocol",
@@ -234,6 +254,26 @@ internal sealed class Localizer(UiLanguage language)
         ["settings.curve.anchor.current"] = "\u0422\u0435\u043a\u0443\u0449\u0430\u044f \u043e\u0441\u0432\u0435\u0449\u0435\u043d\u043d\u043e\u0441\u0442\u044c: {0}%",
         ["settings.curve.anchor.unavailable"] = "\u0416\u0438\u0432\u044b\u0435 \u0434\u0430\u043d\u043d\u044b\u0435 \u0434\u0430\u0442\u0447\u0438\u043a\u0430 \u043f\u043e\u043a\u0430 \u043d\u0435\u0434\u043e\u0441\u0442\u0443\u043f\u043d\u044b.",
         ["action.anchorCurrentLight"] = "\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u0441\u0432\u0435\u0442"
+        ,["screen.update"] = "\u041e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0435"
+        ,["update.title"] = "\u0426\u0435\u043d\u0442\u0440 \u043e\u0431\u043d\u043e\u0432\u043b\u0435\u043d\u0438\u0439"
+        ,["update.appSection"] = "PC-\u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435"
+        ,["update.firmwareSection"] = "\u041f\u0440\u043e\u0448\u0438\u0432\u043a\u0430 \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u0430"
+        ,["update.currentVersion"] = "\u0422\u0435\u043a\u0443\u0449\u0430\u044f \u0432\u0435\u0440\u0441\u0438\u044f"
+        ,["update.latestVersion"] = "\u041f\u043e\u0441\u043b\u0435\u0434\u043d\u0438\u0439 \u0440\u0435\u043b\u0438\u0437"
+        ,["update.package"] = "\u041f\u0430\u043a\u0435\u0442"
+        ,["update.status"] = "\u0421\u0442\u0430\u0442\u0443\u0441"
+        ,["update.check"] = "\u041f\u0440\u043e\u0432\u0435\u0440\u0438\u0442\u044c \u0440\u0435\u043b\u0438\u0437\u044b"
+        ,["update.applyApp"] = "\u041e\u0431\u043d\u043e\u0432\u0438\u0442\u044c \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435"
+        ,["update.flashFirmware"] = "\u041f\u0440\u043e\u0448\u0438\u0442\u044c \u0443\u0441\u0442\u0440\u043e\u0439\u0441\u0442\u0432\u043e"
+        ,["update.includePrerelease"] = "\u0412\u043a\u043b\u044e\u0447\u0430\u0442\u044c pre-release \u0432\u0435\u0440\u0441\u0438\u0438"
+        ,["update.releaseChannel"] = "\u041a\u0430\u043d\u0430\u043b \u0440\u0435\u043b\u0438\u0437\u043e\u0432"
+        ,["update.channelStable"] = "\u0412\u044b\u0431\u0440\u0430\u043d \u0441\u0442\u0430\u0431\u0438\u043b\u044c\u043d\u044b\u0439 \u043f\u0430\u043a\u0435\u0442"
+        ,["update.channelPrerelease"] = "\u0412\u044b\u0431\u0440\u0430\u043d pre-release \u043f\u0430\u043a\u0435\u0442"
+        ,["update.bundledVersion"] = "\u0412\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u0430\u044f \u043f\u0440\u043e\u0448\u0438\u0432\u043a\u0430"
+        ,["update.bundledFile"] = "\u0424\u0430\u0439\u043b \u0432 \u043f\u0430\u043a\u0435\u0442\u0435"
+        ,["update.port"] = "\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u043d\u044b\u0439 \u043f\u043e\u0440\u0442"
+        ,["update.note"] = "\u041f\u0440\u0438\u043c\u0435\u0447\u0430\u043d\u0438\u0435"
+        ,["update.firmwareNote"] = "\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u043f\u043e\u043a\u0430 \u043d\u0435 \u043f\u0435\u0440\u0435\u0434\u0430\u0451\u0442 \u0432\u0435\u0440\u0441\u0438\u044e \u043f\u0440\u043e\u0448\u0438\u0432\u043a\u0438. \u041f\u0440\u043e\u0448\u0438\u0432\u043a\u0430 \u043f\u0435\u0440\u0435\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442 \u0432\u0435\u0440\u0441\u0438\u044e, \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u0443\u044e \u0432 \u044d\u0442\u043e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435."
     };
 
     private static readonly Dictionary<string, string> Spanish = new(StringComparer.Ordinal)
@@ -338,5 +378,25 @@ internal sealed class Localizer(UiLanguage language)
         ["settings.curve.anchor.current"] = "Luz ambiente actual: {0}%",
         ["settings.curve.anchor.unavailable"] = "Todavia no hay datos en vivo del sensor.",
         ["action.anchorCurrentLight"] = "Usar luz actual"
+        ,["screen.update"] = "Actualizacion"
+        ,["update.title"] = "Centro de actualizaciones"
+        ,["update.appSection"] = "Aplicacion de PC"
+        ,["update.firmwareSection"] = "Firmware del dispositivo"
+        ,["update.currentVersion"] = "Version actual"
+        ,["update.latestVersion"] = "Ultima version"
+        ,["update.package"] = "Paquete"
+        ,["update.status"] = "Estado"
+        ,["update.check"] = "Buscar versiones"
+        ,["update.applyApp"] = "Actualizar aplicacion"
+        ,["update.flashFirmware"] = "Flashear firmware"
+        ,["update.includePrerelease"] = "Incluir versiones prerelease"
+        ,["update.releaseChannel"] = "Canal de versiones"
+        ,["update.channelStable"] = "Paquete estable seleccionado"
+        ,["update.channelPrerelease"] = "Paquete prerelease seleccionado"
+        ,["update.bundledVersion"] = "Firmware incluido"
+        ,["update.bundledFile"] = "Archivo incluido"
+        ,["update.port"] = "Puerto conectado"
+        ,["update.note"] = "Nota"
+        ,["update.firmwareNote"] = "Este protocolo aun no expone la version del firmware. El flasheo reinstalara la version incluida con esta aplicacion."
     };
 }

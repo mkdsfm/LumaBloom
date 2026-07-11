@@ -5,5 +5,6 @@ internal enum RuntimeScreen
     Overview,
     Calibration,
     Events,
-    Diagnostics
+    Diagnostics,
+    Update
 }

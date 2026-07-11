@@ -39,12 +39,17 @@
     <Compile Include="..\BrightnessSensor.ConsoleApp\Application\MonitorSession.cs" Link="ConsoleApp.Application\MonitorSession.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Application\MessageProcessor.cs" Link="ConsoleApp.Application\MessageProcessor.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Application\BrightnessCurveAnchorHelper.cs" Link="ConsoleApp.Application\BrightnessCurveAnchorHelper.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Application\AppVersion.cs" Link="ConsoleApp.Application\AppVersion.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\AppLifecycleState.cs" Link="ConsoleApp.Runtime\AppLifecycleState.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\AppUpdateActionRequest.cs" Link="ConsoleApp.Runtime\AppUpdateActionRequest.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\AppUpdateSnapshot.cs" Link="ConsoleApp.Runtime\AppUpdateSnapshot.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\AnchorCurrentLightCurveRequest.cs" Link="ConsoleApp.Runtime\AnchorCurrentLightCurveRequest.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\AutostartUpdateRequest.cs" Link="ConsoleApp.Runtime\AutostartUpdateRequest.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\BrightnessControlMode.cs" Link="ConsoleApp.Runtime\BrightnessControlMode.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\BrightnessCurveUpdateRequest.cs" Link="ConsoleApp.Runtime\BrightnessCurveUpdateRequest.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\BundledFirmwareSnapshot.cs" Link="ConsoleApp.Runtime\BundledFirmwareSnapshot.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\DashboardSnapshot.cs" Link="ConsoleApp.Runtime\DashboardSnapshot.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\FirmwareUpdateActionRequest.cs" Link="ConsoleApp.Runtime\FirmwareUpdateActionRequest.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\MonitorRuntimeSnapshot.cs" Link="ConsoleApp.Runtime\MonitorRuntimeSnapshot.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\ConsoleDashboardHost.cs" Link="ConsoleApp.Runtime\ConsoleDashboardHost.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\ConsoleDashboardRenderer.cs" Link="ConsoleApp.Runtime\ConsoleDashboardRenderer.cs" />
@@ -56,6 +61,7 @@
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\LanguageUpdateRequest.cs" Link="ConsoleApp.Runtime\LanguageUpdateRequest.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\MouseInputParser.cs" Link="ConsoleApp.Runtime\MouseInputParser.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\OverviewAction.cs" Link="ConsoleApp.Runtime\OverviewAction.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\PrereleasePreferenceUpdateRequest.cs" Link="ConsoleApp.Runtime\PrereleasePreferenceUpdateRequest.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\ProcessingParameter.cs" Link="ConsoleApp.Runtime\ProcessingParameter.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\ProcessingUpdateRequest.cs" Link="ConsoleApp.Runtime\ProcessingUpdateRequest.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\RuntimeCommand.cs" Link="ConsoleApp.Runtime\RuntimeCommand.cs" />

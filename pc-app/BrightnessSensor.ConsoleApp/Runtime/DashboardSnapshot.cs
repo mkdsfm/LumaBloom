@@ -42,4 +42,6 @@ internal sealed record DashboardSnapshot(
     int? ProcessingHysteresisPercent = null,
     int? ProcessingMaxBrightnessStepPercent = null,
     double? ProcessingGamma = null,
-    bool AutostartEnabled = false);
+    bool AutostartEnabled = false,
+    AppUpdateSnapshot? AppUpdate = null,
+    BundledFirmwareSnapshot? BundledFirmware = null);

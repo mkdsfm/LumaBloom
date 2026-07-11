@@ -84,10 +84,11 @@ internal sealed class RuntimeInteractionController(RuntimeStateStore stateStore,
         {
             _stateStore.SwitchScreen(click.X switch
             {
-                < 34 => RuntimeScreen.Overview,
-                < 56 => RuntimeScreen.Calibration,
-                < 74 => RuntimeScreen.Events,
-                _ => RuntimeScreen.Diagnostics
+                < 18 => RuntimeScreen.Overview,
+                < 36 => RuntimeScreen.Calibration,
+                < 54 => RuntimeScreen.Events,
+                < 72 => RuntimeScreen.Diagnostics,
+                _ => RuntimeScreen.Update
             });
             return;
         }

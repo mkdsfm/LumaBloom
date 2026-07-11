@@ -23,7 +23,8 @@ internal sealed class RuntimeStateStore
         RuntimeScreen.Overview,
         RuntimeScreen.Calibration,
         RuntimeScreen.Events,
-        RuntimeScreen.Diagnostics
+        RuntimeScreen.Diagnostics,
+        RuntimeScreen.Update
     ];
 
     private readonly object _gate = new();
@@ -69,7 +70,12 @@ internal sealed class RuntimeStateStore
     private readonly Queue<BrightnessCurveUpdateRequest> _brightnessCurveUpdateRequests = [];
     private readonly Queue<AnchorCurrentLightCurveRequest> _anchorCurrentLightCurveRequests = [];
     private readonly Queue<TestBrightnessRequest> _testBrightnessRequests = [];
+    private readonly Queue<AppUpdateActionRequest> _appUpdateRequests = [];
+    private readonly Queue<FirmwareUpdateActionRequest> _firmwareUpdateRequests = [];
+    private readonly Queue<PrereleasePreferenceUpdateRequest> _prereleasePreferenceUpdateRequests = [];
     private SensorRuntimeSnapshot? _latestSensor;
+    private AppUpdateSnapshot _appUpdate = new("1.4.0", "Unknown", "Not checked yet.", null, UpdateAvailable: false, IsBusy: false, IncludePrerelease: false, IsPrerelease: false);
+    private BundledFirmwareSnapshot _bundledFirmware = new("Unknown", "n/a", "Bundled firmware not loaded yet.", IsAvailable: false, IsBusy: false);
     private long _version;
 
     public bool IsPaused
@@ -319,6 +325,88 @@ internal sealed class RuntimeStateStore
             }
 
             request = _testBrightnessRequests.Dequeue();
+            return true;
+        }
+    }
+
+    public void RequestAppUpdateCheck()
+    {
+        lock (_gate)
+        {
+            _appUpdateRequests.Enqueue(AppUpdateActionRequest.CheckLatestRelease);
+            IncrementVersion();
+        }
+    }
+
+    public void RequestAppUpdateApply()
+    {
+        lock (_gate)
+        {
+            _appUpdateRequests.Enqueue(AppUpdateActionRequest.ApplyLatestRelease);
+            IncrementVersion();
+        }
+    }
+
+    public bool TryConsumeAppUpdateRequest(out AppUpdateActionRequest request)
+    {
+        lock (_gate)
+        {
+            if (_appUpdateRequests.Count == 0)
+            {
+                request = AppUpdateActionRequest.CheckLatestRelease;
+                return false;
+            }
+
+            request = _appUpdateRequests.Dequeue();
+            return true;
+        }
+    }
+
+    public void RequestBundledFirmwareFlash()
+    {
+        lock (_gate)
+        {
+            _firmwareUpdateRequests.Enqueue(FirmwareUpdateActionRequest.FlashBundledFirmware);
+            IncrementVersion();
+        }
+    }
+
+    public bool TryConsumeFirmwareUpdateRequest(out FirmwareUpdateActionRequest request)
+    {
+        lock (_gate)
+        {
+            if (_firmwareUpdateRequests.Count == 0)
+            {
+                request = FirmwareUpdateActionRequest.FlashBundledFirmware;
+                return false;
+            }
+
+            request = _firmwareUpdateRequests.Dequeue();
+            return true;
+        }
+    }
+
+    public void RequestPrereleasePreferenceChange(bool includePrerelease)
+    {
+        lock (_gate)
+        {
+            _prereleasePreferenceUpdateRequests.Enqueue(new PrereleasePreferenceUpdateRequest(includePrerelease));
+            _appUpdate = _appUpdate with { IncludePrerelease = includePrerelease };
+            IncrementVersion();
+        }
+    }
+
+    public bool TryConsumePrereleasePreferenceUpdateRequest(out PrereleasePreferenceUpdateRequest request)
+    {
+        lock (_gate)
+        {
+            if (_prereleasePreferenceUpdateRequests.Count == 0)
+            {
+                request = new PrereleasePreferenceUpdateRequest(_appUpdate.IncludePrerelease);
+                return false;
+            }
+
+            request = _prereleasePreferenceUpdateRequests.Dequeue();
             return true;
         }
     }
@@ -916,6 +1004,24 @@ internal sealed class RuntimeStateStore
         }
     }
 
+    public void SetAppUpdateState(AppUpdateSnapshot snapshot)
+    {
+        lock (_gate)
+        {
+            _appUpdate = snapshot;
+            IncrementVersion();
+        }
+    }
+
+    public void SetBundledFirmwareState(BundledFirmwareSnapshot snapshot)
+    {
+        lock (_gate)
+        {
+            _bundledFirmware = snapshot;
+            IncrementVersion();
+        }
+    }
+
     public void SetMonitors(IReadOnlyList<IMonitorBrightness> monitors)
     {
         lock (_gate)
@@ -1060,7 +1166,9 @@ internal sealed class RuntimeStateStore
                 _processingSettings?.HysteresisPercent,
                 _processingSettings?.MaxBrightnessStepPercent,
                 _processingSettings?.Gamma,
-                _autostartEnabled);
+                _autostartEnabled,
+                _appUpdate,
+                _bundledFirmware);
         }
     }
 

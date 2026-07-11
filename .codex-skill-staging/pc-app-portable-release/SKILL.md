@@ -1,6 +1,6 @@
 ---
 name: pc-app-portable-release
-description: Build the Windows portable zip artifact for this repository with a versioned LumaBloom release filename. Use when Codex needs to run the documented repo-root portable build flow for `pc-app`, produce the self-contained single-file `win-x64` output, package it into `luma-bloom-pc-app_<tag>_win-x64-portable.zip`, or regenerate the release zip for a specific target tag.
+description: Build the Windows portable zip artifact for this repository with a versioned LumaBloom release filename. Use when Codex needs to run the documented repo-root portable build flow for `pc-app`, produce the self-contained single-file `win-x64` output, bundle `Tools/esptool.exe`, include the ESP32-C6 firmware release folder in `Firmware/` when available, package it into `luma-bloom-pc-app_<tag>_win-x64-portable.zip`, or regenerate the release zip for a specific target tag.
 ---
 
 # PC App Portable Release
@@ -16,6 +16,8 @@ Build the Windows portable release artifact for `pc-app/` using the flow documen
    - the publish output folder
    - the final zip path
    - the exact release filename
+   - whether `Tools/esptool.exe` was bundled
+   - whether the firmware release folder was bundled into `Firmware/`
 5. If `dotnet publish` is blocked by sandbox access to `NuGet.Config` or package caches, rerun with escalation.
 
 ## Commands
@@ -57,6 +59,10 @@ python .codex-skill-staging/pc-app-portable-release/scripts/build_portable_zip.p
   `pc-app/artifacts/single-file/`
 - The single-file executable is:
   `pc-app/artifacts/single-file/win-x64/BrightnessSensor.ConsoleApp.exe`
+- The bundled flashing tool is:
+  `pc-app/artifacts/single-file/win-x64/Tools/esptool.exe`
+- When a firmware release payload already exists in `firmware/firmware_esp32c6/build/release/`, the publish folder also contains:
+  `pc-app/artifacts/single-file/win-x64/Firmware/<release-files>`
 
 ## Resources
 

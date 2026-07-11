@@ -61,3 +61,5 @@ pc-app/artifacts/single-file/win-x64/BrightnessSensor.ConsoleApp.exe
 ```
 
 The publish output does not include `appsettings.json`. On first run without an explicit config path, the app creates a minimal config beside the executable and persists UI settings there.
+
+When the repo already contains an ESP32-C6 firmware release payload in `firmware/firmware_esp32c6/build/release/`, the portable release script copies that release folder into the publish folder under `Firmware/`. The in-app Update screen uses the bundled firmware payload from there.
