@@ -8,6 +8,7 @@ using BrightnessSensor.DeviceReading.Models;
 using BrightnessSensor.DeviceReading.Reading;
 using BrightnessSensor.WindowsBrightness;
 using System.Globalization;
+using System.Reflection;
 using MathCurvePoint = BrightnessSensor.BrightnessMath.BrightnessCurvePointSetting;
 
 namespace BrightnessSensor.ConsoleApp.Application;
@@ -15,19 +16,68 @@ namespace BrightnessSensor.ConsoleApp.Application;
 // Orchestrates the app flow: config load, serial read loop, processing, and brightness updates.
 internal static class BrightnessApplication
 {
+    private const string GitHubRepository = "mkdsfm/LumaBloom";
+
     public static int Run(AppConfig config, string configPath)
     {
         var stateStore = new RuntimeStateStore();
         stateStore.SetLanguage(UiLanguageResolver.Resolve(config.Ui.Language));
         var dashboardHost = new ConsoleDashboardHost(stateStore);
-        return dashboardHost.Run(cancellationToken => RunCore(config, configPath, stateStore, cancellationToken));
+        var applicationDirectory = AppContext.BaseDirectory;
+        var executablePath = Environment.ProcessPath ??
+                             Path.Combine(applicationDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.exe");
+        return dashboardHost.Run(cancellationToken =>
+            RunCore(config, configPath, stateStore, applicationDirectory, executablePath, cancellationToken));
     }
 
-    private static int RunCore(AppConfig config, string configPath, RuntimeStateStore stateStore, CancellationToken cancellationToken)
+    private static int RunCore(
+        AppConfig config,
+        string configPath,
+        RuntimeStateStore stateStore,
+        string applicationDirectory,
+        string executablePath,
+        CancellationToken cancellationToken)
     {
+        using var gitHubReleaseClient = new GitHubReleaseClient(GitHubRepository);
+        var applicationUpdateService = new ApplicationUpdateService(applicationDirectory, executablePath);
+        var firmwareFlashService = new FirmwareFlashService(applicationDirectory);
+        var bundledFirmwareLocator = new BundledFirmwareLocator();
+        GitHubReleaseInfo? latestRelease = null;
+        BundledFirmwareInfo? bundledFirmware = null;
+
         stateStore.SetLifecycle(AppLifecycleState.Starting, "Loading settings...");
         stateStore.AddEvent("Application started.", RuntimeEventSeverity.Info);
         stateStore.SetAutostartEnabled(WindowsAutostartManager.IsEnabled());
+        stateStore.SetAppUpdateState(new AppUpdateSnapshot(
+            AppVersion.Current,
+            "Unknown",
+            "Not checked yet.",
+            null,
+            UpdateAvailable: false,
+            IsBusy: false,
+            IncludePrerelease: false,
+            IsPrerelease: false));
+
+        if (bundledFirmwareLocator.TryLocate(applicationDirectory, out bundledFirmware, out var bundledFirmwareStatus))
+        {
+            stateStore.SetBundledFirmwareState(new BundledFirmwareSnapshot(
+                bundledFirmware!.Version,
+                bundledFirmware.FileName,
+                bundledFirmwareStatus,
+                IsAvailable: true,
+                IsBusy: false));
+        }
+        else
+        {
+            stateStore.SetBundledFirmwareState(new BundledFirmwareSnapshot(
+                "Unknown",
+                "n/a",
+                bundledFirmwareStatus,
+                IsAvailable: false,
+                IsBusy: false));
+        }
+
+        stateStore.RequestAppUpdateCheck();
 
         var effectiveSettings = ResolvedSettingsFactory.Create(config);
         stateStore.SetDeviceSettings(
@@ -69,6 +119,9 @@ internal static class BrightnessApplication
                 monitorSessions,
                 stateStore,
                 messageProcessor,
+                gitHubReleaseClient,
+                applicationUpdateService,
+                ref latestRelease,
                 cancellationToken,
                 ref config,
                 ref effectiveSettings,
@@ -93,6 +146,44 @@ internal static class BrightnessApplication
                 ref effectiveSettings,
                 monitorSessions,
                 stateStore);
+            if (ProcessApplicationUpdateRequests(
+                    stateStore,
+                    gitHubReleaseClient,
+                    applicationUpdateService,
+                    ref latestRelease,
+                    cancellationToken))
+            {
+                sensorReader.Dispose();
+                return 0;
+            }
+
+            if (!ProcessFirmwareUpdateRequests(
+                    configPath,
+                    serialBaudRate,
+                    discoveryTimeoutMs,
+                    monitorSessions,
+                    stateStore,
+                    messageProcessor,
+                    gitHubReleaseClient,
+                    applicationUpdateService,
+                    ref latestRelease,
+                    firmwareFlashService,
+                    bundledFirmware,
+                    cancellationToken,
+                    ref config,
+                    ref effectiveSettings,
+                    ref sensorReader,
+                    out firstMessage))
+            {
+                return 0;
+            }
+
+            if (firstMessage is not null)
+            {
+                messageProcessor.ProcessMessage(firstMessage, monitorSessions, effectiveSettings.MeasurementKind, cancellationToken);
+                firstMessage = null;
+            }
+
             messageProcessor.ApplyPendingManualBrightness(monitorSessions, cancellationToken);
 
             var readResult = sensorReader.TryReadMessage();
@@ -123,6 +214,9 @@ internal static class BrightnessApplication
                         monitorSessions,
                         stateStore,
                         messageProcessor,
+                        gitHubReleaseClient,
+                        applicationUpdateService,
+                        ref latestRelease,
                         cancellationToken,
                         ref config,
                         ref effectiveSettings,
@@ -177,6 +271,9 @@ internal static class BrightnessApplication
         IReadOnlyList<MonitorSession> monitorSessions,
         RuntimeStateStore stateStore,
         MessageProcessor messageProcessor,
+        GitHubReleaseClient gitHubReleaseClient,
+        ApplicationUpdateService applicationUpdateService,
+        ref GitHubReleaseInfo? latestRelease,
         CancellationToken cancellationToken,
         ref AppConfig config,
         ref ResolvedAppSettings effectiveSettings,
@@ -197,6 +294,16 @@ internal static class BrightnessApplication
                 ref effectiveSettings,
                 monitorSessions,
                 stateStore);
+            if (ProcessApplicationUpdateRequests(
+                    stateStore,
+                    gitHubReleaseClient,
+                    applicationUpdateService,
+                    ref latestRelease,
+                    cancellationToken))
+            {
+                return false;
+            }
+
             messageProcessor.ApplyPendingManualBrightness(monitorSessions, cancellationToken);
 
             stateStore.SetLifecycle(AppLifecycleState.Waiting, "Waiting for sensor telemetry...");
@@ -273,6 +380,288 @@ internal static class BrightnessApplication
         }
 
         return false;
+    }
+
+    private static bool ProcessApplicationUpdateRequests(
+        RuntimeStateStore stateStore,
+        GitHubReleaseClient gitHubReleaseClient,
+        ApplicationUpdateService applicationUpdateService,
+        ref GitHubReleaseInfo? latestRelease,
+        CancellationToken cancellationToken)
+    {
+        while (stateStore.TryConsumePrereleasePreferenceUpdateRequest(out var preferenceRequest))
+        {
+            var current = stateStore.GetSnapshot().AppUpdate ??
+                          new AppUpdateSnapshot(AppVersion.Current, "Unknown", "Not checked yet.", null, false, false);
+            stateStore.SetAppUpdateState(current with
+            {
+                IncludePrerelease = preferenceRequest.IncludePrerelease
+            });
+            latestRelease = null;
+            stateStore.RequestAppUpdateCheck();
+        }
+
+        while (stateStore.TryConsumeAppUpdateRequest(out var request))
+        {
+            switch (request)
+            {
+                case AppUpdateActionRequest.CheckLatestRelease:
+                    var includePrerelease = stateStore.GetSnapshot().AppUpdate?.IncludePrerelease == true;
+                    stateStore.SetAppUpdateState(new AppUpdateSnapshot(
+                        AppVersion.Current,
+                        latestRelease?.Version ?? "Checking...",
+                        "Checking GitHub Releases...",
+                        latestRelease?.PackageName,
+                        latestRelease is not null && IsRemoteVersionNewer(AppVersion.Current, latestRelease.Version),
+                        IsBusy: true,
+                        IncludePrerelease: includePrerelease,
+                        IsPrerelease: latestRelease?.IsPrerelease == true));
+                    if (gitHubReleaseClient.TryGetLatestPortableRelease(includePrerelease, out latestRelease, out var statusMessage))
+                    {
+                        var updateAvailable = latestRelease is not null &&
+                                              IsRemoteVersionNewer(AppVersion.Current, latestRelease.Version);
+                        stateStore.SetAppUpdateState(new AppUpdateSnapshot(
+                            AppVersion.Current,
+                            latestRelease?.Version ?? "Unknown",
+                            updateAvailable
+                                ? $"Update available from GitHub Releases. {statusMessage}"
+                                : $"Application is up to date. {statusMessage}",
+                            latestRelease?.PackageName,
+                            updateAvailable,
+                            IsBusy: false,
+                            IncludePrerelease: includePrerelease,
+                            IsPrerelease: latestRelease?.IsPrerelease == true));
+                        stateStore.AddEvent(statusMessage, RuntimeEventSeverity.Success);
+                    }
+                    else
+                    {
+                        stateStore.SetAppUpdateState(new AppUpdateSnapshot(
+                            AppVersion.Current,
+                            latestRelease?.Version ?? "Unknown",
+                            statusMessage,
+                            latestRelease?.PackageName,
+                            latestRelease is not null && IsRemoteVersionNewer(AppVersion.Current, latestRelease.Version),
+                            IsBusy: false,
+                            IncludePrerelease: includePrerelease,
+                            IsPrerelease: latestRelease?.IsPrerelease == true));
+                        stateStore.AddEvent(statusMessage, RuntimeEventSeverity.Warning);
+                    }
+
+                    break;
+
+                case AppUpdateActionRequest.ApplyLatestRelease:
+                    var includePrereleaseForApply = stateStore.GetSnapshot().AppUpdate?.IncludePrerelease == true;
+                    if (latestRelease is null)
+                    {
+                        if (!gitHubReleaseClient.TryGetLatestPortableRelease(includePrereleaseForApply, out latestRelease, out var fetchStatus))
+                        {
+                            stateStore.SetAppUpdateState(new AppUpdateSnapshot(
+                                AppVersion.Current,
+                                "Unknown",
+                                fetchStatus,
+                                null,
+                                UpdateAvailable: false,
+                                IsBusy: false,
+                                IncludePrerelease: includePrereleaseForApply,
+                                IsPrerelease: false));
+                            stateStore.AddEvent(fetchStatus, RuntimeEventSeverity.Warning);
+                            break;
+                        }
+                    }
+
+                    if (latestRelease is null)
+                    {
+                        var missingReleaseStatus = "Latest GitHub release information is unavailable.";
+                        stateStore.SetAppUpdateState(new AppUpdateSnapshot(
+                            AppVersion.Current,
+                            "Unknown",
+                            missingReleaseStatus,
+                            null,
+                            UpdateAvailable: false,
+                            IsBusy: false,
+                            IncludePrerelease: includePrereleaseForApply,
+                            IsPrerelease: false));
+                        stateStore.AddEvent(missingReleaseStatus, RuntimeEventSeverity.Warning);
+                        break;
+                    }
+
+                    if (!IsRemoteVersionNewer(AppVersion.Current, latestRelease.Version))
+                    {
+                        var noUpdateStatus = "Current application version is already up to date.";
+                        stateStore.SetAppUpdateState(new AppUpdateSnapshot(
+                            AppVersion.Current,
+                            latestRelease.Version,
+                            noUpdateStatus,
+                            latestRelease.PackageName,
+                            UpdateAvailable: false,
+                            IsBusy: false,
+                            IncludePrerelease: includePrereleaseForApply,
+                            IsPrerelease: latestRelease.IsPrerelease));
+                        stateStore.AddEvent(noUpdateStatus, RuntimeEventSeverity.Info);
+                        break;
+                    }
+
+                    try
+                    {
+                        stateStore.SetAppUpdateState(new AppUpdateSnapshot(
+                            AppVersion.Current,
+                            latestRelease.Version,
+                            "Downloading and preparing the new application package...",
+                            latestRelease.PackageName,
+                            UpdateAvailable: true,
+                            IsBusy: true,
+                            IncludePrerelease: includePrereleaseForApply,
+                            IsPrerelease: latestRelease.IsPrerelease));
+                        applicationUpdateService.PrepareAndLaunchUpdate(latestRelease, gitHubReleaseClient, cancellationToken);
+                        stateStore.AddEvent(
+                            $"Prepared application update to {latestRelease.Version}. The app will restart after exit.",
+                            RuntimeEventSeverity.Success);
+                        return true;
+                    }
+                    catch (Exception exception)
+                    {
+                        stateStore.SetAppUpdateState(new AppUpdateSnapshot(
+                            AppVersion.Current,
+                            latestRelease.Version,
+                            $"Application update failed: {exception.Message}",
+                            latestRelease.PackageName,
+                            UpdateAvailable: true,
+                            IsBusy: false,
+                            IncludePrerelease: includePrereleaseForApply,
+                            IsPrerelease: latestRelease.IsPrerelease));
+                        stateStore.AddEvent(
+                            $"Application update failed: {exception.Message}",
+                            RuntimeEventSeverity.Error);
+                    }
+
+                    break;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ProcessFirmwareUpdateRequests(
+        string configPath,
+        int serialBaudRate,
+        int discoveryTimeoutMs,
+        IReadOnlyList<MonitorSession> monitorSessions,
+        RuntimeStateStore stateStore,
+        MessageProcessor messageProcessor,
+        GitHubReleaseClient gitHubReleaseClient,
+        ApplicationUpdateService applicationUpdateService,
+        ref GitHubReleaseInfo? latestRelease,
+        FirmwareFlashService firmwareFlashService,
+        BundledFirmwareInfo? bundledFirmware,
+        CancellationToken cancellationToken,
+        ref AppConfig config,
+        ref ResolvedAppSettings effectiveSettings,
+        ref SerialSensorReader sensorReader,
+        out SensorMessage? firstMessage)
+    {
+        firstMessage = null;
+
+        while (stateStore.TryConsumeFirmwareUpdateRequest(out _))
+        {
+            var currentFirmwareState = stateStore.GetSnapshot().BundledFirmware ??
+                                       new BundledFirmwareSnapshot("Unknown", "n/a", "Bundled firmware state unavailable.", false, false);
+
+            if (bundledFirmware is null)
+            {
+                var missingStatus = "Bundled firmware is not available in this application package.";
+                stateStore.SetBundledFirmwareState(currentFirmwareState with { StatusMessage = missingStatus, IsBusy = false });
+                stateStore.AddEvent(missingStatus, RuntimeEventSeverity.Warning);
+                continue;
+            }
+
+            var portName = stateStore.GetSnapshot().PortName;
+            if (string.IsNullOrWhiteSpace(portName))
+            {
+                var portStatus = "Connect the ESP32-C6 device before flashing bundled firmware.";
+                stateStore.SetBundledFirmwareState(currentFirmwareState with { StatusMessage = portStatus, IsBusy = false });
+                stateStore.AddEvent(portStatus, RuntimeEventSeverity.Warning);
+                continue;
+            }
+
+            stateStore.SetBundledFirmwareState(currentFirmwareState with
+            {
+                StatusMessage = $"Flashing bundled firmware {bundledFirmware.Version} on {portName}...",
+                IsBusy = true
+            });
+
+            sensorReader.Dispose();
+            stateStore.ClearLatestSensor();
+
+            try
+            {
+                firmwareFlashService.Flash(bundledFirmware, portName);
+                stateStore.SetBundledFirmwareState(currentFirmwareState with
+                {
+                    Version = bundledFirmware.Version,
+                    FileName = bundledFirmware.FileName,
+                    StatusMessage = $"Bundled firmware {bundledFirmware.Version} flashed successfully.",
+                    IsAvailable = true,
+                    IsBusy = false
+                });
+                stateStore.AddEvent(
+                    $"Bundled firmware {bundledFirmware.Version} flashed successfully on {portName}.",
+                    RuntimeEventSeverity.Success);
+            }
+            catch (Exception exception)
+            {
+                stateStore.SetBundledFirmwareState(currentFirmwareState with
+                {
+                    Version = bundledFirmware.Version,
+                    FileName = bundledFirmware.FileName,
+                    StatusMessage = $"Firmware flashing failed: {exception.Message}",
+                    IsAvailable = true,
+                    IsBusy = false
+                });
+                stateStore.AddEvent($"Firmware flashing failed: {exception.Message}", RuntimeEventSeverity.Error);
+            }
+
+            if (!TryConnectSensor(
+                    configPath,
+                    serialBaudRate,
+                    discoveryTimeoutMs,
+                    monitorSessions,
+                    stateStore,
+                    messageProcessor,
+                    gitHubReleaseClient,
+                    applicationUpdateService,
+                    ref latestRelease,
+                    cancellationToken,
+                    ref config,
+                    ref effectiveSettings,
+                    out sensorReader,
+                    out firstMessage))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool IsRemoteVersionNewer(string currentVersion, string remoteVersion)
+    {
+        if (Version.TryParse(NormalizeVersion(remoteVersion), out var remote) &&
+            Version.TryParse(NormalizeVersion(currentVersion), out var current))
+        {
+            return remote > current;
+        }
+
+        return !string.Equals(
+            NormalizeVersion(currentVersion),
+            NormalizeVersion(remoteVersion),
+            StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string NormalizeVersion(string version)
+    {
+        return version.StartsWith("v", StringComparison.OrdinalIgnoreCase)
+            ? version[1..]
+            : version;
     }
 
     private static void SleepBeforeReconnect(CancellationToken cancellationToken)

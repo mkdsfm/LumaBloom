@@ -7,7 +7,7 @@ Replace `<from-tag>`, `<to-tag>`, and artifact names before returning the final 
 ```md
 ## Included In This Release
 
-Ready-to-flash firmware for `Waveshare ESP32-C6-LCD-1.47`.
+Ready-to-flash firmware for `Waveshare ESP32-C6-LCD-1.47` plus the Windows companion app package.
 
 Firmware:
 - works with the `KY-018` light sensor
@@ -18,8 +18,7 @@ Firmware:
 
 ## Release Files
 
-- [luma-bloom-pc-app_<to-tag>_win-x64-portable.zip](https://github.com/mkdsfm/LumaBloom/releases/download/<to-tag>/luma-bloom-pc-app_<to-tag>_win-x64-portable.zip) - folder with the `exe` file
-- [luma_bloom_esp32c6_<to-tag>_merged.bin](https://github.com/mkdsfm/LumaBloom/releases/download/<to-tag>/luma_bloom_esp32c6_<to-tag>_merged.bin) - firmware binary for flashing the device
+- [luma-bloom-pc-app_<to-tag>_win-x64-portable.zip](https://github.com/mkdsfm/LumaBloom/releases/download/<to-tag>/luma-bloom-pc-app_<to-tag>_win-x64-portable.zip) - Windows app package with `BrightnessSensor.ConsoleApp.exe`, `Tools/esptool.exe`, and the bundled firmware release folder in `Firmware/` for the Update screen
 
 ## What Changed
 
@@ -40,10 +39,10 @@ Wiring:
 ## How To Flash
 
 ```powershell
-& "C:\Espressif\tools\python\v6.0\venv\Scripts\esptool.exe" --chip esp32c6 --port COM8 --baud 460800 write-flash 0x0 luma_bloom_esp32c6_<to-tag>_merged.bin
+& ".\Tools\esptool.exe" --chip esp32c6 --port COM8 --baud 460800 write-flash 0x0 .\Firmware\luma_bloom_esp32c6_<to-tag>_merged.bin
 ```
 
-If you run the command outside the artifact folder, use the full path to `luma_bloom_esp32c6_<to-tag>_merged.bin`.
+If you run the command outside the portable package folder, use the full paths to `Tools\esptool.exe` and the merged firmware file inside `Firmware\`.
 
 If the board is not detected, enter the bootloader mode:
 1. hold `BOOT`
@@ -55,13 +54,13 @@ If the board is not detected, enter the bootloader mode:
 Example:
 
 ```json
-{"deviceId":"esp32c6-01","sensorId":"light0","ts":1234567,"value":1872}
+{"id":"lumabloom","ts":1234567,"raw":1872}
 ```
 
-After inserting the telemetry example, verify against the current sources that the meaning of the `value` field is described correctly for this release.
+After inserting the telemetry example, verify against the current sources that the meaning of the `raw` field is described correctly for this release.
 ```
 
-Before finalizing a real release package, ensure these files exist when requested:
+Before finalizing a real release package, ensure these paths exist when requested:
 
-- `firmware/firmware_esp32c6/build/release/luma_bloom_esp32c6_<to-tag>_merged.bin`
-- `pc-app/artifacts/portable/luma-bloom-pc-app_<to-tag>_win-x64-portable.zip`
+- `firmware/firmware_esp32c6/build/release/`
+- `pc-app/artifacts/single-file/luma-bloom-pc-app_<to-tag>_win-x64-portable.zip`

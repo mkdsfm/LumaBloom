@@ -134,7 +134,8 @@ internal sealed class ConsoleDashboardRenderer
             FormatTab(snapshot, RuntimeScreen.Overview, localizer["screen.overview"]),
             FormatTab(snapshot, RuntimeScreen.Calibration, localizer["screen.calibration"]),
             FormatTab(snapshot, RuntimeScreen.Events, localizer["screen.events"]),
-            FormatTab(snapshot, RuntimeScreen.Diagnostics, localizer["screen.diagnostics"])
+            FormatTab(snapshot, RuntimeScreen.Diagnostics, localizer["screen.diagnostics"]),
+            FormatTab(snapshot, RuntimeScreen.Update, localizer["screen.update"])
         };
 
         return new Panel(new Markup($"[bold]{Markup.Escape(localizer["app.title"])}[/]  {string.Join("  ", tabs)}"))
@@ -148,8 +149,36 @@ internal sealed class ConsoleDashboardRenderer
             RuntimeScreen.Calibration => BuildCalibrationScreen(snapshot, localizer),
             RuntimeScreen.Events => BuildEventsScreen(snapshot, localizer),
             RuntimeScreen.Diagnostics => BuildDiagnosticsScreen(snapshot, localizer),
+            RuntimeScreen.Update => BuildUpdateScreen(snapshot, localizer),
             _ => BuildLumaBloomDashboard(snapshot, localizer)
         };
+    }
+
+    private static IRenderable BuildUpdateScreen(DashboardSnapshot snapshot, Localizer localizer)
+    {
+        var appUpdate = snapshot.AppUpdate ??
+                        new AppUpdateSnapshot("unknown", "unknown", "No update data.", null, false, false);
+        var firmware = snapshot.BundledFirmware ??
+                       new BundledFirmwareSnapshot("unknown", "n/a", "No firmware data.", false, false);
+
+        var table = new Table().Border(TableBorder.Rounded).Expand();
+        table.AddColumn("Field");
+        table.AddColumn("Value");
+        table.AddRow(localizer["update.currentVersion"], Markup.Escape(appUpdate.CurrentVersion));
+        table.AddRow(localizer["update.latestVersion"], Markup.Escape(appUpdate.LatestVersion));
+        table.AddRow(localizer["update.package"], Markup.Escape(appUpdate.PackageName ?? "n/a"));
+        table.AddRow(localizer["update.status"], Markup.Escape(appUpdate.StatusMessage));
+        table.AddEmptyRow();
+        table.AddRow(localizer["update.bundledVersion"], Markup.Escape(firmware.Version));
+        table.AddRow(localizer["update.bundledFile"], Markup.Escape(firmware.FileName));
+        table.AddRow(localizer["update.port"], Markup.Escape(snapshot.PortName ?? "n/a"));
+        table.AddRow(localizer["update.status"], Markup.Escape(firmware.StatusMessage));
+        table.AddEmptyRow();
+        table.AddRow(localizer["update.note"], Markup.Escape(localizer["update.firmwareNote"]));
+
+        return new Panel(table)
+            .Header(localizer["update.title"])
+            .Border(BoxBorder.Rounded);
     }
 
     private static IRenderable BuildCalibrationScreen(DashboardSnapshot snapshot, Localizer localizer)

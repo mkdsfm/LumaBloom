@@ -1,6 +1,6 @@
 ---
 name: release-notes-github
-description: Draft or update GitHub release notes for the LumaBloom release flow in this repository in a fixed English markdown format. Use when Codex needs to prepare a new release description and the request specifies both a source tag and a target tag, generate release links, or describe the expected versioned artifact names. Do not use this skill itself to build the firmware binary or Windows portable zip.
+description: Draft or update GitHub release notes for the LumaBloom release flow in this repository in a fixed English markdown format. Use when Codex needs to prepare a new release description and the request specifies both a source tag and a target tag, generate release links, or describe the expected versioned artifact names. Do not use this skill itself to build the firmware payload or Windows portable zip.
 ---
 
 # Release Notes GitHub
@@ -39,18 +39,16 @@ Use short bullet lists and fenced code blocks where the template already uses th
 - Replace the old tag in all release asset links with the target tag.
 - Keep firmware links in the form:
   `https://github.com/mkdsfm/LumaBloom/releases/download/<tag>/<filename>`
-- Include the target version in both release artifact filenames.
-- Prefer these filename forms:
-  - `luma_bloom_esp32c6_<to-tag>_merged.bin`
+- Include the target version in the Windows portable release filename.
+- Prefer this filename form:
   - `luma-bloom-pc-app_<to-tag>_win-x64-portable.zip`
-- If the release includes the Windows portable app, list the zip artifact before the firmware binary.
+- If the release includes the Windows portable app, describe that it contains the bundled firmware release folder and `Tools/esptool.exe` for the Update flow.
 - If the user gives only filenames and no URLs, infer the URL from the tag and repository release pattern above.
 - For the `## What Changed` section, describe the delta from the source tag to the target tag rather than writing a generic summary.
 
 ## Artifact References
 
 - Use these expected filenames in the release note when artifacts are part of the release:
-  - `luma_bloom_esp32c6_<to-tag>_merged.bin`
   - `luma-bloom-pc-app_<to-tag>_win-x64-portable.zip`
 - If the user asks to actually build those artifacts, delegate that work to:
   - `.codex-skill-staging/esp32-release-flash`

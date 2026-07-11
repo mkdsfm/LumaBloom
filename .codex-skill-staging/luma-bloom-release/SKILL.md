@@ -1,6 +1,6 @@
 ---
 name: luma-bloom-release
-description: Coordinate the full LumaBloom release workflow for this repository. Use when Codex needs to produce the versioned firmware binary, the versioned Windows portable zip, and the English release notes and the request specifies both a source tag and a target tag.
+description: Coordinate the full LumaBloom release workflow for this repository. Use when Codex needs to produce the firmware release payload for bundling, the versioned Windows portable zip, and the English release notes and the request specifies both a source tag and a target tag.
 ---
 
 # LumaBloom Release
@@ -25,10 +25,10 @@ Use these skills instead of duplicating their workflows:
 
 1. `.codex-skill-staging/esp32-release-flash`
    Responsibility:
-   build `luma_bloom_esp32c6_<to-tag>_merged.bin`
+   build the firmware release payload in `firmware/firmware_esp32c6/build/release/`
 2. `.codex-skill-staging/pc-app-portable-release`
    Responsibility:
-   build `luma-bloom-pc-app_<to-tag>_win-x64-portable.zip`
+   build `luma-bloom-pc-app_<to-tag>_win-x64-portable.zip` with `Tools/esptool.exe` and, when available, a bundled ESP32-C6 firmware release folder for the in-app Update flow
 3. `.codex-skill-staging/release-notes-github`
    Responsibility:
    write the English GitHub release description for `<from-tag> -> <to-tag>`
@@ -48,8 +48,13 @@ Use these skills instead of duplicating their workflows:
 
 When artifacts are requested, the release should end with these filenames:
 
-- `luma_bloom_esp32c6_<to-tag>_merged.bin`
 - `luma-bloom-pc-app_<to-tag>_win-x64-portable.zip`
+
+The Windows portable artifact should contain:
+
+- `BrightnessSensor.ConsoleApp.exe`
+- `Tools/esptool.exe`
+- the bundled firmware release folder in `Firmware/` when the firmware payload was built first
 
 When notes are requested, the text should follow the English structure defined by `release-notes-github`.
 

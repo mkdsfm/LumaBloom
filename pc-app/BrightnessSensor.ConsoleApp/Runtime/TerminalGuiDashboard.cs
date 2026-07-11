@@ -4,6 +4,7 @@ using Terminal.Gui.App;
 using Terminal.Gui.ViewBase;
 using Terminal.Gui.Views;
 using System.Globalization;
+using BrightnessSensor.ConsoleApp.Application;
 using GuiAttribute = Terminal.Gui.Drawing.Attribute;
 
 namespace BrightnessSensor.ConsoleApp.Runtime;
@@ -30,6 +31,7 @@ internal sealed class TerminalGuiDashboard
     private readonly Label _responseText = new();
     private readonly Label _eventsText = new();
     private readonly Label _diagnosticsText = new();
+    private readonly Label _updateText = new();
     private readonly View _contentView = new();
     private readonly View _settingsContentView = new();
     private readonly FrameView _settingsSidebar = new();
@@ -61,6 +63,10 @@ internal sealed class TerminalGuiDashboard
     private readonly Button _processingHysteresisButton;
     private readonly Button _processingStepButton;
     private readonly Button _processingGammaButton;
+    private readonly Button _checkUpdatesButton;
+    private readonly Button _applyAppUpdateButton;
+    private readonly Button _flashFirmwareButton;
+    private readonly CheckBox _includePrereleaseCheckBox = new();
     private readonly FrameView _modalFrame = new();
     private readonly Label _modalDescription = new();
     private readonly TextField _modalInput = new();
@@ -74,6 +80,7 @@ internal sealed class TerminalGuiDashboard
     private int? _activeCurveLightPercent;
     private bool _activeCurveAnchorModal;
     private bool _isUpdatingInvertRadio;
+    private bool _isUpdatingPrereleaseCheckBox;
 
     private static readonly Scheme BaseScheme = CreateScheme(Color.Gray, Color.Black, Color.Black, Color.Green);
     private static readonly Scheme TitleScheme = CreateScheme(Color.BrightGreen, Color.Black, Color.Black, Color.BrightGreen);
@@ -110,7 +117,8 @@ internal sealed class TerminalGuiDashboard
             CreateButton("Overview", () => _stateStore.SwitchScreen(RuntimeScreen.Overview)),
             CreateButton("Settings", () => _stateStore.SwitchScreen(RuntimeScreen.Calibration)),
             CreateButton("Events", () => _stateStore.SwitchScreen(RuntimeScreen.Events)),
-            CreateButton("Diagnostics", () => _stateStore.SwitchScreen(RuntimeScreen.Diagnostics))
+            CreateButton("Diagnostics", () => _stateStore.SwitchScreen(RuntimeScreen.Diagnostics)),
+            CreateButton("Update", () => _stateStore.SwitchScreen(RuntimeScreen.Update))
         ];
 
         _autoButton = CreateButton("Auto", () => _controller.ActivateOverviewAction(OverviewAction.AutoMode));
@@ -142,6 +150,9 @@ internal sealed class TerminalGuiDashboard
         _processingHysteresisButton = CreateButton("hysteresisPercent", () => ShowProcessingModal(ProcessingParameter.HysteresisPercent));
         _processingStepButton = CreateButton("maxBrightnessStepPercent", () => ShowProcessingModal(ProcessingParameter.MaxBrightnessStepPercent));
         _processingGammaButton = CreateButton("gamma", () => ShowProcessingModal(ProcessingParameter.Gamma));
+        _checkUpdatesButton = CreateButton("Check releases", RequestAppUpdateCheck);
+        _applyAppUpdateButton = CreateButton("Update app", RequestAppUpdateApply);
+        _flashFirmwareButton = CreateButton("Flash firmware", RequestBundledFirmwareFlash);
         _modalConfirmButton = CreateButton("Confirm", ConfirmModal);
         _modalTestButton = CreateButton("Test", TestModalBrightness);
         _modalCancelButton = CreateButton("Cancel", CloseModal);
@@ -167,7 +178,7 @@ internal sealed class TerminalGuiDashboard
         _title.X = 1;
         _title.Y = 0;
         _title.SchemeName = TitleSchemeName;
-        _version.Text = "v1.4.0";
+        _version.Text = $"v{AppVersion.Current}";
         _version.X = Pos.Right(_title) + 1;
         _version.Y = 0;
         _version.SchemeName = AccentSchemeName;
@@ -285,6 +296,9 @@ internal sealed class TerminalGuiDashboard
             _processingHysteresisButton,
             _processingStepButton,
             _processingGammaButton,
+            _checkUpdatesButton,
+            _applyAppUpdateButton,
+            _flashFirmwareButton,
             _modalConfirmButton,
             _modalTestButton,
             _modalCancelButton
@@ -472,6 +486,36 @@ internal sealed class TerminalGuiDashboard
         _diagnosticsText.Height = Dim.Fill(1);
         _diagnosticsText.SchemeName = BaseSchemeName;
 
+        _updateText.X = 1;
+        _updateText.Y = 1;
+        _updateText.Width = Dim.Fill(2);
+        _updateText.Height = 12;
+        _updateText.SchemeName = BaseSchemeName;
+        _includePrereleaseCheckBox.X = 1;
+        _includePrereleaseCheckBox.Y = 13;
+        _includePrereleaseCheckBox.Width = 34;
+        _includePrereleaseCheckBox.Text = "Include prerelease versions";
+        _includePrereleaseCheckBox.SchemeName = ButtonSchemeName;
+        _includePrereleaseCheckBox.ValueChanging += (_, args) =>
+        {
+            if (_isUpdatingPrereleaseCheckBox)
+            {
+                return;
+            }
+
+            RequestPrereleasePreference(args.NewValue == CheckState.Checked);
+            args.Handled = true;
+        };
+        _checkUpdatesButton.X = 1;
+        _checkUpdatesButton.Y = 15;
+        _checkUpdatesButton.Width = 22;
+        _applyAppUpdateButton.X = 25;
+        _applyAppUpdateButton.Y = 15;
+        _applyAppUpdateButton.Width = 22;
+        _flashFirmwareButton.X = 49;
+        _flashFirmwareButton.Y = 15;
+        _flashFirmwareButton.Width = 22;
+
         _footer.Text = "Left/Right: tabs   Up/Down: focus   Enter: activate   Esc: back   Mouse: select";
         _footer.X = 1;
         _footer.Y = Pos.AnchorEnd(1);
@@ -526,6 +570,13 @@ internal sealed class TerminalGuiDashboard
         _responseText.Text = BuildResponseText(snapshot, localizer);
         _eventsText.Text = BuildEventsText(snapshot, localizer);
         _diagnosticsText.Text = BuildDiagnosticsText(snapshot);
+        _updateText.Text = BuildUpdateText(snapshot, localizer);
+        _includePrereleaseCheckBox.Text = localizer["update.includePrerelease"];
+        _isUpdatingPrereleaseCheckBox = true;
+        _includePrereleaseCheckBox.Value = snapshot.AppUpdate?.IncludePrerelease == true
+            ? CheckState.Checked
+            : CheckState.UnChecked;
+        _isUpdatingPrereleaseCheckBox = false;
         _curveLightRow.Text = BuildCurveLightRow(localizer);
         _curveBrightnessRow.Text = localizer["settings.curve.display"];
 
@@ -541,6 +592,7 @@ internal sealed class TerminalGuiDashboard
         _screenButtons[(int)RuntimeScreen.Calibration].Text = localizer["screen.calibration"];
         _screenButtons[(int)RuntimeScreen.Events].Text = localizer["screen.events"];
         _screenButtons[(int)RuntimeScreen.Diagnostics].Text = localizer["screen.diagnostics"];
+        _screenButtons[(int)RuntimeScreen.Update].Text = localizer["screen.update"];
         _sensorCard.Title = localizer["status.sensor"];
         _ambientCard.Title = localizer["overview.ambientLight"];
         _brightnessCard.Title = localizer["overview.brightnessControl"];
@@ -554,6 +606,9 @@ internal sealed class TerminalGuiDashboard
         _autoButton.Text = localizer["mode.auto"];
         _manualButton.Text = localizer["mode.manual"];
         _curveAnchorButton.Text = localizer["action.anchorCurrentLight"];
+        _checkUpdatesButton.Text = localizer["update.check"];
+        _applyAppUpdateButton.Text = localizer["update.applyApp"];
+        _flashFirmwareButton.Text = localizer["update.flashFirmware"];
         _modalConfirmButton.Text = localizer["action.confirm"];
         _modalTestButton.Text = localizer["action.test"];
         _modalCancelButton.Text = localizer["action.cancel"];
@@ -638,6 +693,16 @@ internal sealed class TerminalGuiDashboard
                 _screenFrame.Title = localizer["screen.diagnostics"];
                 _screenFrame.RemoveAll();
                 _screenFrame.Add(_diagnosticsText);
+                _contentView.Add(_screenFrame);
+                break;
+            case RuntimeScreen.Update:
+                _screenFrame.Title = localizer["screen.update"];
+                _screenFrame.RemoveAll();
+                _screenFrame.Add(_updateText);
+                _screenFrame.Add(_includePrereleaseCheckBox);
+                _screenFrame.Add(_checkUpdatesButton);
+                _screenFrame.Add(_applyAppUpdateButton);
+                _screenFrame.Add(_flashFirmwareButton);
                 _contentView.Add(_screenFrame);
                 break;
             default:
@@ -729,6 +794,30 @@ internal sealed class TerminalGuiDashboard
     private void ToggleAutostart()
     {
         _stateStore.RequestAutostartChange(!_stateStore.GetSnapshot().AutostartEnabled);
+        Refresh();
+    }
+
+    private void RequestAppUpdateCheck()
+    {
+        _stateStore.RequestAppUpdateCheck();
+        Refresh();
+    }
+
+    private void RequestAppUpdateApply()
+    {
+        _stateStore.RequestAppUpdateApply();
+        Refresh();
+    }
+
+    private void RequestBundledFirmwareFlash()
+    {
+        _stateStore.RequestBundledFirmwareFlash();
+        Refresh();
+    }
+
+    private void RequestPrereleasePreference(bool includePrerelease)
+    {
+        _stateStore.RequestPrereleasePreferenceChange(includePrerelease);
         Refresh();
     }
 
@@ -1266,6 +1355,28 @@ internal sealed class TerminalGuiDashboard
                $"Protocol: {snapshot.ProtocolId ?? "n/a"}{Environment.NewLine}" +
                $"Measurement: {snapshot.MeasurementKind ?? "unknown"}{Environment.NewLine}{Environment.NewLine}" +
                monitorLines;
+    }
+
+    private static string BuildUpdateText(DashboardSnapshot snapshot, Localizer localizer)
+    {
+        var appUpdate = snapshot.AppUpdate ??
+                        new AppUpdateSnapshot(AppVersion.Current, "Unknown", "No update data.", null, false, false);
+        var bundledFirmware = snapshot.BundledFirmware ??
+                              new BundledFirmwareSnapshot("Unknown", "n/a", "No firmware data.", false, false);
+
+        return $"{localizer["update.appSection"]}{Environment.NewLine}" +
+               $"{localizer["update.currentVersion"]}: {appUpdate.CurrentVersion}{Environment.NewLine}" +
+               $"{localizer["update.latestVersion"]}: {appUpdate.LatestVersion}{Environment.NewLine}" +
+               $"{localizer["update.includePrerelease"]}: {FormatEnabled(appUpdate.IncludePrerelease, localizer)}{Environment.NewLine}" +
+               $"{localizer["update.package"]}: {appUpdate.PackageName ?? "n/a"}{Environment.NewLine}" +
+               $"{localizer["update.releaseChannel"]}: {(appUpdate.IsPrerelease ? localizer["update.channelPrerelease"] : localizer["update.channelStable"])}{Environment.NewLine}" +
+               $"{localizer["update.status"]}: {appUpdate.StatusMessage}{Environment.NewLine}{Environment.NewLine}" +
+               $"{localizer["update.firmwareSection"]}{Environment.NewLine}" +
+               $"{localizer["update.bundledVersion"]}: {bundledFirmware.Version}{Environment.NewLine}" +
+               $"{localizer["update.bundledFile"]}: {bundledFirmware.FileName}{Environment.NewLine}" +
+               $"{localizer["update.port"]}: {snapshot.PortName ?? "n/a"}{Environment.NewLine}" +
+               $"{localizer["update.status"]}: {bundledFirmware.StatusMessage}{Environment.NewLine}{Environment.NewLine}" +
+               localizer["update.firmwareNote"];
     }
 
     private static int? GetNormalizedSensorPercent(DashboardSnapshot snapshot)

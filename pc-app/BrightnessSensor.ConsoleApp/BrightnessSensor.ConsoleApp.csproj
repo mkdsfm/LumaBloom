@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>BrightnessSensor.ConsoleApp</RootNamespace>
+    <Version>1.4.0</Version>
   </PropertyGroup>
 
   <ItemGroup>

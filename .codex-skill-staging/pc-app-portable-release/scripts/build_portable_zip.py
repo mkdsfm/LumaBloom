@@ -27,6 +27,43 @@ def zip_dir(source_dir: Path, zip_path: Path, root_name: str) -> None:
         shutil.rmtree(temp_root)
 
 
+def find_firmware_release_dir(repo_root: Path) -> tuple[Path | None, str]:
+    release_dir = repo_root / "firmware" / "firmware_esp32c6" / "build" / "release"
+    if not release_dir.exists():
+        return None, "firmware release directory not found"
+
+    files = [path for path in release_dir.iterdir() if path.is_file()]
+    if not files:
+        return None, "firmware release directory is empty"
+
+    return release_dir, "directory"
+
+def copy_firmware_bundle(repo_root: Path, publish_dir: Path) -> None:
+    firmware_release_dir, resolution = find_firmware_release_dir(repo_root)
+    if firmware_release_dir is None:
+        print(f"[warn] skipped firmware bundle: {resolution}")
+        return
+
+    firmware_dir = publish_dir / "Firmware"
+    if firmware_dir.exists():
+        shutil.rmtree(firmware_dir)
+    shutil.copytree(firmware_release_dir, firmware_dir)
+    print(f"[ok] bundled firmware release folder: {firmware_dir} ({resolution})")
+
+
+def copy_esptool(publish_dir: Path) -> None:
+    esptool_source = Path(r"C:\Espressif\tools\python\v6.0\venv\Scripts\esptool.exe")
+    if not esptool_source.exists():
+        print("[warn] skipped esptool bundle: source esptool.exe not found")
+        return
+
+    tools_dir = publish_dir / "Tools"
+    tools_dir.mkdir(parents=True, exist_ok=True)
+    esptool_target = tools_dir / "esptool.exe"
+    shutil.copy2(esptool_source, esptool_target)
+    print(f"[ok] bundled esptool: {esptool_target}")
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build the documented repo-root portable Windows zip for pc-app using the single-file publish output."
@@ -67,7 +104,10 @@ def main() -> int:
         repo_root,
     )
 
-    zip_dir(publish_dir, zip_path, "win-x64")
+    copy_firmware_bundle(repo_root, publish_dir)
+    copy_esptool(publish_dir)
+
+    zip_dir(publish_dir, zip_path, f"luma-bloom-pc-app_{args.tag}_win-x64")
 
     print(f"[ok] publish folder: {publish_dir}")
     print(f"[ok] portable zip: {zip_path}")

@@ -321,7 +321,7 @@ public sealed class RuntimeStateTests
         var state = new RuntimeStateStore();
 
         state.SwitchScreen(RuntimeScreen.Diagnostics);
-        state.MoveScreen(1);
+        state.MoveScreen(2);
 
         var snapshot = state.GetSnapshot();
 
@@ -426,7 +426,7 @@ public sealed class RuntimeStateTests
         var state = new RuntimeStateStore();
         var controller = new RuntimeInteractionController(state, _ => { });
 
-        controller.HandleMouseClick(new UiMouseClick(60, 2));
+        controller.HandleMouseClick(new UiMouseClick(50, 2));
 
         Assert.Equal(RuntimeScreen.Events, state.GetSnapshot().ActiveScreen);
     }
