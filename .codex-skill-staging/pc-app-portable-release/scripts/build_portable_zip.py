@@ -38,16 +38,39 @@ def find_firmware_release_dir(repo_root: Path) -> tuple[Path | None, str]:
 
     return release_dir, "directory"
 
-def copy_firmware_bundle(repo_root: Path, publish_dir: Path) -> None:
+def resolve_firmware_bundle_files(repo_root: Path, tag: str) -> tuple[list[Path], str]:
     firmware_release_dir, resolution = find_firmware_release_dir(repo_root)
     if firmware_release_dir is None:
+        return [], resolution
+
+    version_matches = sorted(
+        path
+        for path in firmware_release_dir.iterdir()
+        if path.is_file() and tag in path.name and "merged" in path.name
+    )
+    if version_matches:
+        return version_matches, "version-matched merged bin"
+
+    merged_bins = sorted(
+        path for path in firmware_release_dir.iterdir() if path.is_file() and "merged" in path.name
+    )
+    if merged_bins:
+        return [merged_bins[-1]], "latest merged bin"
+
+    return sorted(path for path in firmware_release_dir.iterdir() if path.is_file()), resolution
+
+def copy_firmware_bundle(repo_root: Path, publish_dir: Path, tag: str) -> None:
+    firmware_files, resolution = resolve_firmware_bundle_files(repo_root, tag)
+    if not firmware_files:
         print(f"[warn] skipped firmware bundle: {resolution}")
         return
 
     firmware_dir = publish_dir / "Firmware"
     if firmware_dir.exists():
         shutil.rmtree(firmware_dir)
-    shutil.copytree(firmware_release_dir, firmware_dir)
+    firmware_dir.mkdir(parents=True, exist_ok=True)
+    for source in firmware_files:
+        shutil.copy2(source, firmware_dir / source.name)
     print(f"[ok] bundled firmware release folder: {firmware_dir} ({resolution})")
 
 
@@ -79,6 +102,8 @@ def main() -> int:
     zip_name = f"luma-bloom-pc-app_{args.tag}_win-x64-portable.zip"
     zip_path = pc_app_root / "artifacts" / "single-file" / zip_name
 
+    if publish_dir.exists():
+        shutil.rmtree(publish_dir)
     publish_dir.mkdir(parents=True, exist_ok=True)
     zip_path.parent.mkdir(parents=True, exist_ok=True)
 
@@ -95,6 +120,12 @@ def main() -> int:
             "true",
             "-o",
             str(publish_dir),
+            f"/p:Version={args.tag}",
+            f"/p:AssemblyVersion={args.tag}.0",
+            f"/p:FileVersion={args.tag}.0",
+            f"/p:InformationalVersion={args.tag}",
+            f"/p:AssemblyInformationalVersion={args.tag}",
+            "/p:IncludeSourceRevisionInInformationalVersion=false",
             "/p:PublishSingleFile=true",
             "/p:IncludeNativeLibrariesForSelfExtract=true",
             "/p:EnableCompressionInSingleFile=true",
@@ -104,7 +135,7 @@ def main() -> int:
         repo_root,
     )
 
-    copy_firmware_bundle(repo_root, publish_dir)
+    copy_firmware_bundle(repo_root, publish_dir, args.tag)
     copy_esptool(publish_dir)
 
     zip_dir(publish_dir, zip_path, f"luma-bloom-pc-app_{args.tag}_win-x64")
