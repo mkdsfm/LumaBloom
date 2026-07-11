@@ -17,6 +17,8 @@ dotnet build brightness-sensor.sln
 dotnet test brightness-sensor.sln
 ```
 
+`BrightnessSensor.ConsoleApp` versioning is resolved from git tags during build via `MinVer`. A tagged commit such as `1.4.0` produces that exact app version; branch builds between tags produce a prerelease version automatically.
+
 ## Run
 
 From `pc-app/`:
