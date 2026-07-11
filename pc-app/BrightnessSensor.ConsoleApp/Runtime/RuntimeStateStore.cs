@@ -1,5 +1,6 @@
 using BrightnessSensor.ConsoleApp.Configuration;
 using BrightnessSensor.ConsoleApp.Profiles;
+using BrightnessSensor.ConsoleApp.Application;
 using BrightnessSensor.DeviceReading.Models;
 using BrightnessSensor.WindowsBrightness;
 
@@ -74,7 +75,7 @@ internal sealed class RuntimeStateStore
     private readonly Queue<FirmwareUpdateActionRequest> _firmwareUpdateRequests = [];
     private readonly Queue<PrereleasePreferenceUpdateRequest> _prereleasePreferenceUpdateRequests = [];
     private SensorRuntimeSnapshot? _latestSensor;
-    private AppUpdateSnapshot _appUpdate = new("1.4.0", "Unknown", "Not checked yet.", null, UpdateAvailable: false, IsBusy: false, IncludePrerelease: false, IsPrerelease: false);
+    private AppUpdateSnapshot _appUpdate = new(AppVersion.Current, "Unknown", "Not checked yet.", null, UpdateAvailable: false, IsBusy: false, IncludePrerelease: false, IsPrerelease: false);
     private BundledFirmwareSnapshot _bundledFirmware = new("Unknown", "n/a", "Bundled firmware not loaded yet.", IsAvailable: false, IsBusy: false);
     private long _version;
 

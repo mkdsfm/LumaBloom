@@ -5,10 +5,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>BrightnessSensor.ConsoleApp</RootNamespace>
-    <Version>1.4.0</Version>
+    <MinVerDefaultPreReleaseIdentifiers>preview.0</MinVerDefaultPreReleaseIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="MinVer" Version="6.0.0" PrivateAssets="All" />
     <PackageReference Include="Spectre.Console" Version="0.49.1" />
     <PackageReference Include="System.IO.Ports" Version="10.0.5" />
     <PackageReference Include="System.Management" Version="10.0.2" />
