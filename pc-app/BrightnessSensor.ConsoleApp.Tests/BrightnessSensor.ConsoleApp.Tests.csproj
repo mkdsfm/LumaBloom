@@ -39,6 +39,7 @@
     <Compile Include="..\BrightnessSensor.ConsoleApp\Application\MonitorSession.cs" Link="ConsoleApp.Application\MonitorSession.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Application\MessageProcessor.cs" Link="ConsoleApp.Application\MessageProcessor.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Application\BrightnessCurveAnchorHelper.cs" Link="ConsoleApp.Application\BrightnessCurveAnchorHelper.cs" />
+    <Compile Include="..\BrightnessSensor.ConsoleApp\Application\ApplicationUpdateScriptBuilder.cs" Link="ConsoleApp.Application\ApplicationUpdateScriptBuilder.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Application\AppVersion.cs" Link="ConsoleApp.Application\AppVersion.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\AppLifecycleState.cs" Link="ConsoleApp.Runtime\AppLifecycleState.cs" />
     <Compile Include="..\BrightnessSensor.ConsoleApp\Runtime\AppUpdateActionRequest.cs" Link="ConsoleApp.Runtime\AppUpdateActionRequest.cs" />

@@ -58,35 +58,6 @@ internal sealed class ApplicationUpdateService(string applicationDirectory, stri
 
     private static string BuildPowerShellScript(string sourceDirectory, string targetDirectory, string executablePath)
     {
-        var executableName = Path.GetFileName(executablePath);
-
-        return $$"""
-param(
-    [int]$WaitForPid
-)
-
-$ErrorActionPreference = "Stop"
-
-try {
-    Wait-Process -Id $WaitForPid
-} catch {
-}
-
-$source = "{{sourceDirectory}}"
-$target = "{{targetDirectory}}"
-$exeName = "{{executableName}}"
-
-Get-ChildItem -Path $source -Force | ForEach-Object {
-    $destination = Join-Path $target $_.Name
-    if ($_.PSIsContainer) {
-        if (Test-Path -LiteralPath $destination) {
-            Remove-Item -LiteralPath $destination -Recurse -Force
-        }
-    }
-}
-
-Copy-Item -Path (Join-Path $source "*") -Destination $target -Recurse -Force
-Start-Process -FilePath (Join-Path $target $exeName) -WorkingDirectory $target -WindowStyle Normal
-""";
+        return ApplicationUpdateScriptBuilder.Build(sourceDirectory, targetDirectory, executablePath);
     }
 }
