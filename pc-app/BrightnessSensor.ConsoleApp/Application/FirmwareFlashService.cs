@@ -48,26 +48,10 @@ internal sealed class FirmwareFlashService(string applicationDirectory)
 
     private string ResolveEsptoolPath()
     {
-        var candidates = new[]
+        var bundledPath = Path.Combine(_applicationDirectory, "Tools", "esptool.exe");
+        if (File.Exists(bundledPath))
         {
-            Path.Combine(_applicationDirectory, "Tools", "esptool.exe"),
-            @"C:\Espressif\tools\python\v6.0\venv\Scripts\esptool.exe",
-            "esptool.exe"
-        };
-
-        foreach (var candidate in candidates)
-        {
-            if (Path.IsPathRooted(candidate))
-            {
-                if (File.Exists(candidate))
-                {
-                    return candidate;
-                }
-
-                continue;
-            }
-
-            return candidate;
+            return bundledPath;
         }
 
         throw new InvalidOperationException(

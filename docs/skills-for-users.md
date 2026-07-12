@@ -63,4 +63,5 @@ For `firmware/firmware_esp32c6/` the skill can:
 - The repo-local orchestration skill lives in `.codex-skill-staging/luma-bloom-release/`.
 - For these release skills, explicitly specify both the source tag and the target tag. Example: `source tag: 0.2.1, target tag: 0.3.0`.
 - For the Windows portable artifact produced by these skills, include the target version in the zip filename, for example `luma-bloom-pc-app_0.3.0_win-x64-portable.zip`.
+- For a reliable bundled firmware flasher, keep the official standalone Windows `esptool.exe` in `third_party/esptool/win-x64/esptool.exe` before building the portable zip.
 - The portable `pc-app` release now carries `BrightnessSensor.ConsoleApp.exe`, `Tools/esptool.exe`, and when available the bundled `firmware/firmware_esp32c6/build/release/` payload inside `Firmware/` for the Update screen.

@@ -38,7 +38,8 @@ def find_firmware_release_dir(repo_root: Path) -> tuple[Path | None, str]:
 
     return release_dir, "directory"
 
-def resolve_firmware_bundle_files(repo_root: Path, tag: str) -> tuple[list[Path], str]:
+
+def copy_firmware_bundle(repo_root: Path, publish_dir: Path) -> None:
     firmware_release_dir, resolution = find_firmware_release_dir(repo_root)
     if firmware_release_dir is None:
         return [], resolution
@@ -74,17 +75,35 @@ def copy_firmware_bundle(repo_root: Path, publish_dir: Path, tag: str) -> None:
     print(f"[ok] bundled firmware release folder: {firmware_dir} ({resolution})")
 
 
-def copy_esptool(publish_dir: Path) -> None:
-    esptool_source = Path(r"C:\Espressif\tools\python\v6.0\venv\Scripts\esptool.exe")
-    if not esptool_source.exists():
-        print("[warn] skipped esptool bundle: source esptool.exe not found")
+def resolve_esptool_source(repo_root: Path) -> tuple[Path | None, str]:
+    candidates = [
+        (
+            repo_root / "third_party" / "esptool" / "win-x64" / "esptool.exe",
+            "repo-local standalone bundle",
+        ),
+    ]
+
+    for candidate, description in candidates:
+        if candidate.exists():
+            return candidate, description
+
+    return None, "esptool.exe not found"
+
+
+def copy_esptool(repo_root: Path, publish_dir: Path) -> None:
+    esptool_source, resolution = resolve_esptool_source(repo_root)
+    if esptool_source is None:
+        print(
+            "[warn] skipped esptool bundle: place the official standalone Windows binary at "
+            "third_party\\esptool\\win-x64\\esptool.exe"
+        )
         return
 
     tools_dir = publish_dir / "Tools"
     tools_dir.mkdir(parents=True, exist_ok=True)
     esptool_target = tools_dir / "esptool.exe"
     shutil.copy2(esptool_source, esptool_target)
-    print(f"[ok] bundled esptool: {esptool_target}")
+    print(f"[ok] bundled esptool: {esptool_target} ({resolution})")
 
 
 def main() -> int:
@@ -135,8 +154,8 @@ def main() -> int:
         repo_root,
     )
 
-    copy_firmware_bundle(repo_root, publish_dir, args.tag)
-    copy_esptool(publish_dir)
+    copy_firmware_bundle(repo_root, publish_dir)
+    copy_esptool(repo_root, publish_dir)
 
     zip_dir(publish_dir, zip_path, f"luma-bloom-pc-app_{args.tag}_win-x64")
 

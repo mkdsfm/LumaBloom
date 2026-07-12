@@ -39,6 +39,14 @@ From the repository root:
 python .codex-skill-staging/pc-app-portable-release/scripts/build_portable_zip.py --tag dev
 ```
 
+For a truly portable firmware-update bundle, place the official standalone Windows `esptool.exe` at:
+
+```text
+third_party/esptool/win-x64/esptool.exe
+```
+
+The portable zip script copies that file into `Tools/esptool.exe` beside the app. If the repo-local standalone binary is missing, the script skips bundling `esptool.exe` so the packaging problem is visible immediately instead of silently depending on a developer machine.
+
 ## Single-File Windows Publish
 
 From the repository root:
