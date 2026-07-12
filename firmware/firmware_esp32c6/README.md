@@ -6,7 +6,7 @@
 
 - uses the built-in `1.47"` LCD driven by `ST7789`;
 - reads the raw `ADC` value from a `KY-018` photoresistor module;
-- shows a monochrome percentage-based UI on the horizontal LCD;
+- shows a full-screen animated pixel-art flower plus percentage and ADC overlays on the horizontal LCD;
 - exchanges JSONL messages with `pc-app` over `USB Serial`;
 - stays compatible with the Windows application in `pc-app/`.
 
@@ -30,22 +30,36 @@ This compatibility command remains available for manual or legacy flows, but the
 
 ## LCD UI
 
-The LCD uses a dedicated code-rendered screen instead of generated placeholders.
+The LCD uses a nine-frame palette-indexed sprite animation. The flower opens as the locally normalized ambient-light percentage rises and closes as it falls.
 
 Relevant files:
 
 - `main/ui_screen.c` - the complete screen renderer and UI state update entrypoint
 - `main/display_lcd.c` - low-level LCD primitives and pixel font rendering
+- `assets/flower_animation.png` - master sprite sheet with nine vertical `160x86` frames
+- `main/flower_sprite_asset.c` - generated indexed frames and shared BGR565 panel palette
+- `tools/convert_flower_sprite.py` - deterministic standard-library asset converter
 
-Current screen layout:
+Current screen behavior:
 
-- a large centered percentage value;
-- a smaller centered `ADC ####` diagnostic line below it.
+- each `160x86` source frame is expanded to `320x172` with crisp nearest-neighbor 2x pixels;
+- the flower advances toward the current light range one frame every `150 ms`;
+- frame boundaries use `2%` hysteresis;
+- percentage and `ADC ####` are drawn in the upper-left with a dark pixel outline;
+- startup shows `--%` and `ADC ----`; a read error after valid data shows `ERR` and `ADC ERR` while preserving the last frame.
+
+Palette values use the panel's configured BGR565 channel order. The LCD driver swaps each 16-bit value to the MSB-first byte order required by the SPI transfer.
 
 Runtime behavior:
 
 - the screen shows a direct ambient-light percentage derived from the raw `KY-018` range;
 - the raw ADC line keeps updating independently of any compatibility calibration command.
+
+After editing the master PNG, regenerate the C asset from this directory:
+
+```powershell
+python tools/convert_flower_sprite.py assets/flower_animation.png main/flower_sprite_asset.h main/flower_sprite_asset.c
+```
 
 ## Quick Flashing with a Prebuilt Binary
 

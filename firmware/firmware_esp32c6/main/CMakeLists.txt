@@ -3,6 +3,7 @@ idf_component_register(
         "app_main.c"
         "device_calibration.c"
         "display_lcd.c"
+        "flower_sprite_asset.c"
         "sensor_ky018.c"
         "serial_command.c"
         "telemetry_serial.c"

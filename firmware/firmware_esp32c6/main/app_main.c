@@ -271,9 +271,16 @@ static void display_task(void *arg)
         device_reading_t reading;
 
         app_state_read(&reading, NULL, 0);
-        ui_update_reading(
-            raw_to_ambient_percent(reading.raw_adc),
-            reading.raw_adc);
+        // Keep sensor ownership in app_main and pass only display state into the
+        // UI. Invalid startup data leaves placeholders visible; a later failure
+        // freezes the last flower frame and switches the overlay to ERR.
+        if (reading.valid) {
+            ui_update_reading(
+                raw_to_ambient_percent(reading.raw_adc),
+                reading.raw_adc);
+        } else {
+            ui_update_sensor_error();
+        }
         ui_screen_render();
 
         vTaskDelay(pdMS_TO_TICKS(APP_DISPLAY_INTERVAL_MS));
@@ -312,9 +319,6 @@ void app_main(void)
     if (display_err != ESP_OK) {
         ESP_LOGE(TAG, "ui_screen_init failed: %s", esp_err_to_name(display_err));
     } else {
-        ui_update_reading(
-            raw_to_ambient_percent(s_app_state.latest_reading.raw_adc),
-            s_app_state.latest_reading.raw_adc);
         ui_screen_render();
     }
 
