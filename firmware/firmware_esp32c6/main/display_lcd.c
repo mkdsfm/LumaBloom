@@ -24,6 +24,13 @@ static const ledc_timer_bit_t BACKLIGHT_LEDC_RESOLUTION = LEDC_TIMER_10_BIT;
 static const int BACKLIGHT_LEDC_FREQUENCY_HZ = 5000;
 static const int BACKLIGHT_LEDC_MAX_DUTY = (1 << 10) - 1;
 
+static uint16_t color_to_panel_bytes(uint16_t color)
+{
+    // ESP32 stores uint16_t little-endian, but ST7789 consumes RGB565/BGR565
+    // pixels MSB first over SPI. Without this swap some purples appear yellow.
+    return (uint16_t)((color << 8) | (color >> 8));
+}
+
 typedef struct {
     esp_lcd_panel_io_handle_t io_handle;
     esp_lcd_panel_handle_t panel_handle;
@@ -142,14 +149,15 @@ static void set_pixel(int x, int y, uint16_t color)
     if (x < 0 || x >= APP_LCD_WIDTH || y < 0 || y >= APP_LCD_HEIGHT) {
         return;
     }
-    s_lcd.framebuffer[(y * APP_LCD_WIDTH) + x] = color;
+    s_lcd.framebuffer[(y * APP_LCD_WIDTH) + x] = color_to_panel_bytes(color);
 }
 
 void display_lcd_fill_screen(uint16_t color)
 {
     const size_t pixels = APP_LCD_WIDTH * APP_LCD_HEIGHT;
+    const uint16_t panel_color = color_to_panel_bytes(color);
     for (size_t i = 0; i < pixels; ++i) {
-        s_lcd.framebuffer[i] = color;
+        s_lcd.framebuffer[i] = panel_color;
     }
 }
 
@@ -261,6 +269,27 @@ void display_lcd_draw_text(int x, int y, const char *text, uint16_t color, int s
     }
 }
 
+void display_lcd_draw_text_outlined(
+    int x,
+    int y,
+    const char *text,
+    uint16_t color,
+    uint16_t outline_color,
+    int scale)
+{
+    // Eight one-pixel copies form a crisp outline around the 5x7 pixel font.
+    // Change the offset range only if a thicker outline is intentionally wanted.
+    for (int offset_y = -1; offset_y <= 1; ++offset_y) {
+        for (int offset_x = -1; offset_x <= 1; ++offset_x) {
+            if (offset_x == 0 && offset_y == 0) {
+                continue;
+            }
+            display_lcd_draw_text(x + offset_x, y + offset_y, text, outline_color, scale);
+        }
+    }
+    display_lcd_draw_text(x, y, text, color, scale);
+}
+
 void display_lcd_draw_text_centered(int center_x, int y, const char *text, uint16_t color, int scale)
 {
     display_lcd_draw_text(center_x - (display_lcd_text_width(text, scale) / 2), y, text, color, scale);
@@ -269,6 +298,45 @@ void display_lcd_draw_text_centered(int center_x, int y, const char *text, uint1
 void display_lcd_draw_text_right(int right_x, int y, const char *text, uint16_t color, int scale)
 {
     display_lcd_draw_text(right_x - display_lcd_text_width(text, scale), y, text, color, scale);
+}
+
+esp_err_t display_lcd_draw_indexed_2x(
+    const uint8_t *pixels,
+    int source_width,
+    int source_height,
+    const uint16_t *palette,
+    size_t palette_size)
+{
+    ESP_RETURN_ON_FALSE(pixels != NULL, ESP_ERR_INVALID_ARG, TAG, "indexed pixels are null");
+    ESP_RETURN_ON_FALSE(palette != NULL, ESP_ERR_INVALID_ARG, TAG, "indexed palette is null");
+    ESP_RETURN_ON_FALSE(
+        source_width * 2 == APP_LCD_WIDTH && source_height * 2 == APP_LCD_HEIGHT,
+        ESP_ERR_INVALID_SIZE,
+        TAG,
+        "indexed sprite dimensions do not fill LCD");
+
+    for (int source_y = 0; source_y < source_height; ++source_y) {
+        for (int source_x = 0; source_x < source_width; ++source_x) {
+            uint8_t palette_index = pixels[(source_y * source_width) + source_x];
+            ESP_RETURN_ON_FALSE(
+                palette_index < palette_size,
+                ESP_ERR_INVALID_ARG,
+                TAG,
+                "indexed sprite palette index is invalid");
+
+            uint16_t color = palette[palette_index];
+            int destination_x = source_x * 2;
+            // Flip source Y into the framebuffer orientation and expand each
+            // 160x86 source pixel into a sharp 2x2 block on the 320x172 LCD.
+            int destination_y = APP_LCD_HEIGHT - ((source_y + 1) * 2);
+            set_pixel(destination_x, destination_y, color);
+            set_pixel(destination_x + 1, destination_y, color);
+            set_pixel(destination_x, destination_y + 1, color);
+            set_pixel(destination_x + 1, destination_y + 1, color);
+        }
+    }
+
+    return ESP_OK;
 }
 
 esp_err_t display_lcd_flush(void)

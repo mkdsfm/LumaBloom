@@ -10,7 +10,7 @@ LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON
 
 ## Highlights
 
-- ESP32-C6 firmware for Waveshare `ESP32-C6-LCD-1.47`.
+- ESP32-C6 firmware for Waveshare `ESP32-C6-LCD-1.47` with an ambient-light-driven pixel-art flower animation.
 - Raw `ADC` telemetry from the ESP32-C6, with normalization kept local to firmware UI and the Windows app.
 - Live Windows terminal dashboard for status, manual brightness, settings, events, and diagnostics.
 - Printable enclosure with `.3mf` plates, STEP sources, STL exports, photos, and demo media.
@@ -40,7 +40,7 @@ LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON
 
 ## How It Works
 
-1. The ESP32-C6 reads the KY-018 sensor and shows status on the onboard LCD.
+1. The ESP32-C6 reads the KY-018 sensor and visualizes ambient light with an animated flower plus percentage and ADC overlays on the onboard LCD.
 2. The Windows app discovers the device over a COM port.
 3. The device streams raw light telemetry over USB.
 4. The app maps ambient light to monitor brightness using the active settings, response curve, and smoothing settings.

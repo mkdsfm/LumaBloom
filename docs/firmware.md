@@ -39,6 +39,24 @@ Current KY-018 defaults are tuned for the common working range observed on this 
 
 The on-device LCD percentage is derived directly from this raw range, so a reading near `200` is treated as bright and a reading near `3200` is treated as dark.
 
+## Animated LCD
+
+The horizontal `320x172` LCD shows a nine-frame pixel-art flower whose opening level follows the locally normalized ambient-light percentage. Frames transition one step every `150 ms`, use a `2%` boundary hysteresis, and retain the percentage plus raw `ADC` overlay in the upper-left corner.
+
+The master sprite sheet is:
+
+```text
+firmware/firmware_esp32c6/assets/flower_animation.png
+```
+
+It contains nine vertical `160x86` frames. Regenerate the palette-indexed firmware asset after editing the PNG:
+
+```powershell
+python tools/convert_flower_sprite.py assets/flower_animation.png main/flower_sprite_asset.h main/flower_sprite_asset.c
+```
+
+Run the command from `firmware/firmware_esp32c6/`. The converter uses only the Python standard library and validates the dimensions, opacity, and palette limit.
+
 Do not use `GPIO0` for the KY-018 signal; it can interfere with normal board startup.
 
 ## Expected Serial Output
