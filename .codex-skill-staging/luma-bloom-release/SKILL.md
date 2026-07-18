@@ -37,9 +37,13 @@ Use these skills instead of duplicating their workflows:
 
 1. Confirm the tag range.
 2. If the user wants release artifacts, build the firmware binary through `esp32-release-flash`.
-3. If the user wants release artifacts, build the Windows portable zip through `pc-app-portable-release`.
-4. Draft the release notes through `release-notes-github`.
-5. Report:
+3. Only after the firmware step succeeds, build the Windows portable zip through `pc-app-portable-release`.
+4. Verify that the portable package contains:
+   - `BrightnessSensor.ConsoleApp.exe`
+   - `Tools/esptool.exe`
+   - the matching firmware file for the target tag inside `Firmware/`
+5. Draft the release notes through `release-notes-github`.
+6. Report:
    - the final artifact filenames
    - the final artifact paths
    - the completed release note text
@@ -55,6 +59,7 @@ The Windows portable artifact should contain:
 - `BrightnessSensor.ConsoleApp.exe`
 - `Tools/esptool.exe`
 - the bundled firmware release folder in `Firmware/` when the firmware payload was built first
+- the firmware file in that folder must match the target tag for release builds
 
 When notes are requested, the text should follow the English structure defined by `release-notes-github`.
 

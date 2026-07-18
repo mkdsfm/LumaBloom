@@ -18,7 +18,10 @@ Build the Windows portable release artifact for `pc-app/` using the flow documen
    - the exact release filename
    - whether `Tools/esptool.exe` was bundled
    - whether the firmware release folder was bundled into `Firmware/`
-5. If `dotnet publish` is blocked by sandbox access to `NuGet.Config` or package caches, rerun with escalation.
+5. Treat this release build as strict:
+   - the published `BrightnessSensor.ConsoleApp.exe` must report the exact requested tag, not a `preview` or other prerelease suffix
+   - when the tag is a real release tag such as `2.0.1`, the bundled firmware must be the matching `*_2.0.1_merged.bin`, not an older fallback file
+6. If `dotnet publish` is blocked by sandbox access to `NuGet.Config` or package caches, rerun with escalation.
 
 ## Commands
 
@@ -63,6 +66,7 @@ python .codex-skill-staging/pc-app-portable-release/scripts/build_portable_zip.p
   `pc-app/artifacts/single-file/win-x64/Tools/esptool.exe`
 - When a firmware release payload already exists in `firmware/firmware_esp32c6/build/release/`, the publish folder also contains:
   `pc-app/artifacts/single-file/win-x64/Firmware/<release-files>`
+- For release tags, fail the build instead of silently bundling the wrong firmware version.
 
 ## Resources
 

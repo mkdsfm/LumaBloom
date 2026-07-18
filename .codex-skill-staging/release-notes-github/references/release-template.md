@@ -1,10 +1,3 @@
-# Release Template
-
-Use this as the starting point for new GitHub releases in this repository.
-
-Replace `<from-tag>`, `<to-tag>`, and artifact names before returning the final text.
-
-```md
 ## Included In This Release
 
 Ready-to-flash firmware for `Waveshare ESP32-C6-LCD-1.47` plus the Windows companion app package.
@@ -34,9 +27,11 @@ Wiring:
 - `GND` -> `GND`
 - `AO` -> `GPIO4`
 
-> `GPIO0` is no longer recommended for `KY-018` on `ESP32-C6` because it can interfere with normal board startup.
-
 ## How To Flash
+
+For `<to-tag>`, the recommended update path is from the Windows companion app itself. Open the packaged BrightnessSensor.ConsoleApp.exe, go to the Update screen, and start the firmware update from there. The portable package already includes Tools/esptool.exe and the bundled firmware file in Firmware\.
+
+If you need a manual fallback, run:
 
 ```powershell
 & ".\Tools\esptool.exe" --chip esp32c6 --port COM8 --baud 460800 write-flash 0x0 .\Firmware\luma_bloom_esp32c6_<to-tag>_merged.bin
@@ -56,11 +51,3 @@ Example:
 ```json
 {"id":"lumabloom","ts":1234567,"raw":1872}
 ```
-
-After inserting the telemetry example, verify against the current sources that the meaning of the `raw` field is described correctly for this release.
-```
-
-Before finalizing a real release package, ensure these paths exist when requested:
-
-- `firmware/firmware_esp32c6/build/release/`
-- `pc-app/artifacts/single-file/luma-bloom-pc-app_<to-tag>_win-x64-portable.zip`

@@ -39,6 +39,7 @@ Get-ChildItem -Path $source -Force | ForEach-Object {
             Remove-Item -LiteralPath $destination -Recurse -Force
         }
 
+        Copy-Item -LiteralPath $_.FullName -Destination $destination -Recurse -Force
         return
     }
 

@@ -13,6 +13,24 @@ def run(cmd: list[str], cwd: Path) -> None:
     subprocess.run(cmd, cwd=str(cwd), check=True)
 
 
+def read_product_version(executable_path: Path) -> str:
+    escaped_path = str(executable_path).replace("'", "''")
+    command = [
+        "powershell",
+        "-NoProfile",
+        "-Command",
+        f"[System.Diagnostics.FileVersionInfo]::GetVersionInfo('{escaped_path}').ProductVersion",
+    ]
+    result = subprocess.run(
+        command,
+        check=True,
+        cwd=str(executable_path.parent),
+        capture_output=True,
+        text=True,
+    )
+    return result.stdout.strip()
+
+
 def zip_dir(source_dir: Path, zip_path: Path, root_name: str) -> None:
     if zip_path.exists():
         zip_path.unlink()
@@ -39,6 +57,11 @@ def find_firmware_release_dir(repo_root: Path) -> tuple[Path | None, str]:
     return release_dir, "directory"
 
 
+def should_require_exact_firmware_tag(tag: str) -> bool:
+    normalized = tag.strip().lower()
+    return normalized not in {"", "dev", "local", "snapshot"}
+
+
 def resolve_firmware_bundle_files(repo_root: Path, tag: str) -> tuple[list[Path], str]:
     firmware_release_dir, resolution = find_firmware_release_dir(repo_root)
     if firmware_release_dir is None:
@@ -51,6 +74,12 @@ def resolve_firmware_bundle_files(repo_root: Path, tag: str) -> tuple[list[Path]
     )
     if version_matches:
         return version_matches, "version-matched merged bin"
+
+    if should_require_exact_firmware_tag(tag):
+        raise RuntimeError(
+            "firmware release directory does not contain a merged bin matching the requested tag "
+            f"'{tag}'. Build the firmware release payload first so the portable package cannot bundle an older file."
+        )
 
     merged_bins = sorted(
         path for path in firmware_release_dir.iterdir() if path.is_file() and "merged" in path.name
@@ -73,6 +102,21 @@ def copy_firmware_bundle(repo_root: Path, publish_dir: Path, tag: str) -> None:
     for source in firmware_files:
         shutil.copy2(source, firmware_dir / source.name)
     print(f"[ok] bundled firmware release folder: {firmware_dir} ({resolution})")
+
+
+def validate_publish_output(publish_dir: Path, tag: str) -> None:
+    executable_path = publish_dir / "BrightnessSensor.ConsoleApp.exe"
+    if not executable_path.exists():
+        raise RuntimeError(f"published executable not found: {executable_path}")
+
+    product_version = read_product_version(executable_path)
+    if product_version != tag:
+        raise RuntimeError(
+            f"published executable version mismatch: expected '{tag}', got '{product_version}'. "
+            "This would ship a preview or wrong-version app package."
+        )
+
+    print(f"[ok] validated executable version: {product_version}")
 
 
 def resolve_esptool_source(repo_root: Path) -> tuple[Path | None, str]:
@@ -139,6 +183,7 @@ def main() -> int:
             "true",
             "-o",
             str(publish_dir),
+            f"/p:MinVerVersionOverride={args.tag}",
             f"/p:Version={args.tag}",
             f"/p:AssemblyVersion={args.tag}.0",
             f"/p:FileVersion={args.tag}.0",
@@ -156,6 +201,7 @@ def main() -> int:
 
     copy_firmware_bundle(repo_root, publish_dir, args.tag)
     copy_esptool(repo_root, publish_dir)
+    validate_publish_output(publish_dir, args.tag)
 
     zip_dir(publish_dir, zip_path, f"luma-bloom-pc-app_{args.tag}_win-x64")
 

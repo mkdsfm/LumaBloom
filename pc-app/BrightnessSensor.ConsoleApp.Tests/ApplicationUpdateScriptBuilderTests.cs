@@ -20,4 +20,20 @@ public sealed class ApplicationUpdateScriptBuilderTests
             StringComparison.Ordinal);
         Assert.Contains("Copy-Item -LiteralPath $_.FullName -Destination $destination -Force", script, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Build_CopiesBundledDirectoriesDuringUpdate()
+    {
+        var script = ApplicationUpdateScriptBuilder.Build(
+            @"C:\temp\update",
+            @"C:\apps\LumaBloom",
+            @"C:\apps\LumaBloom\BrightnessSensor.ConsoleApp.exe");
+
+        Assert.Contains("if ($_.PSIsContainer) {", script, StringComparison.Ordinal);
+        Assert.Contains("Remove-Item -LiteralPath $destination -Recurse -Force", script, StringComparison.Ordinal);
+        Assert.Contains(
+            "Copy-Item -LiteralPath $_.FullName -Destination $destination -Recurse -Force",
+            script,
+            StringComparison.Ordinal);
+    }
 }
