@@ -39,7 +39,7 @@ def find_firmware_release_dir(repo_root: Path) -> tuple[Path | None, str]:
     return release_dir, "directory"
 
 
-def copy_firmware_bundle(repo_root: Path, publish_dir: Path) -> None:
+def resolve_firmware_bundle_files(repo_root: Path, tag: str) -> tuple[list[Path], str]:
     firmware_release_dir, resolution = find_firmware_release_dir(repo_root)
     if firmware_release_dir is None:
         return [], resolution
@@ -154,7 +154,7 @@ def main() -> int:
         repo_root,
     )
 
-    copy_firmware_bundle(repo_root, publish_dir)
+    copy_firmware_bundle(repo_root, publish_dir, args.tag)
     copy_esptool(repo_root, publish_dir)
 
     zip_dir(publish_dir, zip_path, f"luma-bloom-pc-app_{args.tag}_win-x64")
