@@ -74,9 +74,9 @@
     #define APP_LCD_MIRROR_X true
     #define APP_LCD_MIRROR_Y false
     #define APP_LCD_INVERT_COLOR false
-    #define LCD_COLOR_TEXT 0xFE4E
+    #define LCD_COLOR_TEXT 0xF731
     #define LCD_COLOR_TEXT_OUTLINE 0x2881
-    #define LCD_COLOR_PROGRESS 0xFE4E
+    #define LCD_COLOR_PROGRESS 0xF731
 
 #else
     #error "Unsupported APP_DISPLAY_TYPE"
