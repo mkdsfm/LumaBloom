@@ -76,13 +76,35 @@ def read_rgba_png(path: Path) -> tuple[int, int, list[tuple[int, int, int, int]]
     return width, height, pixels
 
 
-def panel_bgr565(color: tuple[int, int, int, int]) -> int:
+def rgb565(color: tuple[int, int, int, int]) -> int:
     red, green, blue, alpha = color
+
     if alpha != 255:
         raise ValueError("sprite pixels must be fully opaque")
-    # The ST7789 is configured with LCD_RGB_ELEMENT_ORDER_BGR, so place blue
-    # in the high five bits and red in the low five bits of each pixel.
+
+    return ((red & 0xF8) << 8) | ((green & 0xFC) << 3) | (blue >> 3)
+
+
+def bgr565(color: tuple[int, int, int, int]) -> int:
+    red, green, blue, alpha = color
+
+    if alpha != 255:
+        raise ValueError("sprite pixels must be fully opaque")
+
     return ((blue & 0xF8) << 8) | ((green & 0xFC) << 3) | (red >> 3)
+
+
+def panel_color565(
+    color: tuple[int, int, int, int],
+    display: str,
+) -> int:
+    if display == "st7789":
+        return bgr565(color)
+
+    if display == "jd9853":
+        return rgb565(color)
+
+    raise ValueError(f"unsupported display: {display}")
 
 
 def format_values(values: list[int], width: int = 24) -> str:
@@ -92,7 +114,7 @@ def format_values(values: list[int], width: int = 24) -> str:
     return "\n".join(lines)
 
 
-def convert(source: Path, header: Path, implementation: Path) -> None:
+def convert(source: Path, header: Path, implementation: Path, display: str) -> None:
     width, height, pixels = read_rgba_png(source)
     # Asset contract: the source is half the physical LCD resolution. Frames
     # are stacked top-to-bottom from closed/dark to open/bright.
@@ -137,7 +159,7 @@ extern const uint8_t flower_sprite_frames[FLOWER_SPRITE_FRAME_COUNT][FLOWER_SPRI
     implementation.write_text(
         '#include "flower_sprite_asset.h"\n\n'
         + "const uint16_t flower_sprite_palette[FLOWER_SPRITE_PALETTE_SIZE] = {\n    "
-        + ", ".join(f"0x{panel_bgr565(color):04X}" for color in palette)
+        + ", ".join(f"0x{panel_color565(color, display):04X}" for color in palette)
         + ",\n};\n\n"
         + "const uint8_t flower_sprite_frames[FLOWER_SPRITE_FRAME_COUNT][FLOWER_SPRITE_WIDTH * FLOWER_SPRITE_HEIGHT] = {\n"
         + "\n".join(frame_blocks)
@@ -154,8 +176,9 @@ def main() -> None:
     parser.add_argument("source", type=Path)
     parser.add_argument("header", type=Path)
     parser.add_argument("implementation", type=Path)
+    parser.add_argument("--display", choices=("st7789", "jd9853"), default="st7789", help="target LCD color format (default: st7789)",)
     args = parser.parse_args()
-    convert(args.source, args.header, args.implementation)
+    convert(args.source, args.header, args.implementation, args.display,)
 
 
 if __name__ == "__main__":

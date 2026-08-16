@@ -2,9 +2,13 @@
 
 `ESP-IDF` firmware for the `Waveshare ESP32-C6-LCD-1.47` board.
 
+The project supports multiple LCD configurations, including `ST7789` and
+`JD9853` based displays.
+
 ## What the Firmware Does
 
-- uses the built-in `1.47"` LCD driven by `ST7789`;
+- drives the built-in `1.47"` LCD using the selected board/display
+  configuration;
 - reads the raw `ADC` value from a `KY-018` photoresistor module;
 - shows a full-screen animated pixel-art flower plus percentage and ADC overlays on the horizontal LCD;
 - exchanges JSONL messages with `pc-app` over `USB Serial`;
@@ -26,11 +30,20 @@ Calibration response from the firmware:
 
 `{"type":"calibrationResult","success":true,"normalizedOffset":0.000000,"message":"calibration applied"}`
 
-This compatibility command remains available for manual or legacy flows, but the Windows app now works directly from `raw` telemetry and does not require startup calibration.
+The LCD uses a nine-frame palette-indexed sprite animation. The flower
+opens as the displayed ambient-light percentage rises and closes as it
+falls.
 
-## LCD UI
+The raw sensor percentage is used as the target value. The displayed
+percentage approaches that target progressively instead of jumping
+immediately. Larger differences use larger steps, while movement slows
+near the target.
 
-The LCD uses a nine-frame palette-indexed sprite animation. The flower opens as the locally normalized ambient-light percentage rises and closes as it falls.
+The displayed percentage drives:
+
+-   the numeric percentage;
+-   the software-rendered progress bar;
+-   the target flower animation frame.
 
 Relevant files:
 
@@ -52,14 +65,22 @@ Palette values use the panel's configured BGR565 channel order. The LCD driver s
 
 Runtime behavior:
 
-- the screen shows a direct ambient-light percentage derived from the raw `KY-018` range;
-- the raw ADC line keeps updating independently of any compatibility calibration command.
+-   the screen shows an ambient-light percentage derived from the raw
+    `KY-018` range;
+-   UI transitions are smoothed locally and do not change the raw
+    telemetry value;
+-   the raw ADC line keeps updating independently of any compatibility
+    calibration command.
 
-After editing the master PNG, regenerate the C asset from this directory:
+After editing the master PNG, regenerate the C asset from this
+directory. For example, for the `JD9853` display profile:
 
-```powershell
-python tools/convert_flower_sprite.py assets/flower_animation.png main/flower_sprite_asset.h main/flower_sprite_asset.c
+``` powershell
+python tools/convert_flower_sprite.py assets/flower_animation.png main/flower_sprite_asset.h main/flower_sprite_asset.c --display jd9853
 ```
+
+See `tools/README.md` for converter arguments and supported display
+profiles.
 
 ## Quick Flashing with a Prebuilt Binary
 
@@ -126,16 +147,18 @@ idf.py -p COM5 flash monitor
 
 ### Onboard LCD
 
-The project uses the built-in Waveshare LCD with these pins:
+LCD pins, controller type, offsets, orientation, and related hardware
+parameters are defined by the selected board configuration in:
 
-- `MOSI`: `GPIO6`
-- `SCLK`: `GPIO7`
-- `LCD_CS`: `GPIO14`
-- `LCD_DC`: `GPIO15`
-- `LCD_RST`: `GPIO21`
-- `LCD_BL`: `GPIO22`
+-   `main/app_config.h`
 
-Display controller: `ST7789`.
+Supported display configurations include:
+
+-   `ST7789`
+-   `JD9853`
+
+Keep board-specific GPIO and panel settings in the corresponding
+configuration profile rather than hard-coding them in UI code.
 
 ### KY-018
 
