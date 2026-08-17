@@ -129,17 +129,49 @@ To build the `JD9853` version without changing the default
 configuration:
 
 ``` powershell
-idf.py -B build_jd9853 -D APP_DISPLAY_TYPE=2 build
+idf.py -B build_touch -D APP_DISPLAY_TYPE=2 build
 ```
 
 The output is created separately in:
 
 ``` text
-build_jd9853/
+build_touch/
 ```
 
 This keeps the normal `ST7789` build in `build/` and the `JD9853` build
-in `build_jd9853/`.
+in `build_touch/`.
+
+## Building and Flashing from ESP-IDF
+
+### ST7789
+
+Build and flash the default `ST7789` version:
+
+``` powershell
+cd firmware\firmware_esp32c6
+idf.py set-target esp32c6
+idf.py build
+idf.py -p COM5 flash monitor
+```
+
+Replace `COM5` with the correct serial port.
+
+### JD9853
+
+Build the `JD9853` version into the separate `build_touch/` directory:
+
+``` powershell
+cd firmware\firmware_esp32c6
+idf.py -B build_touch -D APP_DISPLAY_TYPE=2 build
+```
+
+Flash the `JD9853` build:
+
+``` powershell
+idf.py -B build_touch -D APP_DISPLAY_TYPE=2 -p COM5 flash monitor
+```
+
+Replace `COM5` with the correct serial port.
 
 ## Quick Flashing with a Prebuilt Binary
 
@@ -183,37 +215,41 @@ and can flash the device automatically, see
 
 ## Flashing Separate `.bin` Files
 
+### ST7789
+
 After the default `idf.py build`, the standard artifacts are:
 
 -   `build/bootloader/bootloader.bin`
 -   `build/partition_table/partition-table.bin`
 -   `build/brightness_sensor_esp32c6.bin`
 
-Flashing command:
+Flash them with:
 
 ``` powershell
 esptool.py --chip esp32c6 --port COM5 --baud 460800 write-flash --flash-mode dio --flash-freq 80m --flash-size 2MB 0x0 build\bootloader\bootloader.bin 0x8000 build\partition_table\partition-table.bin 0x10000 build\brightness_sensor_esp32c6.bin
 ```
 
-For a `JD9853` build, use the corresponding files from `build_jd9853/`.
+### JD9853
 
-## Building and Flashing from ESP-IDF
-
-For the default `ST7789` configuration:
+After:
 
 ``` powershell
-cd firmware\firmware_esp32c6
-idf.py set-target esp32c6
-idf.py build
-idf.py -p COM5 flash monitor
+idf.py -B build_touch -D APP_DISPLAY_TYPE=2 build
 ```
 
-For `JD9853`:
+the corresponding artifacts are:
+
+-   `build_touch/bootloader/bootloader.bin`
+-   `build_touch/partition_table/partition-table.bin`
+-   `build_touch/brightness_sensor_esp32c6.bin`
+
+Flash them with:
 
 ``` powershell
-idf.py -B build_jd9853 -D APP_DISPLAY_TYPE=2 build
-idf.py -B build_jd9853 -p COM5 flash monitor
+esptool.py --chip esp32c6 --port COM5 --baud 460800 write-flash --flash-mode dio --flash-freq 80m --flash-size 2MB 0x0 build_touch\bootloader\bootloader.bin 0x8000 build_touch\partition_table\partition-table.bin 0x10000 build_touch\brightness_sensor_esp32c6.bin
 ```
+
+Replace `COM5` with the correct serial port.
 
 ## Hardware Wiring
 
