@@ -6,10 +6,12 @@
 
 #define APP_PROTOCOL_ID "lumabloom"
 //select board 
-#define APP_DISPLAY_ST7789  1
-#define APP_DISPLAY_JD9853  2
+#define APP_DISPLAY_ST7789 1
+#define APP_DISPLAY_JD9853 2
 
-#define APP_DISPLAY_TYPE APP_DISPLAY_JD9853
+#ifndef APP_DISPLAY_TYPE
+#define APP_DISPLAY_TYPE APP_DISPLAY_ST7789
+#endif
 
 // Sensor reads stay at 200 ms. The display task ticks more often so it can
 // advance the animation independently between sensor readings.

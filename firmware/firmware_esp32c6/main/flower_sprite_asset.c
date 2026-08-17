@@ -1,8 +1,21 @@
+#include "app_config.h"
 #include "flower_sprite_asset.h"
+
+#if APP_DISPLAY_TYPE == APP_DISPLAY_ST7789
+
+const uint16_t flower_sprite_palette[FLOWER_SPRITE_PALETTE_SIZE] = {
+    0x2881, 0x6887, 0x8107, 0xF2F1, 0x8F3E, 0x765F,
+};
+
+#elif APP_DISPLAY_TYPE == APP_DISPLAY_JD9853
 
 const uint16_t flower_sprite_palette[FLOWER_SPRITE_PALETTE_SIZE] = {
     0x0885, 0x388D, 0x3910, 0x8AFE, 0xF731, 0xFE4E,
 };
+
+#else
+#error "Unsupported APP_DISPLAY_TYPE"
+#endif
 
 const uint8_t flower_sprite_frames[FLOWER_SPRITE_FRAME_COUNT][FLOWER_SPRITE_WIDTH * FLOWER_SPRITE_HEIGHT] = {
     {

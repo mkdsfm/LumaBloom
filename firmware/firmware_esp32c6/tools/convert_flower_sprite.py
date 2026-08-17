@@ -93,28 +93,13 @@ def bgr565(color: tuple[int, int, int, int]) -> int:
 
     return ((blue & 0xF8) << 8) | ((green & 0xFC) << 3) | (red >> 3)
 
-
-def panel_color565(
-    color: tuple[int, int, int, int],
-    display: str,
-) -> int:
-    if display == "st7789":
-        return bgr565(color)
-
-    if display == "jd9853":
-        return rgb565(color)
-
-    raise ValueError(f"unsupported display: {display}")
-
-
 def format_values(values: list[int], width: int = 24) -> str:
     lines = []
     for start in range(0, len(values), width):
         lines.append("    " + ", ".join(str(value) for value in values[start : start + width]) + ",")
     return "\n".join(lines)
 
-
-def convert(source: Path, header: Path, implementation: Path, display: str) -> None:
+def convert(source: Path, header: Path, implementation: Path) -> None:
     width, height, pixels = read_rgba_png(source)
     # Asset contract: the source is half the physical LCD resolution. Frames
     # are stacked top-to-bottom from closed/dark to open/bright.
@@ -123,13 +108,11 @@ def convert(source: Path, header: Path, implementation: Path, display: str) -> N
     frame_count = 9
     if (width, height) != (frame_width, frame_height * frame_count):
         raise ValueError(f"expected 160x774 sprite sheet, got {width}x{height}")
-
     palette = sorted(set(pixels))
     if len(palette) > 256:
         raise ValueError(f"palette has {len(palette)} colors; maximum is 256")
     palette_index = {color: index for index, color in enumerate(palette)}
     indexed = [palette_index[color] for color in pixels]
-
     header.write_text(
         """#pragma once
 
@@ -157,16 +140,34 @@ extern const uint8_t flower_sprite_frames[FLOWER_SPRITE_FRAME_COUNT][FLOWER_SPRI
         frame_blocks.append("    {\n" + format_values(values) + "\n    },")
 
     implementation.write_text(
-        '#include "flower_sprite_asset.h"\n\n'
-        + "const uint16_t flower_sprite_palette[FLOWER_SPRITE_PALETTE_SIZE] = {\n    "
-        + ", ".join(f"0x{panel_color565(color, display):04X}" for color in palette)
-        + ",\n};\n\n"
-        + "const uint8_t flower_sprite_frames[FLOWER_SPRITE_FRAME_COUNT][FLOWER_SPRITE_WIDTH * FLOWER_SPRITE_HEIGHT] = {\n"
-        + "\n".join(frame_blocks)
-        + "\n};\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    '#include "app_config.h"\n'
+    '#include "flower_sprite_asset.h"\n\n'
+
+    '#if APP_DISPLAY_TYPE == APP_DISPLAY_ST7789\n\n'
+
+    'const uint16_t flower_sprite_palette[FLOWER_SPRITE_PALETTE_SIZE] = {\n    '
+    + ", ".join(f"0x{bgr565(color):04X}" for color in palette)
+    + ",\n};\n\n"
+
+    '#elif APP_DISPLAY_TYPE == APP_DISPLAY_JD9853\n\n'
+
+    'const uint16_t flower_sprite_palette[FLOWER_SPRITE_PALETTE_SIZE] = {\n    '
+    + ", ".join(f"0x{rgb565(color):04X}" for color in palette)
+    + ",\n};\n\n"
+
+    '#else\n'
+    '#error "Unsupported APP_DISPLAY_TYPE"\n'
+    '#endif\n\n'
+
+    'const uint8_t flower_sprite_frames'
+    '[FLOWER_SPRITE_FRAME_COUNT]'
+    '[FLOWER_SPRITE_WIDTH * FLOWER_SPRITE_HEIGHT] = {\n'
+    + "\n".join(frame_blocks)
+    + "\n};\n",
+
+    encoding="utf-8",
+    newline="\n",
+)
 
     print(f"generated {frame_count} frames with {len(palette)} colors")
 
@@ -176,9 +177,8 @@ def main() -> None:
     parser.add_argument("source", type=Path)
     parser.add_argument("header", type=Path)
     parser.add_argument("implementation", type=Path)
-    parser.add_argument("--display", choices=("st7789", "jd9853"), default="st7789", help="target LCD color format (default: st7789)",)
     args = parser.parse_args()
-    convert(args.source, args.header, args.implementation, args.display,)
+    convert(args.source, args.header, args.implementation,)
 
 
 if __name__ == "__main__":

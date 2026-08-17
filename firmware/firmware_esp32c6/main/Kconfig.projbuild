@@ -1,0 +1,15 @@
+menu "LumaBloom configuration"
+
+choice APP_DISPLAY_TYPE
+    prompt "Display type"
+    default APP_DISPLAY_JD9853
+
+config APP_DISPLAY_ST7789
+    bool "ST7789"
+
+config APP_DISPLAY_JD9853
+    bool "JD9853"
+
+endchoice
+
+endmenu
