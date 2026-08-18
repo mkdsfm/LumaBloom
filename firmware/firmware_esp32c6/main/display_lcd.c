@@ -387,17 +387,24 @@ esp_err_t display_lcd_init(void)
         .bits_per_pixel = 16,
         .rgb_ele_order = LCD_RGB_ELEMENT_ORDER_BGR,
     };
-    ESP_RETURN_ON_ERROR(esp_lcd_new_panel_st7789(s_lcd.io_handle, &panel_config, &s_lcd.panel_handle), TAG, "esp_lcd_new_panel_st7789 failed");
+    #if defined(APP_LCD_CONTROLLER_ST7789)
+        ESP_RETURN_ON_ERROR(esp_lcd_new_panel_st7789(s_lcd.io_handle, &panel_config, &s_lcd.panel_handle), TAG, "ST7789 panel creation failed");
+    #elif defined(APP_LCD_CONTROLLER_JD9853)
+        ESP_RETURN_ON_ERROR(esp_lcd_new_panel_st7789(s_lcd.io_handle, &panel_config, &s_lcd.panel_handle), TAG, "JD9853 panel creation failed");
+        /* Разделить работу с дисплеем на общий слой и два отдельных файла lcd_st7789.c и lcd_jd9853.c 
+        Добавить небольшой lcd_panel.c, который по выбранной в app_config.h модели платы подключает нужный драйвер. 
+        Пины, offsets, orientation и прочие аппаратные параметры также выбирать в app_config.h в зависимости от платы */
+    #else
+        #error "LCD controller is not configured"
+    #endif
     ESP_RETURN_ON_ERROR(esp_lcd_panel_reset(s_lcd.panel_handle), TAG, "panel reset failed");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_init(s_lcd.panel_handle), TAG, "panel init failed");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_swap_xy(s_lcd.panel_handle, true), TAG, "panel swap_xy failed");
+    ESP_RETURN_ON_ERROR(esp_lcd_panel_swap_xy(s_lcd.panel_handle, APP_LCD_SWAP_XY), TAG, "panel swap_xy failed");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_set_gap(s_lcd.panel_handle, APP_LCD_X_OFFSET, APP_LCD_Y_OFFSET), TAG, "panel set gap failed");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_mirror(s_lcd.panel_handle, true, true), TAG, "panel mirror failed");
-    ESP_RETURN_ON_ERROR(esp_lcd_panel_invert_color(s_lcd.panel_handle, true), TAG, "panel invert color failed");
+    ESP_RETURN_ON_ERROR(esp_lcd_panel_mirror(s_lcd.panel_handle, APP_LCD_MIRROR_X, APP_LCD_MIRROR_Y), TAG, "panel mirror failed");
+    ESP_RETURN_ON_ERROR(esp_lcd_panel_invert_color(s_lcd.panel_handle, APP_LCD_INVERT_COLOR), TAG, "panel invert color failed");
     ESP_RETURN_ON_ERROR(esp_lcd_panel_disp_on_off(s_lcd.panel_handle, true), TAG, "panel on failed");
-
     ESP_RETURN_ON_ERROR(configure_backlight(), TAG, "backlight configure failed");
-
     s_lcd.ready = true;
     ESP_LOGI(TAG, "LCD ready (%dx%d, x_offset=%d, y_offset=%d)",
              APP_LCD_WIDTH, APP_LCD_HEIGHT, APP_LCD_X_OFFSET, APP_LCD_Y_OFFSET);

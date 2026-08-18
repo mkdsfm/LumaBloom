@@ -14,8 +14,9 @@ static const char *TAG = "ui_screen";
 
 // Logical BGR565 colors. display_lcd.c swaps their bytes before SPI transfer.
 // Keep these aligned with colors from the sprite palette when changing artwork.
-static const uint16_t COLOR_TEXT = 0x765F;
-static const uint16_t COLOR_TEXT_OUTLINE = 0x2881;
+static const uint16_t COLOR_TEXT = LCD_COLOR_TEXT;
+static const uint16_t COLOR_TEXT_OUTLINE = LCD_COLOR_TEXT_OUTLINE;
+static const uint16_t COLOR_PROGRESS = LCD_COLOR_PROGRESS;
 
 // Overlay layout knobs. TOP values are measured down from the visible top edge,
 // while X values are measured from the visible left edge.
@@ -28,6 +29,14 @@ static const int PERCENT_TOP = 40;
 static const int PERCENT_SCALE = 4;
 static const int PERCENT_HEIGHT = 7 * PERCENT_SCALE;
 
+// Progress bar fill area.
+// Coordinates are in the 320x172 framebuffer.
+static const int PROGRESS_X = 16;
+static const int PROGRESS_Y = 12;
+static const int PROGRESS_WIDTH = 288;
+static const int PROGRESS_HEIGHT = 12;
+static const int PERCENT_STEP_INTERVAL_MS = 20;
+
 // ADC line layout. Keep ADC_TOP below PERCENT_TOP + PERCENT_HEIGHT so the two
 // outlined strings do not overlap.
 static const int ADC_X = 58;
@@ -37,6 +46,7 @@ static const int ADC_HEIGHT = 7 * ADC_SCALE;
 
 typedef struct {
     int brightness_percent;
+    int displayed_percent;
     int adc_raw;
     int current_frame;
     int target_frame;
@@ -44,6 +54,7 @@ typedef struct {
     bool sensor_error;
     bool dirty;
     int64_t last_animation_step_ms;
+    int64_t last_percent_step_ms;
 } ui_state_t;
 
 static ui_state_t s_ui_state = {
@@ -55,6 +66,7 @@ static ui_state_t s_ui_state = {
     .sensor_error = false,
     .dirty = true,
     .last_animation_step_ms = 0,
+    .last_percent_step_ms = 0,
 };
 
 static int64_t now_ms(void)
@@ -119,6 +131,81 @@ static int framebuffer_y_from_top(int top, int height)
     return APP_LCD_HEIGHT - top - height;
 }
 
+static void draw_progress_bar(int percent)
+{
+    percent = clamp_percent(percent);
+    int fill_width = (PROGRESS_WIDTH * percent) / 100;
+
+    if (fill_width <= 0) {
+        return;
+    }
+
+    static const int inset[12] = {
+        4, 4, 2, 2, 0, 0, 0, 0, 2, 2, 4, 4
+    };
+
+    for (int row = 0; row < PROGRESS_HEIGHT; row++) {
+        int left_inset = inset[row];
+        int right_inset = inset[row];
+        int x = PROGRESS_X + left_inset;
+        int width = fill_width - left_inset - right_inset;
+        if (width > 0) {
+            display_lcd_fill_rect(x, PROGRESS_Y + row, width, 1, COLOR_PROGRESS);
+        }
+    }
+}
+
+static int percent_step_size(int difference)
+{
+    if (difference > 50) {
+        return 5;
+    }
+    if (difference > 25) {
+        return 3;
+    }
+    if (difference > 10) {
+        return 2;
+    }
+
+    return 1;
+}
+
+static bool step_displayed_percent(int64_t current_time_ms)
+{
+    if (!s_ui_state.has_valid_reading ||
+        s_ui_state.sensor_error ||
+        s_ui_state.displayed_percent == s_ui_state.brightness_percent) {
+        return false;
+    }
+
+    if (current_time_ms - s_ui_state.last_percent_step_ms <
+        PERCENT_STEP_INTERVAL_MS) {
+        return false;
+    }
+
+    int difference = s_ui_state.brightness_percent - s_ui_state.displayed_percent;
+    int abs_difference = difference >= 0 ? difference : -difference;
+    int step = percent_step_size(abs_difference);
+
+    if (difference > 0) {
+        s_ui_state.displayed_percent += step;
+
+        if (s_ui_state.displayed_percent > s_ui_state.brightness_percent) {
+            s_ui_state.displayed_percent = s_ui_state.brightness_percent;
+        }
+    } else {
+        s_ui_state.displayed_percent -= step;
+
+        if (s_ui_state.displayed_percent < s_ui_state.brightness_percent) {
+            s_ui_state.displayed_percent = s_ui_state.brightness_percent;
+        }
+    }
+
+    update_target_frame(s_ui_state.displayed_percent);
+    s_ui_state.last_percent_step_ms = current_time_ms;
+    return true;
+}
+
 static void percentage_text(char *buffer, size_t buffer_size)
 {
     if (!s_ui_state.has_valid_reading) {
@@ -126,7 +213,7 @@ static void percentage_text(char *buffer, size_t buffer_size)
     } else if (s_ui_state.sensor_error) {
         snprintf(buffer, buffer_size, "ERR");
     } else {
-        snprintf(buffer, buffer_size, "%d%%", s_ui_state.brightness_percent);
+        snprintf(buffer, buffer_size, "%d%%", s_ui_state.displayed_percent);
     }
 }
 
@@ -177,7 +264,6 @@ void ui_update_reading(int brightness_percent, int adc_raw)
                    s_ui_state.brightness_percent != clamped_percent ||
                    s_ui_state.adc_raw != clamped_adc;
 
-    update_target_frame(clamped_percent);
     s_ui_state.brightness_percent = clamped_percent;
     s_ui_state.adc_raw = clamped_adc;
     s_ui_state.has_valid_reading = true;
@@ -199,8 +285,14 @@ void ui_screen_render(void)
         return;
     }
 
-    bool animation_changed = step_animation(now_ms());
-    if (!s_ui_state.dirty && !animation_changed) {
+    int64_t current_time_ms = now_ms();
+
+    bool animation_changed = step_animation(current_time_ms);
+    bool percent_changed = step_displayed_percent(current_time_ms);
+
+    if (!s_ui_state.dirty &&
+        !animation_changed &&
+        !percent_changed) {
         return;
     }
 
@@ -217,6 +309,8 @@ void ui_screen_render(void)
         return;
     }
 
+    draw_progress_bar(s_ui_state.displayed_percent);
+
     char percent_buffer[8];
     char adc_buffer[16];
     percentage_text(percent_buffer, sizeof(percent_buffer));
@@ -228,6 +322,7 @@ void ui_screen_render(void)
         COLOR_TEXT,
         COLOR_TEXT_OUTLINE,
         PERCENT_SCALE);
+        
     display_lcd_draw_text_outlined(
         ADC_X,
         framebuffer_y_from_top(ADC_TOP, ADC_HEIGHT),

@@ -18,3 +18,17 @@ idf_component_register(
         esp_lcd
         esp_timer
 )
+
+# ST7789 is the default board.
+# Override with:
+# idf.py -D APP_DISPLAY_TYPE=2 build
+
+if(DEFINED APP_DISPLAY_TYPE)
+    target_compile_definitions(
+        ${COMPONENT_LIB}
+        PRIVATE APP_DISPLAY_TYPE=${APP_DISPLAY_TYPE}
+    )
+    message(STATUS "APP_DISPLAY_TYPE=${APP_DISPLAY_TYPE}")
+else()
+    message(STATUS "APP_DISPLAY_TYPE not specified, using default ST7789")
+endif()

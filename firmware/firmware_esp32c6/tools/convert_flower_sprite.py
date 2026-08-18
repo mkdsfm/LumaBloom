@@ -76,21 +76,28 @@ def read_rgba_png(path: Path) -> tuple[int, int, list[tuple[int, int, int, int]]
     return width, height, pixels
 
 
-def panel_bgr565(color: tuple[int, int, int, int]) -> int:
+def rgb565(color: tuple[int, int, int, int]) -> int:
     red, green, blue, alpha = color
+
     if alpha != 255:
         raise ValueError("sprite pixels must be fully opaque")
-    # The ST7789 is configured with LCD_RGB_ELEMENT_ORDER_BGR, so place blue
-    # in the high five bits and red in the low five bits of each pixel.
-    return ((blue & 0xF8) << 8) | ((green & 0xFC) << 3) | (red >> 3)
 
+    return ((red & 0xF8) << 8) | ((green & 0xFC) << 3) | (blue >> 3)
+
+
+def bgr565(color: tuple[int, int, int, int]) -> int:
+    red, green, blue, alpha = color
+
+    if alpha != 255:
+        raise ValueError("sprite pixels must be fully opaque")
+
+    return ((blue & 0xF8) << 8) | ((green & 0xFC) << 3) | (red >> 3)
 
 def format_values(values: list[int], width: int = 24) -> str:
     lines = []
     for start in range(0, len(values), width):
         lines.append("    " + ", ".join(str(value) for value in values[start : start + width]) + ",")
     return "\n".join(lines)
-
 
 def convert(source: Path, header: Path, implementation: Path) -> None:
     width, height, pixels = read_rgba_png(source)
@@ -101,13 +108,11 @@ def convert(source: Path, header: Path, implementation: Path) -> None:
     frame_count = 9
     if (width, height) != (frame_width, frame_height * frame_count):
         raise ValueError(f"expected 160x774 sprite sheet, got {width}x{height}")
-
     palette = sorted(set(pixels))
     if len(palette) > 256:
         raise ValueError(f"palette has {len(palette)} colors; maximum is 256")
     palette_index = {color: index for index, color in enumerate(palette)}
     indexed = [palette_index[color] for color in pixels]
-
     header.write_text(
         """#pragma once
 
@@ -135,16 +140,34 @@ extern const uint8_t flower_sprite_frames[FLOWER_SPRITE_FRAME_COUNT][FLOWER_SPRI
         frame_blocks.append("    {\n" + format_values(values) + "\n    },")
 
     implementation.write_text(
-        '#include "flower_sprite_asset.h"\n\n'
-        + "const uint16_t flower_sprite_palette[FLOWER_SPRITE_PALETTE_SIZE] = {\n    "
-        + ", ".join(f"0x{panel_bgr565(color):04X}" for color in palette)
-        + ",\n};\n\n"
-        + "const uint8_t flower_sprite_frames[FLOWER_SPRITE_FRAME_COUNT][FLOWER_SPRITE_WIDTH * FLOWER_SPRITE_HEIGHT] = {\n"
-        + "\n".join(frame_blocks)
-        + "\n};\n",
-        encoding="utf-8",
-        newline="\n",
-    )
+    '#include "app_config.h"\n'
+    '#include "flower_sprite_asset.h"\n\n'
+
+    '#if APP_DISPLAY_TYPE == APP_DISPLAY_ST7789\n\n'
+
+    'const uint16_t flower_sprite_palette[FLOWER_SPRITE_PALETTE_SIZE] = {\n    '
+    + ", ".join(f"0x{bgr565(color):04X}" for color in palette)
+    + ",\n};\n\n"
+
+    '#elif APP_DISPLAY_TYPE == APP_DISPLAY_JD9853\n\n'
+
+    'const uint16_t flower_sprite_palette[FLOWER_SPRITE_PALETTE_SIZE] = {\n    '
+    + ", ".join(f"0x{rgb565(color):04X}" for color in palette)
+    + ",\n};\n\n"
+
+    '#else\n'
+    '#error "Unsupported APP_DISPLAY_TYPE"\n'
+    '#endif\n\n'
+
+    'const uint8_t flower_sprite_frames'
+    '[FLOWER_SPRITE_FRAME_COUNT]'
+    '[FLOWER_SPRITE_WIDTH * FLOWER_SPRITE_HEIGHT] = {\n'
+    + "\n".join(frame_blocks)
+    + "\n};\n",
+
+    encoding="utf-8",
+    newline="\n",
+)
 
     print(f"generated {frame_count} frames with {len(palette)} colors")
 
@@ -155,7 +178,7 @@ def main() -> None:
     parser.add_argument("header", type=Path)
     parser.add_argument("implementation", type=Path)
     args = parser.parse_args()
-    convert(args.source, args.header, args.implementation)
+    convert(args.source, args.header, args.implementation,)
 
 
 if __name__ == "__main__":
