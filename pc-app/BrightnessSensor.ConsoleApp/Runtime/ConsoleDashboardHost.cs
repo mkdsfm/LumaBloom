@@ -1,16 +1,18 @@
 using Spectre.Console;
+using BrightnessSensor.ConsoleApp.Application;
 using Terminal.Gui.App;
 using Terminal.Gui.Drivers;
 
 namespace BrightnessSensor.ConsoleApp.Runtime;
 
-internal sealed class ConsoleDashboardHost(RuntimeStateStore stateStore)
+internal sealed class ConsoleDashboardHost(RuntimeStateStore stateStore, SerialPortCatalog? portCatalog = null)
 {
     private static readonly TimeSpan PollInterval = TimeSpan.FromMilliseconds(50);
     private static readonly TimeSpan IdleRefreshInterval = TimeSpan.FromSeconds(1);
 
     private readonly ConsoleDashboardRenderer _renderer = new();
     private readonly RuntimeStateStore _stateStore = stateStore;
+    private readonly SerialPortCatalog _portCatalog = portCatalog ?? new SerialPortCatalog();
 
     public int Run(Func<CancellationToken, int> applicationRunner)
     {
@@ -46,6 +48,7 @@ internal sealed class ConsoleDashboardHost(RuntimeStateStore stateStore)
             var dashboard = new TerminalGuiDashboard(
                 _stateStore,
                 interactionController,
+                _portCatalog,
                 () => app.RequestStop());
             var window = dashboard.Build();
             dashboard.Refresh();
@@ -55,6 +58,12 @@ internal sealed class ConsoleDashboardHost(RuntimeStateStore stateStore)
             app.Keyboard.KeyDown += (_, args) =>
             {
                 var keyCode = args.KeyCode;
+                if (app.Popovers?.GetActivePopover() is not null ||
+                    dashboard.IsFirmwarePortSelectorFocused && keyCode is KeyCode.CursorUp or KeyCode.CursorDown or KeyCode.Enter or KeyCode.Space or KeyCode.F4)
+                {
+                    return;
+                }
+
                 if (dashboard.IsModalOpen)
                 {
                     if (keyCode == KeyCode.Esc)
@@ -220,8 +229,9 @@ internal sealed class ConsoleDashboardHost(RuntimeStateStore stateStore)
             ? "com=unresolved baud=n/a"
             : $"com={snapshot.PortName} baud={snapshot.BaudRate?.ToString() ?? "n/a"}";
 
+        var firmwarePort = snapshot.SelectedFirmwarePort ?? "unselected";
         Console.WriteLine(
-            $"[{DateTimeOffset.Now:HH:mm:ss}] {snapshot.LifecycleState}: {snapshot.StatusMessage} | {connection} | calibration={snapshot.CalibrationStatus} | {sensor}");
+            $"[{DateTimeOffset.Now:HH:mm:ss}] {snapshot.LifecycleState}: {snapshot.StatusMessage} | {connection} | flash-com={firmwarePort} | calibration={snapshot.CalibrationStatus} | {sensor}");
     }
 
     private static void TrySetCursorVisible(bool visible)

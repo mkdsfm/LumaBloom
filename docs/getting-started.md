@@ -19,6 +19,8 @@ Build and flash the ESP32-C6 firmware from [`firmware/firmware_esp32c6/`](../fir
 
 Detailed commands are in [`firmware.md`](firmware.md).
 
+The packaged Windows app can also flash the bundled firmware. Open `Update`: the firmware-port dropdown selects the automatically detected LumaBloom port by default. Open the dropdown to rescan all current COM ports and choose another port when needed. Windows device descriptions help distinguish Bluetooth, USB serial, and Espressif/ESP32 ports. Manual firmware-port selection is temporary and does not change the port used for normal telemetry discovery.
+
 ## 2. Wire The Sensor
 
 Default KY-018 wiring:
@@ -55,6 +57,8 @@ dotnet run
 ```
 
 On startup, the app probes available COM ports for the first valid LumaBloom telemetry stream, accepts the first port that emits `{"id":"lumabloom","ts":...,"raw":...}`, and starts applying brightness from the resolved app settings and response curve.
+
+Firmware flashing remains available from `Update` while the app is waiting for valid telemetry, provided Windows exposes the target COM port and the package contains both `Tools/esptool.exe` and a bundled firmware file.
 
 ## Expected Result
 

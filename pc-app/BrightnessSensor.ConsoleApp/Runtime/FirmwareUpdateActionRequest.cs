@@ -1,6 +1,3 @@
 namespace BrightnessSensor.ConsoleApp.Runtime;
 
-internal enum FirmwareUpdateActionRequest
-{
-    FlashBundledFirmware
-}
+internal sealed record FirmwareUpdateActionRequest(string PortName);

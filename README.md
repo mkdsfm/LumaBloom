@@ -13,6 +13,7 @@ LumaBloom reads room light from a KY-018 sensor on an ESP32-C6, streams raw JSON
 - ESP32-C6 firmware for Waveshare `ESP32-C6-LCD-1.47` with an ambient-light-driven pixel-art flower animation.
 - Raw `ADC` telemetry from the ESP32-C6, with normalization kept local to firmware UI and the Windows app.
 - Live Windows terminal dashboard for status, manual brightness, settings, events, and diagnostics.
+- In-app firmware updates with automatic COM-port selection and a refreshed manual port dropdown.
 - Printable enclosure with `.3mf` plates, STEP sources, STL exports, photos, and demo media.
 - User-tunable brightness curve, including anchoring the curve to the current room light, plus smoothing, hysteresis, gamma, language, and autostart settings.
 

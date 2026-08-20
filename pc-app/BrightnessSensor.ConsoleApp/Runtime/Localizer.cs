@@ -89,6 +89,11 @@ internal sealed class Localizer(UiLanguage language)
         ["update.bundledVersion"] = "Bundled firmware",
         ["update.bundledFile"] = "Bundled file",
         ["update.port"] = "Connected port",
+        ["update.firmwarePort"] = "Firmware port",
+        ["update.selectPort"] = "Select a COM port",
+        ["update.noPorts"] = "No COM ports found",
+        ["update.portListError"] = "COM port scan failed",
+        ["update.autoDetected"] = "LumaBloom, auto",
         ["update.note"] = "Note",
         ["update.firmwareNote"] = "This protocol does not expose firmware version yet. Flashing will reinstall the version bundled with this app.",
         ["status.lifecycle"] = "Lifecycle",
@@ -272,6 +277,11 @@ internal sealed class Localizer(UiLanguage language)
         ,["update.bundledVersion"] = "\u0412\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u0430\u044f \u043f\u0440\u043e\u0448\u0438\u0432\u043a\u0430"
         ,["update.bundledFile"] = "\u0424\u0430\u0439\u043b \u0432 \u043f\u0430\u043a\u0435\u0442\u0435"
         ,["update.port"] = "\u041f\u043e\u0434\u043a\u043b\u044e\u0447\u0435\u043d\u043d\u044b\u0439 \u043f\u043e\u0440\u0442"
+        ,["update.firmwarePort"] = "\u041f\u043e\u0440\u0442 \u0434\u043b\u044f \u043f\u0440\u043e\u0448\u0438\u0432\u043a\u0438"
+        ,["update.selectPort"] = "\u0412\u044b\u0431\u0435\u0440\u0438\u0442\u0435 COM-\u043f\u043e\u0440\u0442"
+        ,["update.noPorts"] = "COM-\u043f\u043e\u0440\u0442\u044b \u043d\u0435 \u043d\u0430\u0439\u0434\u0435\u043d\u044b"
+        ,["update.portListError"] = "\u041e\u0448\u0438\u0431\u043a\u0430 \u043f\u043e\u0438\u0441\u043a\u0430 COM-\u043f\u043e\u0440\u0442\u043e\u0432"
+        ,["update.autoDetected"] = "LumaBloom, \u0430\u0432\u0442\u043e"
         ,["update.note"] = "\u041f\u0440\u0438\u043c\u0435\u0447\u0430\u043d\u0438\u0435"
         ,["update.firmwareNote"] = "\u0422\u0435\u043a\u0443\u0449\u0438\u0439 \u043f\u0440\u043e\u0442\u043e\u043a\u043e\u043b \u043f\u043e\u043a\u0430 \u043d\u0435 \u043f\u0435\u0440\u0435\u0434\u0430\u0451\u0442 \u0432\u0435\u0440\u0441\u0438\u044e \u043f\u0440\u043e\u0448\u0438\u0432\u043a\u0438. \u041f\u0440\u043e\u0448\u0438\u0432\u043a\u0430 \u043f\u0435\u0440\u0435\u0443\u0441\u0442\u0430\u043d\u043e\u0432\u0438\u0442 \u0432\u0435\u0440\u0441\u0438\u044e, \u0432\u0441\u0442\u0440\u043e\u0435\u043d\u043d\u0443\u044e \u0432 \u044d\u0442\u043e \u043f\u0440\u0438\u043b\u043e\u0436\u0435\u043d\u0438\u0435."
     };
@@ -396,6 +406,11 @@ internal sealed class Localizer(UiLanguage language)
         ,["update.bundledVersion"] = "Firmware incluido"
         ,["update.bundledFile"] = "Archivo incluido"
         ,["update.port"] = "Puerto conectado"
+        ,["update.firmwarePort"] = "Puerto de firmware"
+        ,["update.selectPort"] = "Selecciona un puerto COM"
+        ,["update.noPorts"] = "No hay puertos COM"
+        ,["update.portListError"] = "Error al buscar puertos COM"
+        ,["update.autoDetected"] = "LumaBloom, auto"
         ,["update.note"] = "Nota"
         ,["update.firmwareNote"] = "Este protocolo aun no expone la version del firmware. El flasheo reinstalara la version incluida con esta aplicacion."
     };

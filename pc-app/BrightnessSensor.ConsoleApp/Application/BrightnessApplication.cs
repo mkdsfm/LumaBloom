@@ -21,19 +21,21 @@ internal static class BrightnessApplication
     public static int Run(AppConfig config, string configPath)
     {
         var stateStore = new RuntimeStateStore();
+        var portCatalog = new SerialPortCatalog();
         stateStore.SetLanguage(UiLanguageResolver.Resolve(config.Ui.Language));
-        var dashboardHost = new ConsoleDashboardHost(stateStore);
+        var dashboardHost = new ConsoleDashboardHost(stateStore, portCatalog);
         var applicationDirectory = AppContext.BaseDirectory;
         var executablePath = Environment.ProcessPath ??
                              Path.Combine(applicationDirectory, $"{Assembly.GetExecutingAssembly().GetName().Name}.exe");
         return dashboardHost.Run(cancellationToken =>
-            RunCore(config, configPath, stateStore, applicationDirectory, executablePath, cancellationToken));
+            RunCore(config, configPath, stateStore, portCatalog, applicationDirectory, executablePath, cancellationToken));
     }
 
     private static int RunCore(
         AppConfig config,
         string configPath,
         RuntimeStateStore stateStore,
+        SerialPortCatalog portCatalog,
         string applicationDirectory,
         string executablePath,
         CancellationToken cancellationToken)
@@ -41,6 +43,7 @@ internal static class BrightnessApplication
         using var gitHubReleaseClient = new GitHubReleaseClient(GitHubRepository);
         var applicationUpdateService = new ApplicationUpdateService(applicationDirectory, executablePath);
         var firmwareFlashService = new FirmwareFlashService(applicationDirectory);
+        var firmwareUpdateCoordinator = new FirmwareUpdateCoordinator(portCatalog, firmwareFlashService);
         var bundledFirmwareLocator = new BundledFirmwareLocator();
         GitHubReleaseInfo? latestRelease = null;
         BundledFirmwareInfo? bundledFirmware = null;
@@ -78,6 +81,7 @@ internal static class BrightnessApplication
         }
 
         stateStore.RequestAppUpdateCheck();
+        RefreshFirmwarePorts(stateStore, portCatalog);
 
         var effectiveSettings = ResolvedSettingsFactory.Create(config);
         stateStore.SetDeviceSettings(
@@ -122,6 +126,8 @@ internal static class BrightnessApplication
                 gitHubReleaseClient,
                 applicationUpdateService,
                 ref latestRelease,
+                firmwareUpdateCoordinator,
+                bundledFirmware,
                 cancellationToken,
                 ref config,
                 ref effectiveSettings,
@@ -167,7 +173,7 @@ internal static class BrightnessApplication
                     gitHubReleaseClient,
                     applicationUpdateService,
                     ref latestRelease,
-                    firmwareFlashService,
+                    firmwareUpdateCoordinator,
                     bundledFirmware,
                     cancellationToken,
                     ref config,
@@ -217,6 +223,8 @@ internal static class BrightnessApplication
                         gitHubReleaseClient,
                         applicationUpdateService,
                         ref latestRelease,
+                        firmwareUpdateCoordinator,
+                        bundledFirmware,
                         cancellationToken,
                         ref config,
                         ref effectiveSettings,
@@ -274,6 +282,8 @@ internal static class BrightnessApplication
         GitHubReleaseClient gitHubReleaseClient,
         ApplicationUpdateService applicationUpdateService,
         ref GitHubReleaseInfo? latestRelease,
+        FirmwareUpdateCoordinator firmwareUpdateCoordinator,
+        BundledFirmwareInfo? bundledFirmware,
         CancellationToken cancellationToken,
         ref AppConfig config,
         ref ResolvedAppSettings effectiveSettings,
@@ -303,6 +313,8 @@ internal static class BrightnessApplication
             {
                 return false;
             }
+
+            ProcessWaitingFirmwareUpdateRequests(stateStore, firmwareUpdateCoordinator, bundledFirmware);
 
             messageProcessor.ApplyPendingManualBrightness(monitorSessions, cancellationToken);
 
@@ -551,7 +563,7 @@ internal static class BrightnessApplication
         GitHubReleaseClient gitHubReleaseClient,
         ApplicationUpdateService applicationUpdateService,
         ref GitHubReleaseInfo? latestRelease,
-        FirmwareFlashService firmwareFlashService,
+        FirmwareUpdateCoordinator firmwareUpdateCoordinator,
         BundledFirmwareInfo? bundledFirmware,
         CancellationToken cancellationToken,
         ref AppConfig config,
@@ -561,63 +573,24 @@ internal static class BrightnessApplication
     {
         firstMessage = null;
 
-        while (stateStore.TryConsumeFirmwareUpdateRequest(out _))
+        while (stateStore.TryConsumeFirmwareUpdateRequest(out var request))
         {
-            var currentFirmwareState = stateStore.GetSnapshot().BundledFirmware ??
-                                       new BundledFirmwareSnapshot("Unknown", "n/a", "Bundled firmware state unavailable.", false, false);
-
-            if (bundledFirmware is null)
+            var releaseReader = string.Equals(sensorReader.PortName, request.PortName, StringComparison.OrdinalIgnoreCase);
+            var readerToRelease = sensorReader;
+            var attempted = firmwareUpdateCoordinator.Execute(
+                request,
+                bundledFirmware,
+                stateStore,
+                releaseReader
+                    ? () =>
+                    {
+                        readerToRelease.Dispose();
+                        stateStore.ClearLatestSensor();
+                    }
+                    : null);
+            if (!attempted || !releaseReader)
             {
-                var missingStatus = "Bundled firmware is not available in this application package.";
-                stateStore.SetBundledFirmwareState(currentFirmwareState with { StatusMessage = missingStatus, IsBusy = false });
-                stateStore.AddEvent(missingStatus, RuntimeEventSeverity.Warning);
                 continue;
-            }
-
-            var portName = stateStore.GetSnapshot().PortName;
-            if (string.IsNullOrWhiteSpace(portName))
-            {
-                var portStatus = "Connect the ESP32-C6 device before flashing bundled firmware.";
-                stateStore.SetBundledFirmwareState(currentFirmwareState with { StatusMessage = portStatus, IsBusy = false });
-                stateStore.AddEvent(portStatus, RuntimeEventSeverity.Warning);
-                continue;
-            }
-
-            stateStore.SetBundledFirmwareState(currentFirmwareState with
-            {
-                StatusMessage = $"Flashing bundled firmware {bundledFirmware.Version} on {portName}...",
-                IsBusy = true
-            });
-
-            sensorReader.Dispose();
-            stateStore.ClearLatestSensor();
-
-            try
-            {
-                firmwareFlashService.Flash(bundledFirmware, portName);
-                stateStore.SetBundledFirmwareState(currentFirmwareState with
-                {
-                    Version = bundledFirmware.Version,
-                    FileName = bundledFirmware.FileName,
-                    StatusMessage = $"Bundled firmware {bundledFirmware.Version} flashed successfully.",
-                    IsAvailable = true,
-                    IsBusy = false
-                });
-                stateStore.AddEvent(
-                    $"Bundled firmware {bundledFirmware.Version} flashed successfully on {portName}.",
-                    RuntimeEventSeverity.Success);
-            }
-            catch (Exception exception)
-            {
-                stateStore.SetBundledFirmwareState(currentFirmwareState with
-                {
-                    Version = bundledFirmware.Version,
-                    FileName = bundledFirmware.FileName,
-                    StatusMessage = $"Firmware flashing failed: {exception.Message}",
-                    IsAvailable = true,
-                    IsBusy = false
-                });
-                stateStore.AddEvent($"Firmware flashing failed: {exception.Message}", RuntimeEventSeverity.Error);
             }
 
             if (!TryConnectSensor(
@@ -630,6 +603,8 @@ internal static class BrightnessApplication
                     gitHubReleaseClient,
                     applicationUpdateService,
                     ref latestRelease,
+                    firmwareUpdateCoordinator,
+                    bundledFirmware,
                     cancellationToken,
                     ref config,
                     ref effectiveSettings,
@@ -641,6 +616,32 @@ internal static class BrightnessApplication
         }
 
         return true;
+    }
+
+    private static void ProcessWaitingFirmwareUpdateRequests(
+        RuntimeStateStore stateStore,
+        FirmwareUpdateCoordinator firmwareUpdateCoordinator,
+        BundledFirmwareInfo? bundledFirmware)
+    {
+        while (stateStore.TryConsumeFirmwareUpdateRequest(out var request))
+        {
+            stateStore.ClearLatestSensor();
+            firmwareUpdateCoordinator.Execute(request, bundledFirmware, stateStore);
+        }
+    }
+
+    private static void RefreshFirmwarePorts(RuntimeStateStore stateStore, SerialPortCatalog portCatalog)
+    {
+        var result = portCatalog.GetPorts();
+        if (result.IsSuccess)
+        {
+            stateStore.SetFirmwarePorts(result.Ports);
+        }
+        else
+        {
+            stateStore.SetFirmwarePortListError(result.Error!);
+            stateStore.AddEvent(result.Error!, RuntimeEventSeverity.Warning);
+        }
     }
 
     private static bool IsRemoteVersionNewer(string currentVersion, string remoteVersion)

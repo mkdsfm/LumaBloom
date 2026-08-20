@@ -75,3 +75,5 @@ The publish output does not include `appsettings.json`. On first run without an 
 The in-app application update flow also preserves an existing `appsettings.json` in the installed app folder, so user settings survive portable-package upgrades.
 
 When the repo already contains an ESP32-C6 firmware release payload in `firmware/firmware_esp32c6/build/release/`, the portable release script copies that release folder into the publish folder under `Firmware/`. The in-app Update screen uses the bundled firmware payload from there.
+
+The Update screen selects the automatically discovered LumaBloom COM port by default. Its firmware-port dropdown rescans `SerialPort.GetPortNames()` every time it opens, so the user can select a newly connected or alternative port without restarting the app. Entries include the Windows device name when available; native Espressif USB devices are marked `Espressif/ESP32`, and the validated telemetry port is marked as the automatic LumaBloom choice. This selection applies only to firmware flashing and is not persisted to `appsettings.json`.

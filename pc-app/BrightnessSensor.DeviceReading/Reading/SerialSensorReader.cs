@@ -9,6 +9,8 @@ public sealed class SerialSensorReader(string portName, int baudRate, int readTi
 {
     private readonly SerialPort _serialPort = CreateSerialPort(portName, baudRate, readTimeoutMs, newLine);
 
+    public string PortName => portName;
+
     public void Open()
     {
         _serialPort.Open();

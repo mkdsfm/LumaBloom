@@ -1,4 +1,5 @@
 using BrightnessSensor.ConsoleApp.Configuration;
+using BrightnessSensor.ConsoleApp.Application;
 
 namespace BrightnessSensor.ConsoleApp.Runtime;
 
@@ -44,4 +45,9 @@ internal sealed record DashboardSnapshot(
     double? ProcessingGamma = null,
     bool AutostartEnabled = false,
     AppUpdateSnapshot? AppUpdate = null,
-    BundledFirmwareSnapshot? BundledFirmware = null);
+    BundledFirmwareSnapshot? BundledFirmware = null,
+    IReadOnlyList<string>? FirmwarePortOptions = null,
+    string? SelectedFirmwarePort = null,
+    bool IsFirmwarePortManuallySelected = false,
+    string? FirmwarePortListError = null,
+    IReadOnlyList<SerialPortInfo>? FirmwarePorts = null);

@@ -65,6 +65,11 @@ internal sealed class RuntimeStateStore
     private string? _measurementKind;
     private ProcessingSettings? _processingSettings;
     private IReadOnlyList<BrightnessCurvePoint> _brightnessCurve = [];
+    private IReadOnlyList<SerialPortInfo> _firmwarePorts = [];
+    private IReadOnlyList<string> _firmwarePortOptions = [];
+    private string? _selectedFirmwarePort;
+    private bool _isFirmwarePortManuallySelected;
+    private string? _firmwarePortListError;
     private readonly Queue<LanguageUpdateRequest> _languageUpdateRequests = [];
     private readonly Queue<AutostartUpdateRequest> _autostartUpdateRequests = [];
     private readonly Queue<ProcessingUpdateRequest> _processingUpdateRequests = [];
@@ -363,12 +368,23 @@ internal sealed class RuntimeStateStore
         }
     }
 
-    public void RequestBundledFirmwareFlash()
+    public bool RequestBundledFirmwareFlash()
     {
         lock (_gate)
         {
-            _firmwareUpdateRequests.Enqueue(FirmwareUpdateActionRequest.FlashBundledFirmware);
+            if (string.IsNullOrWhiteSpace(_selectedFirmwarePort) || !_bundledFirmware.IsAvailable || _bundledFirmware.IsBusy || _firmwareUpdateRequests.Count > 0)
+            {
+                return false;
+            }
+
+            _firmwareUpdateRequests.Enqueue(new FirmwareUpdateActionRequest(_selectedFirmwarePort));
+            _bundledFirmware = _bundledFirmware with
+            {
+                StatusMessage = $"Firmware update queued for {_selectedFirmwarePort}.",
+                IsBusy = true
+            };
             IncrementVersion();
+            return true;
         }
     }
 
@@ -378,7 +394,7 @@ internal sealed class RuntimeStateStore
         {
             if (_firmwareUpdateRequests.Count == 0)
             {
-                request = FirmwareUpdateActionRequest.FlashBundledFirmware;
+                request = new FirmwareUpdateActionRequest(string.Empty);
                 return false;
             }
 
@@ -948,7 +964,80 @@ internal sealed class RuntimeStateStore
             _portName = portName;
             _baudRate = baudRate;
             _connectionSummary = connectionSummary;
+            if (!_isFirmwarePortManuallySelected)
+            {
+                _selectedFirmwarePort = portName;
+            }
+
             IncrementVersion();
+        }
+    }
+
+    public void SetFirmwarePorts(IReadOnlyList<string> portNames)
+    {
+        ArgumentNullException.ThrowIfNull(portNames);
+        SetFirmwarePorts(portNames.Select(portName => new SerialPortInfo(portName, null, IsEspressifDevice: false)).ToArray());
+    }
+
+    public void SetFirmwarePorts(IReadOnlyList<SerialPortInfo> ports)
+    {
+        ArgumentNullException.ThrowIfNull(ports);
+
+        lock (_gate)
+        {
+            _firmwarePorts = ports
+                .Where(port => !string.IsNullOrWhiteSpace(port.PortName))
+                .GroupBy(port => port.PortName, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .OrderBy(port => port.PortName, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+            _firmwarePortOptions = _firmwarePorts.Select(port => port.PortName).ToArray();
+            _firmwarePortListError = null;
+
+            if (_isFirmwarePortManuallySelected && TryFindFirmwarePort(_selectedFirmwarePort, out var selectedPort))
+            {
+                _selectedFirmwarePort = selectedPort;
+            }
+            else
+            {
+                _isFirmwarePortManuallySelected = false;
+                _selectedFirmwarePort = TryFindFirmwarePort(_portName, out var automaticPort) ? automaticPort : null;
+            }
+
+            IncrementVersion();
+        }
+    }
+
+    public void SetFirmwarePortListError(string error)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(error);
+
+        lock (_gate)
+        {
+            _firmwarePortOptions = [];
+            _firmwarePorts = [];
+            _selectedFirmwarePort = null;
+            _isFirmwarePortManuallySelected = false;
+            _firmwarePortListError = error;
+            IncrementVersion();
+        }
+    }
+
+    public bool SelectFirmwarePort(string portName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(portName);
+
+        lock (_gate)
+        {
+            if (!TryFindFirmwarePort(portName, out var selectedPort))
+            {
+                return false;
+            }
+
+            _selectedFirmwarePort = selectedPort;
+            _isFirmwarePortManuallySelected = true;
+            IncrementVersion();
+            return true;
         }
     }
 
@@ -1169,8 +1258,19 @@ internal sealed class RuntimeStateStore
                 _processingSettings?.Gamma,
                 _autostartEnabled,
                 _appUpdate,
-                _bundledFirmware);
+                _bundledFirmware,
+                _firmwarePortOptions,
+                _selectedFirmwarePort,
+                _isFirmwarePortManuallySelected,
+                _firmwarePortListError,
+                _firmwarePorts);
         }
+    }
+
+    private bool TryFindFirmwarePort(string? portName, out string selectedPort)
+    {
+        selectedPort = _firmwarePortOptions.FirstOrDefault(port => string.Equals(port, portName, StringComparison.OrdinalIgnoreCase)) ?? string.Empty;
+        return selectedPort.Length > 0;
     }
 
     private void MoveOverviewFocus(int delta)
