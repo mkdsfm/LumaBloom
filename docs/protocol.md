@@ -1,10 +1,10 @@
 # Communication Protocol
 
-The firmware uses USB Serial as a bidirectional JSONL channel.
+The firmware sends newline-delimited JSON (`JSONL`) telemetry over USB Serial.
 
 ## Rate
 
-- Send interval: `500 ms`
+- Send interval: `200 ms`
 - Port speed: `115200 baud`
 
 ## Telemetry Format
@@ -16,6 +16,7 @@ The firmware uses USB Serial as a bidirectional JSONL channel.
 - `id` (`string`) - protocol identifier; must be `lumabloom` for `pc-app` to treat the COM port as a compatible device
 - `ts` (`number`) - milliseconds since device startup
 - `raw` (`number`) - raw ADC reading used by `pc-app` for brightness processing, diagnostics, and curve anchoring
+
 ## `raw` Semantics
 
 - For `firmware/firmware_esp32c6/`, `raw` is the only telemetry measurement field on the USB wire contract.

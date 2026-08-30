@@ -25,13 +25,9 @@ The built-in LCD always shows the current ambient percentage plus the
 current `ADC` line. That normalized percentage is derived locally from
 the configured raw range and is not mirrored into telemetry.
 
-Optional calibration command compatibility:
-
-`{"type":"calibrate","screenBrightnessPercent":65,"sensorAverageRaw":1840}`
-
-Calibration response from the firmware:
-
-`{"type":"calibrationResult","success":true,"normalizedOffset":0.000000,"message":"calibration applied"}`
+The Windows application performs normalization, smoothing, curve mapping,
+and user calibration from `raw`; no calibration command is required from
+the firmware.
 
 ## LCD UI
 
@@ -181,8 +177,6 @@ simplest option.
 Expected file name:
 
 -   `brightness_sensor_esp32c6_merged.bin`
--   skill-based release example:
-    `brightness_sensor_esp32c6_calibrated.bin`
 
 Flashing command:
 
