@@ -42,6 +42,10 @@ internal sealed class FirmwareFlashService(string applicationDirectory) : IFirmw
         ArgumentException.ThrowIfNullOrWhiteSpace(applicationDirectory);
         ArgumentNullException.ThrowIfNull(firmwareInfo);
         ArgumentException.ThrowIfNullOrWhiteSpace(portName);
+        if (!string.Equals(firmwareInfo.FlashMethod, "esptool", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new NotSupportedException($"Firmware flash method '{firmwareInfo.FlashMethod}' is not supported.");
+        }
 
         var startInfo = new ProcessStartInfo
         {
@@ -57,9 +61,9 @@ internal sealed class FirmwareFlashService(string applicationDirectory) : IFirmw
         startInfo.ArgumentList.Add("--port");
         startInfo.ArgumentList.Add(portName);
         startInfo.ArgumentList.Add("--baud");
-        startInfo.ArgumentList.Add("460800");
+        startInfo.ArgumentList.Add(firmwareInfo.BaudRate.ToString(System.Globalization.CultureInfo.InvariantCulture));
         startInfo.ArgumentList.Add("write-flash");
-        startInfo.ArgumentList.Add("0x0");
+        startInfo.ArgumentList.Add(firmwareInfo.Offset);
         startInfo.ArgumentList.Add(firmwareInfo.AbsolutePath);
         return startInfo;
     }

@@ -1,12 +1,12 @@
 namespace BrightnessSensor.ConsoleApp.Application;
 
-internal sealed record BundledFirmwareInfo(
+internal sealed record FirmwareArtifactManifest(
+    int SchemaVersion,
     string Version,
+    string FileName,
     string Variant,
+    string Board,
     string FlashMethod,
     string Chip,
-    string Board,
     int BaudRate,
-    string Offset,
-    string FileName,
-    string AbsolutePath);
+    string Offset);

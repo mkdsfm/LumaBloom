@@ -50,4 +50,6 @@ internal sealed record DashboardSnapshot(
     string? SelectedFirmwarePort = null,
     bool IsFirmwarePortManuallySelected = false,
     string? FirmwarePortListError = null,
-    IReadOnlyList<SerialPortInfo>? FirmwarePorts = null);
+    IReadOnlyList<SerialPortInfo>? FirmwarePorts = null,
+    IReadOnlyList<FirmwareVersionOption>? FirmwareVersionOptions = null,
+    string? SelectedFirmwareFileName = null);

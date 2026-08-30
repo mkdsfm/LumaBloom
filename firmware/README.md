@@ -41,6 +41,44 @@ The Windows application:
 
 The sensor range, direction, smoothing, gamma, brightness curve, brightness limits, hysteresis, and maximum step are configurable in `pc-app` or `appsettings.json`. Therefore, firmware-side normalization, smoothing, calibration commands, and brightness calculation are not required. A display and buttons are also optional.
 
+## Required Release Build Script
+
+Every immediate firmware project directory under `firmware/` must contain its own `build_merged.py`. There is intentionally no shared firmware build implementation: each project owns its toolchain commands, board variants, flash layout, and merge process. The project script may call ESP-IDF, Arduino, PlatformIO, STM32 tools, vendor utilities, or any other required build system.
+
+The script is the stable entrypoint used by release skills and must:
+
+- accept `--tag <version>` and include that tag in every output filename;
+- build every hardware/firmware variant supported by that project when no variant filter is supplied;
+- create full-device flashable binaries under `build/release/`;
+- name each artifact `*_<tag>_merged.bin`;
+- delete old release binaries and manifests for the requested tag before creating new artifacts;
+- create a `<binary>.manifest.json` sidecar for every merged binary;
+- accept `--skip-build` to recreate merged files from existing valid build artifacts;
+- accept `--dry-run` for command validation without changing build outputs;
+- return a non-zero exit code if any supported variant fails, so a release cannot silently omit firmware.
+
+The Python entrypoint is only a project-local adapter. It does not require the firmware itself to use Python or ESP tooling.
+
+Each manifest uses schema version `1` and contains:
+
+```json
+{
+  "schemaVersion": 1,
+  "version": "2.1.0",
+  "fileName": "example_2.1.0_merged.bin",
+  "variant": "board-variant",
+  "board": "board-id",
+  "flashMethod": "vendor-tool",
+  "chip": "chip-id",
+  "baudRate": 460800,
+  "offset": "0x0"
+}
+```
+
+The Windows app currently accepts only manifests with `flashMethod` set to `esptool`. Other projects still publish their binaries and manifests, but require a matching PC-side flasher before they can be selected in the app.
+
+To build release binaries manually, run every project's script. Release skills discover these entrypoints automatically and fail if a firmware directory does not provide one.
+
 ## Documentation
 
 - [`docs/protocol.md`](../docs/protocol.md) — required serial transport and telemetry contract.
