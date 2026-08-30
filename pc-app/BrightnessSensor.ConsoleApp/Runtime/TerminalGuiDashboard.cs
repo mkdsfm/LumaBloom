@@ -36,6 +36,7 @@ internal sealed class TerminalGuiDashboard
     private readonly Label _diagnosticsText = new();
     private readonly Label _appUpdateText = new();
     private readonly Label _firmwareUpdateText = new();
+    private readonly Label _firmwareVersionLabel = new();
     private readonly Label _firmwarePortLabel = new();
     private readonly View _contentView = new();
     private readonly View _settingsContentView = new();
@@ -73,7 +74,10 @@ internal sealed class TerminalGuiDashboard
     private readonly Button _checkUpdatesButton;
     private readonly Button _applyAppUpdateButton;
     private readonly Button _flashFirmwareButton;
+    private readonly Button _updateAppTabButton;
+    private readonly Button _updateFirmwareTabButton;
     private readonly CheckBox _includePrereleaseCheckBox = new();
+    private readonly DropDownList _firmwareVersionDropDown;
     private readonly DropDownList _firmwarePortDropDown;
     private readonly FrameView _modalFrame = new();
     private readonly Label _modalDescription = new();
@@ -89,9 +93,13 @@ internal sealed class TerminalGuiDashboard
     private bool _activeCurveAnchorModal;
     private bool _isUpdatingInvertRadio;
     private bool _isUpdatingPrereleaseCheckBox;
+    private bool _isUpdatingFirmwareVersionDropDown;
     private bool _isUpdatingFirmwarePortDropDown;
+    private IReadOnlyList<string> _renderedFirmwareVersionOptions = [];
+    private IReadOnlyDictionary<string, string> _firmwareVersionDisplayToFileName = new Dictionary<string, string>(StringComparer.Ordinal);
     private IReadOnlyList<string> _renderedFirmwarePortOptions = [];
     private IReadOnlyDictionary<string, string> _firmwarePortDisplayToName = new Dictionary<string, string>(StringComparer.Ordinal);
+    private UpdateSection _activeUpdateSection = UpdateSection.App;
 
     private static readonly Scheme BaseScheme = CreateScheme(Color.Gray, Color.Black, Color.Black, Color.Green);
     private static readonly Scheme TitleScheme = CreateScheme(Color.BrightGreen, Color.Black, Color.Black, Color.BrightGreen);
@@ -166,6 +174,15 @@ internal sealed class TerminalGuiDashboard
         _checkUpdatesButton = CreateButton("Check releases", RequestAppUpdateCheck);
         _applyAppUpdateButton = CreateButton("Update app", RequestAppUpdateApply);
         _flashFirmwareButton = CreateButton("Flash firmware", RequestBundledFirmwareFlash);
+        _updateAppTabButton = CreateButton("PC application", () => SwitchUpdateSection(UpdateSection.App));
+        _updateFirmwareTabButton = CreateButton("Device firmware", () => SwitchUpdateSection(UpdateSection.Firmware));
+        _firmwareVersionDropDown = new DropDownList
+        {
+            ReadOnly = true,
+            Source = new ListWrapper<string>([]),
+            SchemeName = ButtonSchemeName
+        };
+        _firmwareVersionDropDown.ValueChanged += (_, _) => SelectFirmwareVersion();
         _firmwarePortDropDown = new RefreshingDropDownList(RefreshFirmwarePorts)
         {
             ReadOnly = true,
@@ -319,6 +336,8 @@ internal sealed class TerminalGuiDashboard
             _checkUpdatesButton,
             _applyAppUpdateButton,
             _flashFirmwareButton,
+            _updateAppTabButton,
+            _updateFirmwareTabButton,
             _modalConfirmButton,
             _modalTestButton,
             _modalCancelButton
@@ -506,10 +525,17 @@ internal sealed class TerminalGuiDashboard
         _diagnosticsText.Height = Dim.Fill(1);
         _diagnosticsText.SchemeName = BaseSchemeName;
 
+        _updateAppTabButton.X = 1;
+        _updateAppTabButton.Y = 0;
+        _updateAppTabButton.Width = 24;
+        _updateFirmwareTabButton.X = Pos.Right(_updateAppTabButton) + 1;
+        _updateFirmwareTabButton.Y = 0;
+        _updateFirmwareTabButton.Width = 28;
+
         _appUpdateCard.X = 1;
-        _appUpdateCard.Y = 0;
+        _appUpdateCard.Y = 2;
         _appUpdateCard.Width = Dim.Fill(1);
-        _appUpdateCard.Height = 11;
+        _appUpdateCard.Height = Dim.Fill(1);
         _appUpdateCard.SchemeName = CardSchemeName;
         _appUpdateText.X = 1;
         _appUpdateText.Y = 1;
@@ -543,28 +569,39 @@ internal sealed class TerminalGuiDashboard
         _appUpdateCard.Add(_applyAppUpdateButton);
 
         _firmwareUpdateCard.X = 1;
-        _firmwareUpdateCard.Y = Pos.Bottom(_appUpdateCard);
+        _firmwareUpdateCard.Y = 2;
         _firmwareUpdateCard.Width = Dim.Fill(1);
-        _firmwareUpdateCard.Height = Dim.Fill();
+        _firmwareUpdateCard.Height = Dim.Fill(1);
         _firmwareUpdateCard.SchemeName = CardSchemeName;
         _firmwareUpdateText.X = 1;
         _firmwareUpdateText.Y = 1;
         _firmwareUpdateText.Width = Dim.Fill(2);
         _firmwareUpdateText.Height = 5;
         _firmwareUpdateText.SchemeName = BaseSchemeName;
+        _firmwareVersionLabel.X = 1;
+        _firmwareVersionLabel.Y = 7;
+        _firmwareVersionLabel.Width = 22;
+        _firmwareVersionLabel.Height = 1;
+        _firmwareVersionLabel.SchemeName = BaseSchemeName;
+        _firmwareVersionDropDown.X = 24;
+        _firmwareVersionDropDown.Y = 7;
+        _firmwareVersionDropDown.Width = Dim.Fill(2);
+        _firmwareVersionDropDown.Height = 1;
         _firmwarePortLabel.X = 1;
-        _firmwarePortLabel.Y = 7;
+        _firmwarePortLabel.Y = 9;
         _firmwarePortLabel.Width = 22;
         _firmwarePortLabel.Height = 1;
         _firmwarePortLabel.SchemeName = BaseSchemeName;
         _firmwarePortDropDown.X = 24;
-        _firmwarePortDropDown.Y = 7;
+        _firmwarePortDropDown.Y = 9;
         _firmwarePortDropDown.Width = Dim.Fill(2);
         _firmwarePortDropDown.Height = 1;
         _flashFirmwareButton.X = 1;
-        _flashFirmwareButton.Y = 9;
+        _flashFirmwareButton.Y = 11;
         _flashFirmwareButton.Width = 25;
         _firmwareUpdateCard.Add(_firmwareUpdateText);
+        _firmwareUpdateCard.Add(_firmwareVersionLabel);
+        _firmwareUpdateCard.Add(_firmwareVersionDropDown);
         _firmwareUpdateCard.Add(_firmwarePortLabel);
         _firmwareUpdateCard.Add(_firmwarePortDropDown);
         _firmwareUpdateCard.Add(_flashFirmwareButton);
@@ -631,10 +668,14 @@ internal sealed class TerminalGuiDashboard
             ? CheckState.Checked
             : CheckState.UnChecked;
         _isUpdatingPrereleaseCheckBox = false;
+        UpdateFirmwareVersionDropDown(snapshot, localizer);
         UpdateFirmwarePortDropDown(snapshot, localizer);
         var firmwareBusy = snapshot.BundledFirmware?.IsBusy == true;
+        _firmwareVersionDropDown.Enabled = !firmwareBusy && (snapshot.FirmwareVersionOptions?.Count ?? 0) > 0;
         _firmwarePortDropDown.Enabled = !firmwareBusy;
-        _flashFirmwareButton.Enabled = !firmwareBusy && snapshot.BundledFirmware?.IsAvailable == true && !string.IsNullOrWhiteSpace(snapshot.SelectedFirmwarePort);
+        _flashFirmwareButton.Enabled = !firmwareBusy && snapshot.BundledFirmware?.IsAvailable == true && !string.IsNullOrWhiteSpace(snapshot.SelectedFirmwareFileName) && !string.IsNullOrWhiteSpace(snapshot.SelectedFirmwarePort);
+        _updateAppTabButton.SchemeName = _activeUpdateSection == UpdateSection.App ? ActiveTabSchemeName : TabSchemeName;
+        _updateFirmwareTabButton.SchemeName = _activeUpdateSection == UpdateSection.Firmware ? ActiveTabSchemeName : TabSchemeName;
         LayoutUpdateScreen(snapshot.IsCompact);
         _curveLightRow.Text = BuildCurveLightRow(localizer);
         _curveBrightnessRow.Text = localizer["settings.curve.display"];
@@ -668,6 +709,9 @@ internal sealed class TerminalGuiDashboard
         _checkUpdatesButton.Text = localizer["update.check"];
         _applyAppUpdateButton.Text = localizer["update.applyApp"];
         _flashFirmwareButton.Text = localizer["update.flashFirmware"];
+        _updateAppTabButton.Text = localizer["update.appSection"];
+        _updateFirmwareTabButton.Text = localizer["update.firmwareSection"];
+        _firmwareVersionLabel.Text = localizer["update.firmwareVersion"];
         _firmwarePortLabel.Text = localizer["update.firmwarePort"];
         _appUpdateCard.Title = localizer["update.appSection"];
         _firmwareUpdateCard.Title = localizer["update.firmwareSection"];
@@ -764,8 +808,9 @@ internal sealed class TerminalGuiDashboard
             case RuntimeScreen.Update:
                 _screenFrame.Title = localizer["screen.update"];
                 _screenFrame.RemoveAll();
-                _screenFrame.Add(_appUpdateCard);
-                _screenFrame.Add(_firmwareUpdateCard);
+                _screenFrame.Add(_updateAppTabButton);
+                _screenFrame.Add(_updateFirmwareTabButton);
+                _screenFrame.Add(_activeUpdateSection == UpdateSection.App ? _appUpdateCard : _firmwareUpdateCard);
                 _contentView.Add(_screenFrame);
                 break;
             default:
@@ -884,6 +929,17 @@ internal sealed class TerminalGuiDashboard
         RefreshFirmwarePortsOnUpdateScreen();
     }
 
+    private void SwitchUpdateSection(UpdateSection section)
+    {
+        _activeUpdateSection = section;
+        if (section == UpdateSection.Firmware)
+        {
+            RefreshFirmwarePorts();
+        }
+
+        Refresh();
+    }
+
     private void RefreshFirmwarePortsOnUpdateScreen()
     {
         if (_stateStore.GetSnapshot().ActiveScreen == RuntimeScreen.Update)
@@ -921,6 +977,45 @@ internal sealed class TerminalGuiDashboard
         {
             _stateStore.SelectFirmwarePort(selectedPort);
         }
+    }
+
+    private void SelectFirmwareVersion()
+    {
+        if (_isUpdatingFirmwareVersionDropDown)
+        {
+            return;
+        }
+
+        var selectedDisplay = _firmwareVersionDropDown.Text?.ToString();
+        if (!string.IsNullOrWhiteSpace(selectedDisplay) && _firmwareVersionDisplayToFileName.TryGetValue(selectedDisplay, out var selectedFileName))
+        {
+            _stateStore.SelectFirmwareVersion(selectedFileName);
+        }
+    }
+
+    private void UpdateFirmwareVersionDropDown(DashboardSnapshot snapshot, Localizer localizer)
+    {
+        var options = snapshot.FirmwareVersionOptions ?? [];
+        var displayOptions = options.Select(option => $"{option.Version} — {option.FileName}").ToArray();
+        var displayToFileName = options.Zip(displayOptions).ToDictionary(pair => pair.Second, pair => pair.First.FileName, StringComparer.Ordinal);
+        _isUpdatingFirmwareVersionDropDown = true;
+        if (!_renderedFirmwareVersionOptions.SequenceEqual(displayOptions, StringComparer.Ordinal))
+        {
+            _firmwareVersionDropDown.Source = new ListWrapper<string>(new ObservableCollection<string>(displayOptions));
+            _renderedFirmwareVersionOptions = displayOptions;
+        }
+
+        _firmwareVersionDisplayToFileName = displayToFileName;
+        var selectedDisplay = snapshot.SelectedFirmwareFileName is null
+            ? null
+            : displayToFileName.FirstOrDefault(pair => string.Equals(pair.Value, snapshot.SelectedFirmwareFileName, StringComparison.OrdinalIgnoreCase)).Key;
+        var text = selectedDisplay ?? (displayOptions.Length == 0 ? localizer["update.noFirmwareVersions"] : localizer["update.selectFirmwareVersion"]);
+        if (!string.Equals(_firmwareVersionDropDown.Text?.ToString(), text, StringComparison.Ordinal))
+        {
+            _firmwareVersionDropDown.Text = text;
+        }
+
+        _isUpdatingFirmwareVersionDropDown = false;
     }
 
     private void UpdateFirmwarePortDropDown(DashboardSnapshot snapshot, Localizer localizer)
@@ -972,18 +1067,25 @@ internal sealed class TerminalGuiDashboard
 
     private void LayoutUpdateScreen(bool isCompact)
     {
-        _appUpdateCard.Height = isCompact ? 7 : 11;
-        _appUpdateText.Y = isCompact ? 0 : 1;
-        _appUpdateText.Height = isCompact ? 2 : 5;
-        _includePrereleaseCheckBox.Y = isCompact ? 2 : 6;
+        _appUpdateText.Y = 0;
+        _appUpdateText.Height = isCompact ? 2 : 4;
+        _includePrereleaseCheckBox.Y = isCompact ? 2 : 5;
         _checkUpdatesButton.Y = isCompact ? 3 : 7;
         _applyAppUpdateButton.Y = isCompact ? 3 : 7;
 
-        _firmwareUpdateText.Y = isCompact ? 0 : 1;
-        _firmwareUpdateText.Height = isCompact ? 2 : 5;
-        _firmwarePortLabel.Y = isCompact ? 2 : 7;
-        _firmwarePortDropDown.Y = isCompact ? 2 : 7;
-        _flashFirmwareButton.Y = isCompact ? 3 : 9;
+        _firmwareUpdateText.Y = 0;
+        _firmwareUpdateText.Height = isCompact ? 2 : 4;
+        _firmwareVersionLabel.Y = isCompact ? 2 : 5;
+        _firmwareVersionDropDown.Y = isCompact ? 2 : 5;
+        _firmwarePortLabel.Y = isCompact ? 3 : 7;
+        _firmwarePortDropDown.Y = isCompact ? 3 : 7;
+        _flashFirmwareButton.Y = isCompact ? 4 : 9;
+    }
+
+    private enum UpdateSection
+    {
+        App,
+        Firmware
     }
 
     private void RequestPrereleasePreference(bool includePrerelease)

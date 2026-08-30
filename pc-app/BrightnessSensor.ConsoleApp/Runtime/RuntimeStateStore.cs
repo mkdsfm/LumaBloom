@@ -70,6 +70,8 @@ internal sealed class RuntimeStateStore
     private string? _selectedFirmwarePort;
     private bool _isFirmwarePortManuallySelected;
     private string? _firmwarePortListError;
+    private IReadOnlyList<FirmwareVersionOption> _firmwareVersionOptions = [];
+    private string? _selectedFirmwareFileName;
     private readonly Queue<LanguageUpdateRequest> _languageUpdateRequests = [];
     private readonly Queue<AutostartUpdateRequest> _autostartUpdateRequests = [];
     private readonly Queue<ProcessingUpdateRequest> _processingUpdateRequests = [];
@@ -372,12 +374,12 @@ internal sealed class RuntimeStateStore
     {
         lock (_gate)
         {
-            if (string.IsNullOrWhiteSpace(_selectedFirmwarePort) || !_bundledFirmware.IsAvailable || _bundledFirmware.IsBusy || _firmwareUpdateRequests.Count > 0)
+            if (string.IsNullOrWhiteSpace(_selectedFirmwarePort) || string.IsNullOrWhiteSpace(_selectedFirmwareFileName) || !_bundledFirmware.IsAvailable || _bundledFirmware.IsBusy || _firmwareUpdateRequests.Count > 0)
             {
                 return false;
             }
 
-            _firmwareUpdateRequests.Enqueue(new FirmwareUpdateActionRequest(_selectedFirmwarePort));
+            _firmwareUpdateRequests.Enqueue(new FirmwareUpdateActionRequest(_selectedFirmwarePort, _selectedFirmwareFileName));
             _bundledFirmware = _bundledFirmware with
             {
                 StatusMessage = $"Firmware update queued for {_selectedFirmwarePort}.",
@@ -394,7 +396,7 @@ internal sealed class RuntimeStateStore
         {
             if (_firmwareUpdateRequests.Count == 0)
             {
-                request = new FirmwareUpdateActionRequest(string.Empty);
+                request = new FirmwareUpdateActionRequest(string.Empty, string.Empty);
                 return false;
             }
 
@@ -1041,6 +1043,48 @@ internal sealed class RuntimeStateStore
         }
     }
 
+    public void SetFirmwareVersionOptions(IReadOnlyList<FirmwareVersionOption> options, string? selectedFileName = null)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        lock (_gate)
+        {
+            _firmwareVersionOptions = options
+                .Where(option => !string.IsNullOrWhiteSpace(option.FileName))
+                .GroupBy(option => option.FileName, StringComparer.OrdinalIgnoreCase)
+                .Select(group => group.First())
+                .ToArray();
+            _selectedFirmwareFileName = _firmwareVersionOptions
+                .FirstOrDefault(option => string.Equals(option.FileName, selectedFileName, StringComparison.OrdinalIgnoreCase))?.FileName ??
+                _firmwareVersionOptions.FirstOrDefault()?.FileName;
+            IncrementVersion();
+        }
+    }
+
+    public bool SelectFirmwareVersion(string fileName)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
+
+        lock (_gate)
+        {
+            var selected = _firmwareVersionOptions.FirstOrDefault(option => string.Equals(option.FileName, fileName, StringComparison.OrdinalIgnoreCase));
+            if (selected is null)
+            {
+                return false;
+            }
+
+            _selectedFirmwareFileName = selected.FileName;
+            _bundledFirmware = _bundledFirmware with
+            {
+                Version = selected.Version,
+                FileName = selected.FileName,
+                StatusMessage = $"Bundled firmware {selected.Version} is selected and ready."
+            };
+            IncrementVersion();
+            return true;
+        }
+    }
+
     public void SetDeviceSettings(ResolvedAppSettings settings, string settingsSummary)
     {
         lock (_gate)
@@ -1263,7 +1307,9 @@ internal sealed class RuntimeStateStore
                 _selectedFirmwarePort,
                 _isFirmwarePortManuallySelected,
                 _firmwarePortListError,
-                _firmwarePorts);
+                _firmwarePorts,
+                _firmwareVersionOptions,
+                _selectedFirmwareFileName);
         }
     }
 

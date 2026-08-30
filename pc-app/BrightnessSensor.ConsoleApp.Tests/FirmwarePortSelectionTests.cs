@@ -89,7 +89,26 @@ public sealed class FirmwarePortSelectionTests
 
         Assert.True(state.TryConsumeFirmwareUpdateRequest(out var request));
         Assert.Equal("COM3", request.PortName);
+        Assert.Equal("firmware.bin", request.FirmwareFileName);
         Assert.False(state.TryConsumeFirmwareUpdateRequest(out _));
+    }
+
+    [Fact]
+    public void FlashRequest_CapturesManuallySelectedFirmwareVersion()
+    {
+        var state = CreateStateWithFirmware();
+        state.SetFirmwareVersionOptions([
+            new FirmwareVersionOption("2.1.0", "firmware-2.1.0.bin"),
+            new FirmwareVersionOption("2.0.0", "firmware-2.0.0.bin")
+        ]);
+        state.SetFirmwarePorts(["COM8"]);
+
+        Assert.True(state.SelectFirmwareVersion("firmware-2.0.0.bin"));
+        Assert.True(state.SelectFirmwarePort("COM8"));
+        Assert.True(state.RequestBundledFirmwareFlash());
+        Assert.True(state.TryConsumeFirmwareUpdateRequest(out var request));
+        Assert.Equal("firmware-2.0.0.bin", request.FirmwareFileName);
+        Assert.Equal("2.0.0", state.GetSnapshot().BundledFirmware!.Version);
     }
 
     [Fact]
@@ -102,7 +121,7 @@ public sealed class FirmwarePortSelectionTests
         var released = false;
 
         var attempted = coordinator.Execute(
-            new FirmwareUpdateActionRequest("COM8"),
+            new FirmwareUpdateActionRequest("COM8", "firmware.bin"),
             CreateFirmwareInfo(),
             state,
             () => released = true);
@@ -110,6 +129,7 @@ public sealed class FirmwarePortSelectionTests
         Assert.True(attempted);
         Assert.True(released);
         Assert.Equal("COM8", flashService.PortName);
+        Assert.Equal("firmware.bin", flashService.FirmwareFileName);
         Assert.Contains("COM8", state.GetSnapshot().BundledFirmware!.StatusMessage);
     }
 
@@ -121,7 +141,7 @@ public sealed class FirmwarePortSelectionTests
         var flashService = new FakeFirmwareFlashService();
         var coordinator = new FirmwareUpdateCoordinator(new SerialPortCatalog(() => ["COM12"]), flashService);
 
-        var attempted = coordinator.Execute(new FirmwareUpdateActionRequest("COM8"), CreateFirmwareInfo(), state);
+        var attempted = coordinator.Execute(new FirmwareUpdateActionRequest("COM8", "firmware.bin"), CreateFirmwareInfo(), state);
 
         Assert.False(attempted);
         Assert.Null(flashService.PortName);
@@ -147,22 +167,25 @@ public sealed class FirmwarePortSelectionTests
     private static RuntimeStateStore CreateStateWithFirmware()
     {
         var state = new RuntimeStateStore();
+        state.SetFirmwareVersionOptions([new FirmwareVersionOption("2.1.0", "firmware.bin")]);
         state.SetBundledFirmwareState(new BundledFirmwareSnapshot("2.1.0", "firmware.bin", "Ready", IsAvailable: true, IsBusy: false));
         return state;
     }
 
     private static BundledFirmwareInfo CreateFirmwareInfo(string path = @"C:\LumaBloom\Firmware\firmware.bin")
     {
-        return new BundledFirmwareInfo("2.1.0", "esp32c6", "waveshare-esp32-c6-lcd-1.47", Path.GetFileName(path), path);
+        return new BundledFirmwareInfo("2.1.0", "esptool", "esp32c6", 460800, "0x0", Path.GetFileName(path), path);
     }
 
     private sealed class FakeFirmwareFlashService : IFirmwareFlashService
     {
         public string? PortName { get; private set; }
+        public string? FirmwareFileName { get; private set; }
 
         public void Flash(BundledFirmwareInfo firmwareInfo, string portName)
         {
             PortName = portName;
+            FirmwareFileName = firmwareInfo.FileName;
         }
     }
 }

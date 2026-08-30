@@ -46,7 +46,7 @@ internal static class BrightnessApplication
         var firmwareUpdateCoordinator = new FirmwareUpdateCoordinator(portCatalog, firmwareFlashService);
         var bundledFirmwareLocator = new BundledFirmwareLocator();
         GitHubReleaseInfo? latestRelease = null;
-        BundledFirmwareInfo? bundledFirmware = null;
+        IReadOnlyList<BundledFirmwareInfo> bundledFirmwareOptions = [];
 
         stateStore.SetLifecycle(AppLifecycleState.Starting, "Loading settings...");
         stateStore.AddEvent("Application started.", RuntimeEventSeverity.Info);
@@ -61,11 +61,13 @@ internal static class BrightnessApplication
             IncludePrerelease: false,
             IsPrerelease: false));
 
-        if (bundledFirmwareLocator.TryLocate(applicationDirectory, out bundledFirmware, out var bundledFirmwareStatus))
+        if (bundledFirmwareLocator.TryLocateAll(applicationDirectory, out bundledFirmwareOptions, out var bundledFirmwareStatus))
         {
+            var selectedFirmware = bundledFirmwareOptions[0];
+            stateStore.SetFirmwareVersionOptions(bundledFirmwareOptions.Select(option => new FirmwareVersionOption(option.Version, option.FileName)).ToArray(), selectedFirmware.FileName);
             stateStore.SetBundledFirmwareState(new BundledFirmwareSnapshot(
-                bundledFirmware!.Version,
-                bundledFirmware.FileName,
+                selectedFirmware.Version,
+                selectedFirmware.FileName,
                 bundledFirmwareStatus,
                 IsAvailable: true,
                 IsBusy: false));
@@ -78,6 +80,7 @@ internal static class BrightnessApplication
                 bundledFirmwareStatus,
                 IsAvailable: false,
                 IsBusy: false));
+            stateStore.SetFirmwareVersionOptions([]);
         }
 
         stateStore.RequestAppUpdateCheck();
@@ -127,7 +130,7 @@ internal static class BrightnessApplication
                 applicationUpdateService,
                 ref latestRelease,
                 firmwareUpdateCoordinator,
-                bundledFirmware,
+                bundledFirmwareOptions,
                 cancellationToken,
                 ref config,
                 ref effectiveSettings,
@@ -174,7 +177,7 @@ internal static class BrightnessApplication
                     applicationUpdateService,
                     ref latestRelease,
                     firmwareUpdateCoordinator,
-                    bundledFirmware,
+                    bundledFirmwareOptions,
                     cancellationToken,
                     ref config,
                     ref effectiveSettings,
@@ -224,7 +227,7 @@ internal static class BrightnessApplication
                         applicationUpdateService,
                         ref latestRelease,
                         firmwareUpdateCoordinator,
-                        bundledFirmware,
+                        bundledFirmwareOptions,
                         cancellationToken,
                         ref config,
                         ref effectiveSettings,
@@ -283,7 +286,7 @@ internal static class BrightnessApplication
         ApplicationUpdateService applicationUpdateService,
         ref GitHubReleaseInfo? latestRelease,
         FirmwareUpdateCoordinator firmwareUpdateCoordinator,
-        BundledFirmwareInfo? bundledFirmware,
+        IReadOnlyList<BundledFirmwareInfo> bundledFirmwareOptions,
         CancellationToken cancellationToken,
         ref AppConfig config,
         ref ResolvedAppSettings effectiveSettings,
@@ -314,7 +317,7 @@ internal static class BrightnessApplication
                 return false;
             }
 
-            ProcessWaitingFirmwareUpdateRequests(stateStore, firmwareUpdateCoordinator, bundledFirmware);
+            ProcessWaitingFirmwareUpdateRequests(stateStore, firmwareUpdateCoordinator, bundledFirmwareOptions);
 
             messageProcessor.ApplyPendingManualBrightness(monitorSessions, cancellationToken);
 
@@ -564,7 +567,7 @@ internal static class BrightnessApplication
         ApplicationUpdateService applicationUpdateService,
         ref GitHubReleaseInfo? latestRelease,
         FirmwareUpdateCoordinator firmwareUpdateCoordinator,
-        BundledFirmwareInfo? bundledFirmware,
+        IReadOnlyList<BundledFirmwareInfo> bundledFirmwareOptions,
         CancellationToken cancellationToken,
         ref AppConfig config,
         ref ResolvedAppSettings effectiveSettings,
@@ -579,7 +582,7 @@ internal static class BrightnessApplication
             var readerToRelease = sensorReader;
             var attempted = firmwareUpdateCoordinator.Execute(
                 request,
-                bundledFirmware,
+                FindFirmwareOption(bundledFirmwareOptions, request.FirmwareFileName),
                 stateStore,
                 releaseReader
                     ? () =>
@@ -604,7 +607,7 @@ internal static class BrightnessApplication
                     applicationUpdateService,
                     ref latestRelease,
                     firmwareUpdateCoordinator,
-                    bundledFirmware,
+                    bundledFirmwareOptions,
                     cancellationToken,
                     ref config,
                     ref effectiveSettings,
@@ -621,13 +624,18 @@ internal static class BrightnessApplication
     private static void ProcessWaitingFirmwareUpdateRequests(
         RuntimeStateStore stateStore,
         FirmwareUpdateCoordinator firmwareUpdateCoordinator,
-        BundledFirmwareInfo? bundledFirmware)
+        IReadOnlyList<BundledFirmwareInfo> bundledFirmwareOptions)
     {
         while (stateStore.TryConsumeFirmwareUpdateRequest(out var request))
         {
             stateStore.ClearLatestSensor();
-            firmwareUpdateCoordinator.Execute(request, bundledFirmware, stateStore);
+            firmwareUpdateCoordinator.Execute(request, FindFirmwareOption(bundledFirmwareOptions, request.FirmwareFileName), stateStore);
         }
+    }
+
+    private static BundledFirmwareInfo? FindFirmwareOption(IReadOnlyList<BundledFirmwareInfo> options, string fileName)
+    {
+        return options.FirstOrDefault(option => string.Equals(option.FileName, fileName, StringComparison.OrdinalIgnoreCase));
     }
 
     private static void RefreshFirmwarePorts(RuntimeStateStore stateStore, SerialPortCatalog portCatalog)

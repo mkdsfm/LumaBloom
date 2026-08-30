@@ -190,21 +190,22 @@ After flashing, reconnect the board or press `RST`.
 
 ## Building a Merged Binary from Sources
 
-For the default `ST7789` build, open `ESP-IDF PowerShell` and run:
+Use the project-owned release script from an ESP-IDF PowerShell. Without a variant filter it builds both supported board variants:
 
 ``` powershell
 cd firmware\firmware_esp32c6
-idf.py build
-mkdir .\build\release -Force
-idf.py merge-bin -f raw -o build\release\brightness_sensor_esp32c6_merged.bin
+python build_merged.py --tag 2.1.0
 ```
 
-The merged binary will be created here:
+The merged binaries are created here:
 
--   `build/release/brightness_sensor_esp32c6_merged.bin`
+-   `build/release/luma_bloom_esp32c6-display_2.1.0_merged.bin`
+-   `build/release/luma_bloom_esp32c6-touch_2.1.0_merged.bin`
+-   one `<binary>.manifest.json` sidecar next to each merged binary
 
-For the Codex skill workflow that creates a readable release filename
-and can flash the device automatically, see
+The script keeps release build trees under `build/variants/`, passes the correct `APP_DISPLAY_TYPE` for each variant, and uses `esptool merge-bin` with ESP-IDF's generated `flash_args` for the final full-device images. `--skip-build` performs only this merge step and manifest generation from existing variant build trees. Use `--variant esp32c6-display` or `--variant esp32c6-touch` only for a targeted local build; release workflows run without a filter and therefore build both.
+
+For the Codex skill workflow that builds every firmware project and can flash one explicitly selected ESP binary, see
 [../../docs/skills-for-users.md](../../docs/skills-for-users.md).
 
 ## Flashing Separate `.bin` Files
