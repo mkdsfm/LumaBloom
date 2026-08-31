@@ -203,7 +203,7 @@ The merged binaries are created here:
 -   `build/release/luma_bloom_esp32c6-touch_2.1.0_merged.bin`
 -   one `<binary>.manifest.json` sidecar next to each merged binary
 
-The script keeps release build trees under `build/variants/`, passes the correct `APP_DISPLAY_TYPE` for each variant, and uses `esptool merge-bin` with ESP-IDF's generated `flash_args` for the final full-device images. `--skip-build` performs only this merge step and manifest generation from existing variant build trees. Use `--variant esp32c6-display` or `--variant esp32c6-touch` only for a targeted local build; release workflows run without a filter and therefore build both.
+The script keeps release build trees under `build/variants/`, passes the correct `APP_DISPLAY_TYPE` and release tag as `PROJECT_VER` for each variant, and uses `esptool merge-bin` with ESP-IDF's generated `flash_args` for the final full-device images. `--skip-build` performs only this merge step and manifest generation from existing variant build trees. Use `--variant esp32c6-display` or `--variant esp32c6-touch` only for a targeted local build; release workflows run without a filter and therefore build both.
 
 For the Codex skill workflow that builds every firmware project and can flash one explicitly selected ESP binary, see
 [../../docs/skills-for-users.md](../../docs/skills-for-users.md).
@@ -257,8 +257,10 @@ hardware parameters are selected through:
 
 Supported display configurations:
 
--   `ST7789` - default configuration (`APP_DISPLAY_TYPE=1`)
--   `JD9853` - optional configuration (`APP_DISPLAY_TYPE=2`)
+-   `ST7789` - default non-touch configuration (`APP_DISPLAY_TYPE=1`), with
+    hardware color inversion enabled
+-   `JD9853` - optional touch configuration (`APP_DISPLAY_TYPE=2`), with
+    hardware color inversion disabled
 
 When `APP_DISPLAY_TYPE` is not explicitly defined, the firmware uses
 `ST7789`.

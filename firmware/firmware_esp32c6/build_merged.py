@@ -16,11 +16,12 @@ from pathlib import Path
 class FirmwareVariant:
     variant_id: str
     display_type: int
+    board: str
 
 
 VARIANTS = (
-    FirmwareVariant("esp32c6-display", 1),
-    FirmwareVariant("esp32c6-touch", 2),
+    FirmwareVariant("esp32c6-display", 1, "waveshare-esp32-c6-lcd-1.47"),
+    FirmwareVariant("esp32c6-touch", 2, "waveshare-esp32-c6-touch-lcd-1.47"),
 )
 
 
@@ -181,7 +182,7 @@ def write_manifest(binary_path: Path, variant: FirmwareVariant, tag: str) -> Pat
         "version": tag,
         "fileName": binary_path.name,
         "variant": variant.variant_id,
-        "board": "waveshare-esp32-c6-lcd-1.47",
+        "board": variant.board,
         "flashMethod": "esptool",
         "chip": "esp32c6",
         "baudRate": 460800,
@@ -196,7 +197,7 @@ def build_variant(project_dir: Path, idf_command: list[str], esptool_command: li
     output_path = project_dir / "build" / "release" / f"luma_bloom_{variant.variant_id}_{tag}_merged.bin"
 
     if not skip_build:
-        run(idf_command + ["-B", str(build_dir), "-D", f"APP_DISPLAY_TYPE={variant.display_type}", "build"], project_dir, environment, dry_run)
+        run(idf_command + ["-B", str(build_dir), "-D", f"APP_DISPLAY_TYPE={variant.display_type}", "-D", f"PROJECT_VER={tag}", "build"], project_dir, environment, dry_run)
     elif not (build_dir / "flash_args").is_file():
         raise FileNotFoundError(f"existing build artifacts were not found for {variant.variant_id}: {build_dir / 'flash_args'}")
 

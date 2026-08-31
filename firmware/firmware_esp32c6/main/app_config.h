@@ -55,7 +55,7 @@
     #define APP_LCD_SWAP_XY true
     #define APP_LCD_MIRROR_X true
     #define APP_LCD_MIRROR_Y true
-    #define APP_LCD_INVERT_COLOR false
+    #define APP_LCD_INVERT_COLOR true
     #define LCD_COLOR_TEXT 0x765F
     #define LCD_COLOR_TEXT_OUTLINE 0x2881
     #define LCD_COLOR_PROGRESS 0x765F
