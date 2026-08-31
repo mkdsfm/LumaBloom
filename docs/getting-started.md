@@ -19,7 +19,7 @@ Build and flash the ESP32-C6 firmware from [`firmware/firmware_esp32c6/`](../fir
 
 Detailed commands are in [`firmware.md`](firmware.md).
 
-The packaged Windows app can also flash the bundled firmware. Open `Update`: the firmware-port dropdown selects the automatically detected LumaBloom port by default. Open the dropdown to rescan all current COM ports and choose another port when needed. Windows device descriptions help distinguish Bluetooth, USB serial, and Espressif/ESP32 ports. Manual firmware-port selection is temporary and does not change the port used for normal telemetry discovery.
+The packaged Windows app can also flash bundled firmware. Open `Update`, switch to the `Device firmware` inner tab, select the required firmware version from the `.bin` files included in the package's `Firmware` folder, then select the target port. Each selectable binary must have a valid `<binary>.manifest.json`; the app currently supports `esptool` manifests. The firmware-port dropdown selects the automatically detected LumaBloom port by default; open it to rescan all current COM ports and choose another port when needed. Windows device descriptions help distinguish Bluetooth, USB serial, and Espressif/ESP32 ports. Manual firmware and port selections are temporary and do not change the port used for normal telemetry discovery.
 
 ## 2. Wire The Sensor
 

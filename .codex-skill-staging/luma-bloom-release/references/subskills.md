@@ -4,12 +4,12 @@
 
 Use for:
 
-- merged ESP32-C6 release binary creation
-- optional flashing
+- running every firmware project's own merged-binary script
+- optional flashing of one explicitly selected ESP artifact
 
 Expected output for LumaBloom releases:
 
-- `firmware/firmware_esp32c6/build/release/`
+- `firmware/<project>/build/release/*_<to-tag>_merged.bin` for every firmware project
 
 ## `pc-app-portable-release`
 
@@ -18,7 +18,7 @@ Use for:
 - Windows portable `win-x64` publish
 - packaging the publish folder into the versioned release zip
 - bundling `Tools/esptool.exe` for the in-app Update flow
-- bundling the ESP32-C6 firmware release folder in `Firmware/` when available
+- bundling every firmware project's matching merged binaries and manifest sidecars in `Firmware/`
 
 Expected output for LumaBloom releases:
 

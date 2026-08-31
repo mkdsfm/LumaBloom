@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import re
 import shutil
 import subprocess
 import sys
@@ -28,33 +29,69 @@ def read_product_version(executable_path: Path) -> str:
         capture_output=True,
         text=True,
     )
-    return result.stdout.strip()
+    return result.stdout.strip().split("+", 1)[0]
+
+
+def resolve_pc_app_version(repo_root: Path) -> str:
+    project = repo_root / "pc-app" / "BrightnessSensor.ConsoleApp" / "BrightnessSensor.ConsoleApp.csproj"
+    command = ["dotnet", "msbuild", str(project), "-t:MinVer", "-p:MinVerVerbosity=detailed", "-v:minimal"]
+    result = subprocess.run(command, cwd=str(repo_root), check=True, capture_output=True, text=True)
+    match = re.search(r"MinVerVersion=([^\s]+)", result.stdout)
+    if match is None:
+        raise RuntimeError("MinVer did not report the pc-app version")
+    return match.group(1).split("+", 1)[0]
+
+
+def numeric_file_version(version: str) -> str:
+    match = re.fullmatch(r"(\d+)\.(\d+)\.(\d+)(?:[-+].*)?", version)
+    if match is None:
+        raise ValueError(f"version must start with major.minor.patch: {version}")
+    return f"{match.group(1)}.{match.group(2)}.{match.group(3)}.0"
 
 
 def zip_dir(source_dir: Path, zip_path: Path, root_name: str) -> None:
     if zip_path.exists():
         zip_path.unlink()
     archive_base = zip_path.with_suffix("")
-    temp_root = source_dir.parent / f"__zip_staging__{root_name}"
-    if temp_root.exists():
-        shutil.rmtree(temp_root)
+    temp_parent = source_dir.parent / "__zip_staging__"
+    temp_root = temp_parent / root_name
+    if temp_parent.exists():
+        shutil.rmtree(temp_parent)
     shutil.copytree(source_dir, temp_root)
     try:
-        shutil.make_archive(str(archive_base), "zip", root_dir=temp_root.parent, base_dir=temp_root.name)
+        shutil.make_archive(str(archive_base), "zip", root_dir=temp_parent, base_dir=root_name)
     finally:
-        shutil.rmtree(temp_root)
+        shutil.rmtree(temp_parent)
 
 
-def find_firmware_release_dir(repo_root: Path) -> tuple[Path | None, str]:
-    release_dir = repo_root / "firmware" / "firmware_esp32c6" / "build" / "release"
-    if not release_dir.exists():
-        return None, "firmware release directory not found"
+def firmware_projects(repo_root: Path) -> list[Path]:
+    firmware_root = repo_root / "firmware"
+    return sorted(path for path in firmware_root.iterdir() if path.is_dir() and not path.name.startswith("."))
 
-    files = [path for path in release_dir.iterdir() if path.is_file()]
-    if not files:
-        return None, "firmware release directory is empty"
 
-    return release_dir, "directory"
+def manifest_path(binary_path: Path) -> Path:
+    return Path(f"{binary_path}.manifest.json")
+
+
+def clean_release_artifacts(project: Path, tag: str) -> None:
+    release_dir = project / "build" / "release"
+    for binary in release_dir.glob(f"*_{tag}_merged.bin") if release_dir.exists() else []:
+        for path in (binary, manifest_path(binary)):
+            if path.exists():
+                print(f"[clean] {path}")
+                path.unlink()
+
+
+def build_all_firmware(repo_root: Path, tag: str) -> None:
+    projects = firmware_projects(repo_root)
+    missing = [project.name for project in projects if not (project / "build_merged.py").is_file()]
+    if missing:
+        raise RuntimeError(f"firmware projects missing required build_merged.py: {', '.join(missing)}")
+    if not projects:
+        raise RuntimeError(f"no firmware projects found under {repo_root / 'firmware'}")
+    for project in projects:
+        clean_release_artifacts(project, tag)
+        run([sys.executable, str(project / "build_merged.py"), "--tag", tag], repo_root)
 
 
 def should_require_exact_firmware_tag(tag: str) -> bool:
@@ -63,31 +100,33 @@ def should_require_exact_firmware_tag(tag: str) -> bool:
 
 
 def resolve_firmware_bundle_files(repo_root: Path, tag: str) -> tuple[list[Path], str]:
-    firmware_release_dir, resolution = find_firmware_release_dir(repo_root)
-    if firmware_release_dir is None:
-        return [], resolution
+    projects = firmware_projects(repo_root)
+    version_matches: list[Path] = []
+    missing_projects: list[str] = []
+    for project in projects:
+        release_dir = project / "build" / "release"
+        matches = sorted(path for path in release_dir.glob(f"*_{tag}_merged.bin") if path.is_file()) if release_dir.exists() else []
+        missing_manifests = [manifest_path(path) for path in matches if not manifest_path(path).is_file()]
+        if missing_manifests:
+            raise RuntimeError(f"firmware artifact manifests are missing: {', '.join(str(path) for path in missing_manifests)}")
+        if matches:
+            version_matches.extend(matches)
+        else:
+            missing_projects.append(project.name)
 
-    version_matches = sorted(
-        path
-        for path in firmware_release_dir.iterdir()
-        if path.is_file() and tag in path.name and "merged" in path.name
-    )
-    if version_matches:
-        return version_matches, "version-matched merged bin"
+    if version_matches and not missing_projects:
+        return version_matches, "version-matched merged bins for all firmware projects"
 
     if should_require_exact_firmware_tag(tag):
         raise RuntimeError(
-            "firmware release directory does not contain a merged bin matching the requested tag "
-            f"'{tag}'. Build the firmware release payload first so the portable package cannot bundle an older file."
+            f"firmware projects do not all contain merged bins matching tag '{tag}': {', '.join(missing_projects)}"
         )
 
-    merged_bins = sorted(
-        path for path in firmware_release_dir.iterdir() if path.is_file() and "merged" in path.name
-    )
+    merged_bins = sorted(path for project in projects for path in (project / "build" / "release").glob("*_merged.bin") if path.is_file())
     if merged_bins:
-        return [merged_bins[-1]], "latest merged bin"
+        return merged_bins, "available merged bins"
 
-    return sorted(path for path in firmware_release_dir.iterdir() if path.is_file()), resolution
+    return [], "no firmware release artifacts found"
 
 def copy_firmware_bundle(repo_root: Path, publish_dir: Path, tag: str) -> None:
     firmware_files, resolution = resolve_firmware_bundle_files(repo_root, tag)
@@ -101,6 +140,8 @@ def copy_firmware_bundle(repo_root: Path, publish_dir: Path, tag: str) -> None:
     firmware_dir.mkdir(parents=True, exist_ok=True)
     for source in firmware_files:
         shutil.copy2(source, firmware_dir / source.name)
+        source_manifest = manifest_path(source)
+        shutil.copy2(source_manifest, firmware_dir / source_manifest.name)
     print(f"[ok] bundled firmware release folder: {firmware_dir} ({resolution})")
 
 
@@ -154,16 +195,23 @@ def main() -> int:
     parser = argparse.ArgumentParser(
         description="Build the documented repo-root portable Windows zip for pc-app using the single-file publish output."
     )
-    parser.add_argument("--tag", required=True, help="Target release tag, for example 0.3.0")
+    parser.add_argument("--tag", help="Target version; defaults to the pc-app MinVer version")
     parser.add_argument("--repo-root", default=".", help="Repository root")
+    parser.add_argument("--skip-firmware-build", action="store_true", help="Package already-built firmware artifacts; intended for the top-level release coordinator")
     args = parser.parse_args()
 
     repo_root = Path(args.repo_root).resolve()
+    tag = args.tag or resolve_pc_app_version(repo_root)
+    file_version = numeric_file_version(tag)
+    print(f"[version] {tag}")
     pc_app_root = repo_root / "pc-app"
     project = pc_app_root / "BrightnessSensor.ConsoleApp" / "BrightnessSensor.ConsoleApp.csproj"
     publish_dir = pc_app_root / "artifacts" / "single-file" / "win-x64"
-    zip_name = f"luma-bloom-pc-app_{args.tag}_win-x64-portable.zip"
+    zip_name = f"luma-bloom-pc-app_{tag}_win-x64-portable.zip"
     zip_path = pc_app_root / "artifacts" / "single-file" / zip_name
+
+    if not args.skip_firmware_build:
+        build_all_firmware(repo_root, tag)
 
     if publish_dir.exists():
         shutil.rmtree(publish_dir)
@@ -183,12 +231,12 @@ def main() -> int:
             "true",
             "-o",
             str(publish_dir),
-            f"/p:MinVerVersionOverride={args.tag}",
-            f"/p:Version={args.tag}",
-            f"/p:AssemblyVersion={args.tag}.0",
-            f"/p:FileVersion={args.tag}.0",
-            f"/p:InformationalVersion={args.tag}",
-            f"/p:AssemblyInformationalVersion={args.tag}",
+            f"/p:MinVerVersionOverride={tag}",
+            f"/p:Version={tag}",
+            f"/p:AssemblyVersion={file_version}",
+            f"/p:FileVersion={file_version}",
+            f"/p:InformationalVersion={tag}",
+            f"/p:AssemblyInformationalVersion={tag}",
             "/p:IncludeSourceRevisionInInformationalVersion=false",
             "/p:PublishSingleFile=true",
             "/p:IncludeNativeLibrariesForSelfExtract=true",
@@ -199,11 +247,11 @@ def main() -> int:
         repo_root,
     )
 
-    copy_firmware_bundle(repo_root, publish_dir, args.tag)
+    copy_firmware_bundle(repo_root, publish_dir, tag)
     copy_esptool(repo_root, publish_dir)
-    validate_publish_output(publish_dir, args.tag)
+    validate_publish_output(publish_dir, tag)
 
-    zip_dir(publish_dir, zip_path, f"luma-bloom-pc-app_{args.tag}_win-x64")
+    zip_dir(publish_dir, zip_path, f"luma-bloom-pc-app_{tag}_win-x64")
 
     print(f"[ok] publish folder: {publish_dir}")
     print(f"[ok] portable zip: {zip_path}")

@@ -14,7 +14,10 @@
   `pc-app/artifacts/single-file/win-x64/BrightnessSensor.ConsoleApp.exe`
 - Bundled flashing tool:
   `pc-app/artifacts/single-file/win-x64/Tools/esptool.exe`
-- Optional bundled firmware release folder contents:
+- Required firmware source directories:
+  `firmware/<project>/build/release/`
+- Bundled firmware release contents:
   `pc-app/artifacts/single-file/win-x64/Firmware/<release-files>`
+- Every immediate firmware project directory must provide `build_merged.py`, at least one matching `*_<tag>_merged.bin`, and a `<binary>.manifest.json` sidecar for each binary.
 - Main project:
   `pc-app/BrightnessSensor.ConsoleApp/BrightnessSensor.ConsoleApp.csproj`

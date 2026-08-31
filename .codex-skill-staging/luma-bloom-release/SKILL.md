@@ -1,6 +1,6 @@
 ---
 name: luma-bloom-release
-description: Coordinate the full LumaBloom release workflow for this repository. Use when Codex needs to produce the firmware release payload for bundling, the versioned Windows portable zip, and the English release notes and the request specifies both a source tag and a target tag.
+description: Coordinate the full LumaBloom release workflow by building every firmware project through its own script, packaging all matching merged binaries into the versioned Windows portable zip, and preparing English release notes. Use when both source and target tags are provided.
 ---
 
 # LumaBloom Release
@@ -25,10 +25,10 @@ Use these skills instead of duplicating their workflows:
 
 1. `.codex-skill-staging/esp32-release-flash`
    Responsibility:
-   build the firmware release payload in `firmware/firmware_esp32c6/build/release/`
+   discover every firmware project and run its own `build_merged.py`; optionally flash one explicitly selected ESP artifact
 2. `.codex-skill-staging/pc-app-portable-release`
    Responsibility:
-   build `luma-bloom-pc-app_<to-tag>_win-x64-portable.zip` with `Tools/esptool.exe` and, when available, a bundled ESP32-C6 firmware release folder for the in-app Update flow
+   build `luma-bloom-pc-app_<to-tag>_win-x64-portable.zip` with `Tools/esptool.exe` and every matching firmware artifact in `Firmware/`
 3. `.codex-skill-staging/release-notes-github`
    Responsibility:
    write the English GitHub release description for `<from-tag> -> <to-tag>`
@@ -36,12 +36,13 @@ Use these skills instead of duplicating their workflows:
 ## Workflow
 
 1. Confirm the tag range.
-2. If the user wants release artifacts, build the firmware binary through `esp32-release-flash`.
-3. Only after the firmware step succeeds, build the Windows portable zip through `pc-app-portable-release`.
+2. If the user wants release artifacts, build every firmware project through `esp32-release-flash`.
+3. Only after every firmware script succeeds, build the Windows portable zip through `pc-app-portable-release --skip-firmware-build` to avoid rebuilding the same artifacts.
 4. Verify that the portable package contains:
    - `BrightnessSensor.ConsoleApp.exe`
    - `Tools/esptool.exe`
-   - the matching firmware file for the target tag inside `Firmware/`
+   - all firmware files matching the target tag inside `Firmware/`
+   - a `<binary>.manifest.json` sidecar for every firmware file
 5. Draft the release notes through `release-notes-github`.
 6. Report:
    - the final artifact filenames
@@ -58,8 +59,9 @@ The Windows portable artifact should contain:
 
 - `BrightnessSensor.ConsoleApp.exe`
 - `Tools/esptool.exe`
-- the bundled firmware release folder in `Firmware/` when the firmware payload was built first
-- the firmware file in that folder must match the target tag for release builds
+- every firmware project's merged release artifacts in `Firmware/`
+- every merged binary's manifest sidecar in `Firmware/`
+- every firmware file in that folder must match the target tag for release builds
 
 When notes are requested, the text should follow the English structure defined by `release-notes-github`.
 

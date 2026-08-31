@@ -1,6 +1,6 @@
 ---
 name: pc-app-portable-release
-description: Build the Windows portable zip artifact for this repository with a versioned LumaBloom release filename. Use when Codex needs to run the documented repo-root portable build flow for `pc-app`, produce the self-contained single-file `win-x64` output, bundle `Tools/esptool.exe`, include the ESP32-C6 firmware release folder in `Firmware/` when available, package it into `luma-bloom-pc-app_<tag>_win-x64-portable.zip`, or regenerate the release zip for a specific target tag.
+description: Build the versioned LumaBloom Windows portable zip, first running every firmware project's own merged-binary build script and then bundling all matching firmware artifacts with the app and flashing tool. Use for standalone PC packages or full portable release artifacts.
 ---
 
 # PC App Portable Release
@@ -9,18 +9,18 @@ Build the Windows portable release artifact for `pc-app/` using the flow documen
 
 ## Workflow
 
-1. Require a target tag such as `0.3.0`.
-2. From the repo root, run `.codex-skill-staging/pc-app-portable-release/scripts/build_portable_zip.py` with that tag.
+1. By default, resolve the target version from the same MinVer configuration used by `pc-app`. Pass `--tag` only for an explicit release-version override.
+2. From the repo root, run `.codex-skill-staging/pc-app-portable-release/scripts/build_portable_zip.py`. It discovers every directory under `firmware/`, requires its own `build_merged.py`, and runs every script with the resolved version before publishing the PC app.
 3. Treat the direct `dotnet publish` single-file command as the lower-level equivalent documented in `docs/build-and-run.md`.
 4. Report:
    - the publish output folder
    - the final zip path
    - the exact release filename
    - whether `Tools/esptool.exe` was bundled
-   - whether the firmware release folder was bundled into `Firmware/`
+   - every firmware artifact bundled into `Firmware/`
 5. Treat this release build as strict:
    - the published `BrightnessSensor.ConsoleApp.exe` must report the exact requested tag, not a `preview` or other prerelease suffix
-   - when the tag is a real release tag such as `2.0.1`, the bundled firmware must be the matching `*_2.0.1_merged.bin`, not an older fallback file
+   - every firmware project must contribute artifacts and manifests matching the resolved version; never fall back to an older file or omit a project
 6. If `dotnet publish` is blocked by sandbox access to `NuGet.Config` or package caches, rerun with escalation.
 
 ## Commands
@@ -28,7 +28,7 @@ Build the Windows portable release artifact for `pc-app/` using the flow documen
 ### Build the versioned portable zip
 
 ```powershell
-python .codex-skill-staging/pc-app-portable-release/scripts/build_portable_zip.py --tag 0.3.0
+python .codex-skill-staging/pc-app-portable-release/scripts/build_portable_zip.py
 ```
 
 ### Build the single-file publish output directly
@@ -56,6 +56,7 @@ python .codex-skill-staging/pc-app-portable-release/scripts/build_portable_zip.p
 
 - The output zip must be named:
   `luma-bloom-pc-app_<tag>_win-x64-portable.zip`
+- By default, `<tag>` is the MinVer version used by `AppVersion.Current`; `--tag` overrides it for an explicit release.
 - The publish folder remains:
   `pc-app/artifacts/single-file/win-x64/`
 - The zip file is written to:
@@ -64,9 +65,11 @@ python .codex-skill-staging/pc-app-portable-release/scripts/build_portable_zip.p
   `pc-app/artifacts/single-file/win-x64/BrightnessSensor.ConsoleApp.exe`
 - The bundled flashing tool is:
   `pc-app/artifacts/single-file/win-x64/Tools/esptool.exe`
-- When a firmware release payload already exists in `firmware/firmware_esp32c6/build/release/`, the publish folder also contains:
+- Firmware projects write their payloads to `firmware/<project>/build/release/`; all matching artifacts are copied to:
   `pc-app/artifacts/single-file/win-x64/Firmware/<release-files>`
-- For release tags, fail the build instead of silently bundling the wrong firmware version.
+- Each copied binary must include its `<binary>.manifest.json` sidecar.
+- For release tags, fail the build instead of silently bundling the wrong firmware version or omitting a firmware project.
+- `--skip-firmware-build` is reserved for the top-level release coordinator after it has already built every firmware project successfully.
 
 ## Resources
 

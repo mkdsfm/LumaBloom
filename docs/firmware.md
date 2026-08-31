@@ -14,10 +14,10 @@ Do not power the KY-018 from `5V`. Do not use `GPIO0` for its analog signal beca
 
 `APP_DISPLAY_TYPE` selects the board/display pin profile and matching sprite palette:
 
-| Value | Display | Build directory | Notes |
-| --- | --- | --- | --- |
-| `1` | `ST7789` | `build/` | Source-level default when no override is supplied |
-| `2` | `JD9853` | `build_touch/` | Selected explicitly with `-D APP_DISPLAY_TYPE=2` |
+| Value | Display | Build directory | Panel color inversion | Notes |
+| --- | --- | --- | --- | --- |
+| `1` | `ST7789` | `build/` | Enabled | Source-level default when no override is supplied |
+| `2` | `JD9853` | `build_touch/` | Disabled | Selected explicitly with `-D APP_DISPLAY_TYPE=2` |
 
 Keep the variants in separate build directories so configuring one does not overwrite the other.
 
@@ -69,6 +69,8 @@ Important settings include:
 - `APP_ANIMATION_FRAME_INTERVAL_MS` (`150 ms`) and `APP_ANIMATION_HYSTERESIS_PERCENT` (`2%`).
 - `APP_KY018_ADC_CHANNEL` and `APP_KY018_ADC_GPIO`; change both when moving the analog signal to another supported ADC pin.
 - LCD pins, geometry, orientation, colors, and backlight settings for each display profile.
+
+The non-touch `ST7789` panel requires hardware color inversion (`APP_LCD_INVERT_COLOR=true`) for the intended palette. The touch `JD9853` profile keeps panel color inversion disabled.
 
 Current KY-018 normalization defaults are:
 
