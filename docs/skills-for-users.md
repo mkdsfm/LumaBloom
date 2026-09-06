@@ -19,6 +19,7 @@ You can ask Codex things like:
 
 - `use the esp32-release-flash skill to build all firmware files for tag 2.1.0`
 - `use the esp32-release-flash skill to flash luma_bloom_esp32c6-touch_2.1.0_merged.bin to COM8`
+- `use the esp32-release-flash skill to flash luma_bloom_esp32c3-supermini_2.1.0_merged.bin to COM8`
 - `use the pc-app-portable-release skill to build the Windows zip for tag 0.3.0`
 - `use the pc-app-portable-release skill to build the Windows zip for tag 0.3.0 with the firmware release folder bundled for the Update tab`
 - `use the release-notes-github skill and write release notes; source tag: 0.2.1, target tag: 0.3.0`
@@ -33,6 +34,7 @@ The build skill:
 - requires each project to provide its own `build_merged.py` adapter for its actual toolchain;
 - builds every variant exposed by every project into that project's `build/release/` directory;
 - currently creates both `esp32c6-display` and `esp32c6-touch` binaries for the ESP32-C6 project;
+- creates the `esp32c3-supermini` binary for the displayless ESP32-C3 project;
 - flashes one explicitly selected merged ESP binary to a chosen `COM` port;
 - reuse existing artifacts with `--skip-build` when only reflashing is needed.
 

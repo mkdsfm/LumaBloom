@@ -10,7 +10,19 @@
 | 1   | Breadboard or safe mounting base | Optional, but useful for prototyping                 |
 | 1   | USB cable                        | Data-capable cable for flashing and serial telemetry |
 
-## Printable ESP32-C6 Enclosure
+## ESP32-C3 Super Mini Build
+
+| Qty | Part                             | Notes                                                |
+|-----|----------------------------------|------------------------------------------------------|
+| 1   | ESP32-C3 Super Mini              | USB must expose built-in USB Serial/JTAG             |
+| 1   | KY-018 light sensor module       | Analog output connects to GPIO4                      |
+| 3+  | Dupont jumper wires, 20 cm       | `VCC`, `GND`, and `AO`                               |
+| 1   | Breadboard or safe mounting base | Optional, but useful for prototyping                 |
+| 1   | USB data cable                   | Used for flashing, power, and serial telemetry       |
+
+The ESP32-C3 build uses the same flower, KY-018 holder, stem, joints, petals, leaves, wiring, and fasteners as the ESP32-C6 build. Its board-specific lower pot assembly has not been modeled or published yet.
+
+## Printable Flower Enclosure
 
 | Qty       | Part                      | Notes                                                 |
 |-----------|---------------------------|-------------------------------------------------------|
@@ -24,4 +36,4 @@
 | 2         | Board mounting screws     | Mount the ESP32-C6 board to `BR-003-3D` diagonally    |
 | As needed | Printed `BR-011-3D` pins  | Used in the vase rim and bud / stem assembly          |
 
-The STEP sources and selected STL exports live in `3d-print/source/`.
+The current color-grouped `.3mf` plates include the ESP32-C6 lower pot parts. The shared flower parts can also be reused for the ESP32-C3 build, but a complete C3 print set will require the future ESP32-C3 pot and board mount. The STEP sources and selected STL exports live in `3d-print/source/`.

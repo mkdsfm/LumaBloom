@@ -1,13 +1,13 @@
 # Getting Started
 
-This guide gets one LumaBloom ESP32-C6 device running with the Windows companion app.
+This guide gets one supported LumaBloom ESP32 device running with the Windows companion app.
 
 ## Requirements
 
 - Windows 10/11.
 - .NET SDK 10.0+.
 - ESP-IDF 6.x.
-- Waveshare `ESP32-C6-LCD-1.47`.
+- Waveshare `ESP32-C6-LCD-1.47` or an ESP32-C3 Super Mini with built-in USB Serial/JTAG.
 - KY-018 analog light sensor.
 - USB data cable.
 
@@ -15,7 +15,10 @@ For enclosure parts, wiring, BOM, and assembly, see [`../hardware/README.md`](..
 
 ## 1. Flash The Device
 
-Build and flash the ESP32-C6 firmware from [`firmware/firmware_esp32c6/`](../firmware/firmware_esp32c6/).
+Choose the project for your board:
+
+- ESP32-C6 with LCD: [`firmware/firmware_esp32c6/`](../firmware/firmware_esp32c6/)
+- ESP32-C3 Super Mini without display: [`firmware/firmware_esp32c3_supermini/`](../firmware/firmware_esp32c3_supermini/)
 
 Detailed commands are in [`firmware.md`](firmware.md).
 
@@ -25,17 +28,17 @@ The packaged Windows app can also flash bundled firmware. Open `Update`, switch 
 
 Default KY-018 wiring:
 
-| KY-018 | Waveshare ESP32-C6-LCD-1.47 |
-| --- | --- |
-| `VCC` | `3V3` |
-| `GND` | `GND` |
-| `AO` / `S` | `GPIO4` |
+| KY-018 | ESP32-C6 LCD | ESP32-C3 Super Mini |
+| --- | --- | --- |
+| `VCC` | `3V3` | `3V3` |
+| `GND` | `GND` | `GND` |
+| `AO` / `S` | `GPIO4` | `GPIO4` (`ADC1_CH4`) |
 
 Full wiring notes are in [`../hardware/WIRING.md`](../hardware/WIRING.md).
 
 ## 3. Configure The Windows App
 
-Create `pc-app/appsettings.json` from the ESP32-C6 example:
+Create `pc-app/appsettings.json` from the full analog example:
 
 ```powershell
 Copy-Item pc-app/appsettings.esp32c6.example.json pc-app/appsettings.json
@@ -43,7 +46,7 @@ Copy-Item pc-app/appsettings.esp32c6.example.json pc-app/appsettings.json
 
 Useful config notes:
 
-- `processing.adcMin=200`, `processing.adcMax=3200`, and `processing.invert=true` match the current ESP32-C6 + KY-018 wiring
+- `processing.adcMin=200`, `processing.adcMax=3200`, and `processing.invert=true` match the ESP32-C6 baseline and are a starting point for ESP32-C3; tune them from actual bright and dark readings
 - `brightness.curve` accepts the main response points as `{ "lightPercent", "brightnessPercent" }`
 - `ui.language` accepts `auto`, `en`, `ru`, or `es`
 
@@ -62,7 +65,7 @@ Firmware flashing remains available from `Update` while the app is waiting for v
 
 ## Expected Result
 
-- The LCD shows the current ambient percentage.
+- On ESP32-C6, the LCD shows the current ambient percentage; ESP32-C3 intentionally has no display.
 - The app receives JSON lines with `id`, `ts`, and `raw`.
 - Monitor brightness follows the configured brightness curve.
 

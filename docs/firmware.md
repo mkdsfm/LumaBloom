@@ -1,16 +1,41 @@
 # Firmware
 
-The active firmware is an ESP-IDF project for Waveshare ESP32-C6 1.47-inch LCD boards with a KY-018 analog light sensor. It supports the `ESP32-C6-LCD-1.47` with `ST7789` and the `ESP32-C6-Touch-LCD-1.47` with `JD9853`.
+The repository contains two ESP-IDF 6.x firmware projects using the same LumaBloom JSONL protocol:
+
+- `firmware/firmware_esp32c6/` for Waveshare ESP32-C6 1.47-inch LCD boards;
+- `firmware/firmware_esp32c3_supermini/` for an ESP32-C3 Super Mini with no display.
+
+Both read a KY-018 on GPIO4 and send its native ADC value to `pc-app`.
 
 ## Requirements
 
 - ESP-IDF 6.x.
-- A Waveshare `ESP32-C6-LCD-1.47` (`ST7789`) or `ESP32-C6-Touch-LCD-1.47` (`JD9853`).
+- A Waveshare `ESP32-C6-LCD-1.47` (`ST7789`), `ESP32-C6-Touch-LCD-1.47` (`JD9853`), or ESP32-C3 Super Mini whose USB connector exposes built-in USB Serial/JTAG.
 - A KY-018 connected to `3V3`, `GND`, and `GPIO4` (`AO`/`S`) by default.
 
-Do not power the KY-018 from `5V`. Do not use `GPIO0` for its analog signal because it can interfere with normal ESP32-C6 startup.
+Do not power the KY-018 from `5V`. On ESP32-C6, do not use `GPIO0` for its analog signal because it can interfere with startup. On ESP32-C3, keep GPIO18 and GPIO19 reserved for USB.
 
-## Display Variants
+## ESP32-C3 Super Mini
+
+Run from `firmware/firmware_esp32c3_supermini/`:
+
+```powershell
+idf.py set-target esp32c3
+idf.py build
+idf.py -p COM5 flash monitor
+```
+
+The firmware has one sensor task and no LCD, UI, buttons, calibration command, Wi-Fi, or Bluetooth. It uses `ADC1_CH4` on GPIO4, sends one raw reading approximately every `200 ms`, and retries ADC initialization after failures.
+
+Create a merged release binary with:
+
+```powershell
+python build_merged.py --tag 2.1.0
+```
+
+This produces `build/release/luma_bloom_esp32c3-supermini_2.1.0_merged.bin` plus its manifest. See the project-specific [`README.md`](../firmware/firmware_esp32c3_supermini/README.md) for details.
+
+## ESP32-C6 Display Variants
 
 `APP_DISPLAY_TYPE` selects the board/display pin profile and matching sprite palette:
 
@@ -21,7 +46,7 @@ Do not power the KY-018 from `5V`. Do not use `GPIO0` for its analog signal beca
 
 Keep the variants in separate build directories so configuring one does not overwrite the other.
 
-## Build And Flash
+## ESP32-C6 Build And Flash
 
 Run commands from `firmware/firmware_esp32c6/` in an ESP-IDF PowerShell.
 
@@ -124,7 +149,7 @@ The normalized percentage shown on the LCD is local UI state and is not sent to 
 
 See [`protocol.md`](protocol.md) for the desktop-facing telemetry contract.
 
-## Release Binary
+## ESP32-C6 Release Binary
 
 Create a merged binary for the default `ST7789` build:
 

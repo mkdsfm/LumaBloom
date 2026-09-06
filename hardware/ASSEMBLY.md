@@ -1,16 +1,16 @@
 # Assembly
 
-Current enclosure assembly is documented for the Waveshare `ESP32-C6-LCD-1.47` build only.
+The upper flower assembly is shared by the Waveshare `ESP32-C6-LCD-1.47` and ESP32-C3 Super Mini builds. The checked-in lower pot assembly currently fits the ESP32-C6 board only. The ESP32-C3 Super Mini requires a different pot and board mount, which have not been modeled or published yet.
 
 ## Before You Start
 
-- Use the ESP32-C6 firmware track in `firmware/firmware_esp32c6/`.
+- Flash the firmware track matching the selected board.
 - Keep the USB cable disconnected while changing wiring or installing the board.
 - Use `3V3` for the KY-018 power pin.
 - Do not use `GPIO0` for the KY-018 signal on ESP32-C6; it can interfere with normal startup.
 - Print the enclosure plates from `3d-print/enclosure/` before final assembly.
 
-## Required Printed Parts
+## Current Printed Parts
 
 | Part | Source file |
 | --- | --- |
@@ -26,7 +26,9 @@ Current enclosure assembly is documented for the Waveshare `ESP32-C6-LCD-1.47` b
 | `BR-011-3D` | `3d-print/source/BR-011-3D - Shaft.step` |
 | `BR-014-3D` | `3d-print/source/BR-014-3D - Sensor lid.step` |
 
-## Assembly Steps
+The KY-018 holder, bud, stem, joints, petals, and leaves above the pot are shared. The checked-in pot parts, display frame, and board mount form the ESP32-C6 lower assembly. Do not assume that any part of this lower assembly will be reused by the future ESP32-C3 pot.
+
+## ESP32-C6 Complete Assembly
 
 1. Flash the ESP32-C6 board with the firmware from `firmware/firmware_esp32c6/`.
 2. Print the enclosure details from `3d-print/enclosure/`.
@@ -45,15 +47,21 @@ Current enclosure assembly is documented for the Waveshare `ESP32-C6-LCD-1.47` b
 15. Insert the display frame `BR-005-3D` into `BR-004-3D`.
 16. Done.
 
+## ESP32-C3 Assembly Status
+
+For ESP32-C3 Super Mini, assemble the KY-018 holder, bud, stem, joints, petals, and leaves using the same relevant steps and parts above. Use the ESP32-C3 wiring from `WIRING.md`.
+
+Do not install the Super Mini into the current ESP32-C6 pot or assume the existing board mounting holes fit it. Final enclosure assembly remains pending until the ESP32-C3 lower pot and board-mounting model is added.
+
 ## Wiring Check
 
-Default KY-018 wiring for the ESP32-C6 build:
+Default KY-018 wiring for both builds:
 
-| KY-018 | Waveshare ESP32-C6-LCD-1.47 |
-| --- | --- |
-| `VCC` | `3V3` |
-| `GND` | `GND` |
-| `AO` / `S` | `GPIO4` (ADC) |
+| KY-018 | Waveshare ESP32-C6-LCD-1.47 | ESP32-C3 Super Mini |
+| --- | --- | --- |
+| `VCC` / `+` | `3V3` | `3V3` |
+| `GND` / `-` | `GND` | `GND` |
+| `AO` / `S` | `GPIO4` (ADC) | `GPIO4` (`ADC1_CH4`) |
 
 ## Smoke Check
 
@@ -61,7 +69,7 @@ After enclosure assembly:
 
 1. Connect the device over USB.
 2. Start the Windows app from `pc-app/` so it can read live telemetry.
-3. Confirm that the LCD shows a percentage and the diagnostics line updates with the live ADC reading.
+3. On ESP32-C6, confirm that the LCD shows a percentage and the diagnostics line updates with the live ADC reading. ESP32-C3 has no display.
 4. Confirm that telemetry includes `raw`.
 
 ## Signal Quality

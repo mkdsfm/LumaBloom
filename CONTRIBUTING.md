@@ -4,7 +4,7 @@ Thanks for improving LumaBloom. Keep changes focused and validate the track you 
 
 ## Project Focus
 
-The documented hardware target is Waveshare `ESP32-C6-LCD-1.47` with KY-018 and the printable LumaBloom enclosure.
+The documented hardware targets are Waveshare `ESP32-C6-LCD-1.47` with KY-018 and the displayless ESP32-C3 Super Mini + KY-018 build. Both use the same printable flower above the pot; the checked-in lower pot fits ESP32-C6, while the different ESP32-C3 pot is not yet available.
 
 The PC app is Windows-only by design.
 
@@ -21,7 +21,9 @@ Choose the smallest validation that meaningfully covers the change:
 
 - PC app logic: run `dotnet build brightness-sensor.sln` and preferably `dotnet test brightness-sensor.sln` from `pc-app/`.
 - Parser, config, or profile changes: prioritize `BrightnessSensor.ConsoleApp.Tests` and `BrightnessSensor.DeviceReading.Tests`.
-- Firmware changes: build with `idf.py build`; hardware flashing should be called out when not performed.
+- ESP32-C6 firmware changes: build `firmware/firmware_esp32c6/` with target `esp32c6` and validate both display variants when applicable.
+- ESP32-C3 firmware changes: build `firmware/firmware_esp32c3_supermini/` with target `esp32c3`.
+- Hardware flashing should be called out when not performed.
 - Protocol changes: validate both producer and consumer, or explicitly document what was not validated.
 - Docs-only changes: no build is required, but links and command examples should match the repo layout.
 

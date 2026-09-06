@@ -164,6 +164,16 @@ public sealed class FirmwarePortSelectionTests
             startInfo.ArgumentList);
     }
 
+    [Fact]
+    public void FlashStartInfo_UsesEsp32C3ChipFromManifest()
+    {
+        var firmware = CreateFirmwareInfo(chip: "esp32c3");
+
+        var startInfo = FirmwareFlashService.CreateStartInfo("esptool.exe", @"C:\LumaBloom", firmware, "COM8");
+
+        Assert.Equal("esp32c3", startInfo.ArgumentList[1]);
+    }
+
     private static RuntimeStateStore CreateStateWithFirmware()
     {
         var state = new RuntimeStateStore();
@@ -172,9 +182,9 @@ public sealed class FirmwarePortSelectionTests
         return state;
     }
 
-    private static BundledFirmwareInfo CreateFirmwareInfo(string path = @"C:\LumaBloom\Firmware\firmware.bin")
+    private static BundledFirmwareInfo CreateFirmwareInfo(string path = @"C:\LumaBloom\Firmware\firmware.bin", string chip = "esp32c6")
     {
-        return new BundledFirmwareInfo("2.1.0", "esptool", "esp32c6", 460800, "0x0", Path.GetFileName(path), path);
+        return new BundledFirmwareInfo("2.1.0", "esptool", chip, 460800, "0x0", Path.GetFileName(path), path);
     }
 
     private sealed class FakeFirmwareFlashService : IFirmwareFlashService

@@ -83,4 +83,5 @@ To build release binaries manually, run every project's script. Release skills d
 
 - [`docs/protocol.md`](../docs/protocol.md) — required serial transport and telemetry contract.
 - [`docs/sensor-transports-and-monitor-ddc.md`](../docs/sensor-transports-and-monitor-ddc.md) — end-to-end sensor transport and monitor-control architecture.
-- [`firmware_esp32c6/README.md`](firmware_esp32c6/README.md) — optional ESP32-C6 reference implementation.
+- [`firmware_esp32c6/README.md`](firmware_esp32c6/README.md) — ESP32-C6 LCD reference implementation.
+- [`firmware_esp32c3_supermini/README.md`](firmware_esp32c3_supermini/README.md) — displayless ESP32-C3 Super Mini reference implementation.

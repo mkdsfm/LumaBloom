@@ -17,14 +17,16 @@ public sealed class BundledFirmwareLocatorTests
         {
             CreateFirmware(firmwareDirectory, "lumabloom_1.2.0-preview.3_merged.bin", "1.2.0-preview.3", "esptool");
             CreateFirmware(firmwareDirectory, "lumabloom_1.1.0_merged.bin", "1.1.0", "esptool");
+            CreateFirmware(firmwareDirectory, "luma_bloom_esp32c3-supermini_1.2.0_merged.bin", "1.2.0", "esptool", "esp32c3");
             CreateFirmware(firmwareDirectory, "other_3.0.0_merged.bin", "3.0.0", "vendor-tool");
 
             var located = new BundledFirmwareLocator().TryLocateAll(applicationDirectory, out var options, out _);
 
             Assert.True(located);
-            Assert.Equal(2, options.Count);
+            Assert.Equal(3, options.Count);
             Assert.Contains(options, option => option.Version == "1.2.0-preview.3" && option.FileName == "lumabloom_1.2.0-preview.3_merged.bin");
             Assert.Contains(options, option => option.Version == "1.1.0" && option.FileName == "lumabloom_1.1.0_merged.bin");
+            Assert.Contains(options, option => option.Version == "1.2.0" && option.Chip == "esp32c3");
             Assert.DoesNotContain(options, option => option.FileName == "other_3.0.0_merged.bin");
         }
         finally
@@ -33,7 +35,7 @@ public sealed class BundledFirmwareLocatorTests
         }
     }
 
-    private static void CreateFirmware(string directory, string fileName, string version, string flashMethod)
+    private static void CreateFirmware(string directory, string fileName, string version, string flashMethod, string chip = "esp32c6")
     {
         var path = Path.Combine(directory, fileName);
         File.WriteAllBytes(path, [1]);
@@ -45,7 +47,7 @@ public sealed class BundledFirmwareLocatorTests
             variant = "test-variant",
             board = "test-board",
             flashMethod,
-            chip = "esp32c6",
+            chip,
             baudRate = 460800,
             offset = "0x0"
         };

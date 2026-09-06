@@ -1,6 +1,6 @@
 # Enclosure 3D Printing
 
-This directory contains the printable enclosure and decorative body for the LumaBloom ESP32-C6 sensor build.
+This directory contains the shared printable flower body and the current ESP32-C6 lower pot assembly for LumaBloom sensor builds.
 
 ## Layout
 
@@ -51,7 +51,9 @@ The `source/` directory contains the full assembly and individual part sources:
 
 ## Assembly Notes
 
-- The current enclosure assembly is for the Waveshare `ESP32-C6-LCD-1.47` build.
+- The flower, KY-018 holder, stem, joints, petals, and leaves are shared by the ESP32-C6 and ESP32-C3 builds.
+- The current lower pot, display opening, and board mount are for the Waveshare `ESP32-C6-LCD-1.47` build.
+- A different lower pot and board mount are required for ESP32-C3 Super Mini and are not yet included.
 - Print the color-grouped `.3mf` files before final wiring so the display, sensor, and cable routing can be checked against the case.
 - Keep the KY-018 light path unobstructed after installing `BR-014-3D`.
 - Route USB and sensor wiring so the ball joints can move without pulling on solder joints or Dupont connectors.

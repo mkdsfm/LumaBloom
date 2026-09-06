@@ -1,0 +1,12 @@
+idf_component_register(
+    SRCS
+        "app_main.c"
+        "sensor_ky018.c"
+        "telemetry_serial.c"
+    INCLUDE_DIRS
+        "."
+    REQUIRES
+        esp_adc
+        esp_driver_gpio
+        esp_timer
+)
